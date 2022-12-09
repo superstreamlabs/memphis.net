@@ -29,15 +29,25 @@ namespace Memphis.Client
         public MemphisClient(Options brokerConnOptions, IConnection brokerConnection,
             IJetStream jetStreamContext, string connectionId)
         {
-            this._brokerConnOptions = brokerConnOptions;
-            this._brokerConnection = brokerConnection;
-            this._jetStreamContext = jetStreamContext;
-            this._connectionId = connectionId;
+            this._brokerConnOptions = brokerConnOptions ?? throw new ArgumentNullException(nameof(brokerConnOptions));
+            this._brokerConnection = brokerConnection ?? throw new ArgumentNullException(nameof(brokerConnection));
+            this._jetStreamContext = jetStreamContext ?? throw new ArgumentNullException(nameof(jetStreamContext));
+            this._connectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
 
+            //TODO need to handle mechanism to check connection being active throughout client is being used
             this._connectionActive = true;
         }
 
-        public async Task<MemphisProducer> CreateProducer(string stationName, string producerName, bool generateRandomSuffix = false)
+
+        /// <summary>
+        /// Create Producer for station 
+        /// </summary>
+        /// <param name="stationName">name of station which producer will produce data to</param>
+        /// <param name="producerName">name of producer which used to define uniquely</param>
+        /// <param name="generateRandomSuffix">feature flag based param used to add randomly generated suffix for producer's name</param>
+        /// <returns>An <see cref="MemphisProducer"/> object connected to the station to produce data</returns>
+        public async Task<MemphisProducer> CreateProducer(string stationName, string producerName,
+            bool generateRandomSuffix = false)
         {
             if (!_connectionActive)
             {
@@ -54,7 +64,7 @@ namespace Memphis.Client
                 var createProducerModel = new CreateProducerRequest
                 {
                     ProducerName = producerName,
-                    StationName = MemphisUtil.GetInternalStationName(stationName),
+                    StationName = MemphisUtil.GetInternalName(stationName),
                     ConnectionId = _connectionId,
                     ProducerType = "application",
                     RequestVersion = 1
@@ -75,7 +85,7 @@ namespace Memphis.Client
                     throw new MemphisException(respAsObject.Error);
                 }
 
-                string internalStationName = MemphisUtil.GetInternalStationName(stationName);
+                string internalStationName = MemphisUtil.GetInternalName(stationName);
 
                 //TODO start listen for schema updates
 
@@ -94,14 +104,60 @@ namespace Memphis.Client
             }
         }
 
-        public MemphisConsumer CreateConsumer()
+        /// <summary>
+        /// Create Consumer for station 
+        /// </summary>
+        /// <param name="consumerOptions">options used to customize the behaviour of consumer</param>
+        /// <returns>An <see cref="MemphisConsumer"/> object connected to the station from consuming data</returns>
+        public async Task<MemphisConsumer> CreateConsumer(ConsumerOptions consumerOptions)
         {
-            if (_connectionActive)
+            if (!_connectionActive)
             {
                 throw new MemphisConnectionException("Connection is dead");
             }
 
-            return null;
+            if (consumerOptions.GenerateRandomSuffix)
+            {
+                consumerOptions.ConsumerName = $"{consumerOptions.ConsumerName}_{MemphisUtil.GetUniqueKey(8)}";
+            }
+
+            if (string.IsNullOrEmpty(consumerOptions.ConsumerGroup))
+            {
+                consumerOptions.ConsumerGroup = consumerOptions.ConsumerName;
+            }
+
+            try
+            {
+                var createConsumerModel = new CreateConsumerRequest
+                {
+                    ConsumerName = consumerOptions.ConsumerName,
+                    StationName = consumerOptions.StationName,
+                    ConnectionId = _connectionId,
+                    ConsumerType = "application",
+                    ConsumerGroup = consumerOptions.ConsumerGroup,
+                    MaxAckTimeMs = consumerOptions.MaxAckTimeMs,
+                    MaxMsgCountForDelivery = consumerOptions.MaxMsdgDeliveries,
+                };
+
+                var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
+
+                byte[] createConsumerReqBytes = Encoding.UTF8.GetBytes(createConsumerModelJson);
+
+                Msg createConsumerResp = await _brokerConnection.RequestAsync(
+                    MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes);
+                string respAsJson = Encoding.UTF8.GetString(createConsumerResp.Data);
+
+                if (!string.IsNullOrEmpty(respAsJson))
+                {
+                    throw new MemphisException(respAsJson);
+                }
+
+                return new MemphisConsumer(this, consumerOptions);
+            }
+            catch (System.Exception e)
+            {
+                throw new MemphisException("Failed to create memphis producer", e);
+            }
         }
 
         public void Dispose()
@@ -112,26 +168,22 @@ namespace Memphis.Client
 
         internal IConnection BrokerConnection
         {
-            get
-            {
-                return _brokerConnection;
-            }
+            get { return _brokerConnection; }
         }
-        
+
         internal IJetStream JetStreamConnection
         {
-            get
-            {
-                return _jetStreamContext;
-            }
+            get { return _jetStreamContext; }
         }
-        
+
         internal string ConnectionId
         {
-            get
-            {
-                return _connectionId;
-            }
+            get { return _connectionId; }
+        }
+
+        internal bool ConnectionActive
+        {
+            get { return _connectionActive; }
         }
     }
 }
