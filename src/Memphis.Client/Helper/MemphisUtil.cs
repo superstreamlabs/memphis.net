@@ -6,9 +6,9 @@ namespace Memphis.Client.Helper
 {
     internal class MemphisUtil
     {
-        internal static string GetInternalStationName(string stationName)
+        internal static string GetInternalName(string name)
         {
-            return stationName.Replace(".", "#");
+            return name.Replace(".", "#");
         }
         
         internal static readonly char[] chars =

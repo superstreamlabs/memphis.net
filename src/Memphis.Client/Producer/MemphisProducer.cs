@@ -19,14 +19,24 @@ namespace Memphis.Client.Producer
 
         public MemphisProducer(MemphisClient memphisClient, string producerName, string stationName)
         {
-            this._memphisClient = memphisClient;
-            this._producerName = producerName;
-            this._stationName = stationName;
+            this._memphisClient = memphisClient ?? throw new ArgumentNullException(nameof(memphisClient));
+            this._producerName = producerName ?? throw new ArgumentNullException(nameof(producerName));
+            this._stationName = stationName ?? throw new ArgumentNullException(nameof(stationName));
 
-            this._internalStationName = MemphisUtil.GetInternalStationName(stationName);
+            this._internalStationName = MemphisUtil.GetInternalName(stationName);
         }
 
-        public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15, string messageId = null)
+
+        /// <summary>
+        /// Produce messages into station
+        /// </summary>
+        /// <param name="message">the event handler for messages consumed from station in which MemphisConsumer created for</param>
+        /// <param name="headers">headers used to send data in the form of key and value</param>
+        /// <param name="ackWaitSec">duration of time in seconds for acknowledgement</param>
+        /// <param name="messageId">ID of the message</param>
+        /// <returns></returns>
+        public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15,
+            string messageId = null)
         {
             //TODO Validate message with schema defined for station, and raise exception when
 
@@ -53,8 +63,7 @@ namespace Memphis.Client.Producer
 
 
             var publishAck = await _memphisClient.JetStreamConnection.PublishAsync(
-                msg,
-                PublishOptions.Builder()
+                msg, PublishOptions.Builder()
                     .WithTimeout(Duration.OfSeconds(ackWaitSec))
                     .Build());
 
