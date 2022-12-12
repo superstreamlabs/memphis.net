@@ -21,5 +21,6 @@ namespace Memphis.Client.Constants
     public class MemphisSubjects
     {
         public const string PM_RESEND_ACK_SUBJ = "$memphis_pm_acks";
+        public const string MEMPHIS_SCHEMA_UPDATE = "$memphis_schema_updates_";
     }
 }
