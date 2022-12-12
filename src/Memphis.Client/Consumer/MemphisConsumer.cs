@@ -3,54 +3,55 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
-using NATS.Client;
-using NATS.Client.JetStream;
-
 using Memphis.Client.Constants;
 using Memphis.Client.Core;
 using Memphis.Client.Helper;
-
+using NATS.Client;
+using NATS.Client.JetStream;
 
 namespace Memphis.Client.Consumer
 {
-    public class MemphisConsumer
+    public class MemphisConsumer : IDisposable
     {
         private readonly MemphisClient _memphisClient;
         private readonly ConsumerOptions _consumerOptions;
-        
+
         private IJetStreamPullSubscription _pullSubscription;
         private ISyncSubscription _dlqSubscription;
 
+        private readonly CancellationTokenSource _cancellationTokenSource;
 
         public MemphisConsumer(MemphisClient memphisClient, ConsumerOptions consumerOptions)
         {
             this._memphisClient = memphisClient ?? throw new ArgumentNullException(nameof(memphisClient));
             this._consumerOptions = consumerOptions ?? throw new ArgumentNullException(nameof(consumerOptions));
+
+            this._cancellationTokenSource = new CancellationTokenSource();
         }
 
 
         /// <summary>
-        /// Consume messages
+        /// ConsumeAsync messages
         /// </summary>
         /// <param name="msgCallbackHandler">the event handler for messages consumed from station in which MemphisConsumer created for</param>
         /// <param name="dlqCallbackHandler">event handler for messages consumed from dead letter queue or juts DLQ.</param>
-        /// <param name="cancellationToken">token used to cancel operation by client side</param>
         /// <returns></returns>
-        public async Task Consume(EventHandler<MemphisMessageHandlerEventArgs> msgCallbackHandler,
-            EventHandler<MemphisMessageHandlerEventArgs> dlqCallbackHandler,
-            CancellationToken cancellationToken)
+        public async Task ConsumeAsync(EventHandler<MemphisMessageHandlerEventArgs> msgCallbackHandler,
+            EventHandler<MemphisMessageHandlerEventArgs> dlqCallbackHandler)
         {
-            await this.consume(msgCallbackHandler, cancellationToken);
-            await this.consumeFromDlq(dlqCallbackHandler, cancellationToken);
+            var taskForStationConsumption = Task.Run(async () => await consume(msgCallbackHandler, _cancellationTokenSource.Token),
+                _cancellationTokenSource.Token);
+            var taskForDlqConsumption = Task.Run(async () => await consumeFromDlq(dlqCallbackHandler, _cancellationTokenSource.Token),
+                _cancellationTokenSource.Token);
+            await Task.WhenAll(taskForStationConsumption, taskForDlqConsumption);
         }
 
 
         /// <summary>
-        /// Consume messages from station
+        /// ConsumeAsync messages from station
         /// </summary>
         /// <param name="msgCallbackHandler">the event handler for messages consumed from station in which MemphisConsumer created for</param>
-        /// <param name="cancellationToken">token used to cancel operation by client side</param>
+        /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
         /// <returns></returns>
         private async Task consume(EventHandler<MemphisMessageHandlerEventArgs> msgCallbackHandler,
             CancellationToken cancellationToken)
@@ -91,10 +92,10 @@ namespace Memphis.Client.Consumer
         }
 
         /// <summary>
-        /// Consume messages from dead letter queue namely, DLQ
+        /// ConsumeAsync messages from dead letter queue namely, DLQ
         /// </summary>
         /// <param name="dlqCallbackHandler">event handler for messages consumed from dead letter queue or juts DLQ.</param>
-        /// <param name="cancellationToken">token used to cancel operation by client side</param>
+        /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
         /// <returns></returns>
         private async Task consumeFromDlq(EventHandler<MemphisMessageHandlerEventArgs> dlqCallbackHandler,
             CancellationToken cancellationToken)
@@ -102,10 +103,8 @@ namespace Memphis.Client.Consumer
             var subjectToConsume = MemphisUtil.GetInternalName(_consumerOptions.StationName);
             var consumerGroup = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
 
-
             var dlqSubscriptionName = MemphisSubcriptions.DLQ_PREFIX + subjectToConsume + "_" + consumerGroup;
             _dlqSubscription = _memphisClient.BrokerConnection.SubscribeSync(dlqSubscriptionName, dlqSubscriptionName);
-
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -133,6 +132,16 @@ namespace Memphis.Client.Consumer
                     }
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+
+            _memphisClient?.Dispose();
+            _pullSubscription?.Dispose();
+            _dlqSubscription?.Dispose();
         }
     }
 }

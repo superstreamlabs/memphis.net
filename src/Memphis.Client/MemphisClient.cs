@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Memphis.Client.Constants;
 using Memphis.Client.Consumer;
@@ -25,6 +27,12 @@ namespace Memphis.Client
         private readonly string _connectionId;
 
         private Dictionary<string, string> _schemaUpdateData = new Dictionary<string, string>();
+        private CancellationTokenSource _cancellationTokenSource;
+
+        private readonly ConcurrentDictionary<string, ProducerSchemaUpdateInit> _schemaUpdateDictionary;
+        private readonly ConcurrentDictionary<string, object> _subscriptionPerSchema;
+
+        private readonly ConcurrentDictionary<string, int> _producerPerStations;
 
         public MemphisClient(Options brokerConnOptions, IConnection brokerConnection,
             IJetStream jetStreamContext, string connectionId)
@@ -36,6 +44,11 @@ namespace Memphis.Client
 
             //TODO need to handle mechanism to check connection being active throughout client is being used
             this._connectionActive = true;
+            this._cancellationTokenSource = new CancellationTokenSource();
+
+            this._schemaUpdateDictionary = new ConcurrentDictionary<string, ProducerSchemaUpdateInit>();
+            this._subscriptionPerSchema = new ConcurrentDictionary<string, object>();
+            this._producerPerStations = new ConcurrentDictionary<string, int>();
         }
 
 
@@ -87,7 +100,7 @@ namespace Memphis.Client
 
                 string internalStationName = MemphisUtil.GetInternalName(stationName);
 
-                //TODO start listen for schema updates
+                await this.listenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
 
                 if (_schemaUpdateData.TryGetValue(internalStationName, out string schemaForStation))
                 {
@@ -160,8 +173,64 @@ namespace Memphis.Client
             }
         }
 
+
+        private async Task listenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
+        {
+            var schemaUpdateSubject = MemphisSubjects.MEMPHIS_SCHEMA_UPDATE + internalStationName;
+
+            if (!string.IsNullOrEmpty(schemaUpdateInit.SchemaName))
+            {
+                _schemaUpdateDictionary.TryAdd(internalStationName, schemaUpdateInit);
+            }
+
+
+            if (_subscriptionPerSchema.TryGetValue(internalStationName, out object schemaSub))
+            {
+                _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+                return;
+            }
+
+            var subscription = _brokerConnection.SubscribeSync(schemaUpdateSubject);
+
+            if (!_subscriptionPerSchema.TryAdd(internalStationName, subscription))
+            {
+                throw new MemphisException("Unable to add subscription of schema updates for station");
+            }
+
+            Task.Run(async () =>
+            {
+                while (!_cancellationTokenSource.IsCancellationRequested)
+                {
+                    var schemaUpdateMsg = subscription.NextMessage();
+                    await processAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
+                }
+            }, _cancellationTokenSource.Token);
+
+            _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+        }
+
+
+        private async Task processAndStoreSchemaUpdate(string internalStationName, Msg message)
+        {
+            string respAsJson = Encoding.UTF8.GetString(message.Data);
+            var respAsObject =
+                (ProducerSchemaUpdate) JsonSerDes.PrepareObjectFromString<ProducerSchemaUpdate>(respAsJson);
+
+            if (!string.IsNullOrEmpty(respAsObject?.Init?.SchemaName))
+            {
+                if (!this._schemaUpdateDictionary.TryAdd(internalStationName, respAsObject.Init))
+                {
+                    throw new MemphisException("Unable to save schema data for station");
+                }
+                //TODO add parse descriptor
+            }
+        }
+
         public void Dispose()
         {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+
             _brokerConnection.Dispose();
             _connectionActive = false;
         }

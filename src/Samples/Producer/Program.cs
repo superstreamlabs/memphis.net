@@ -3,7 +3,6 @@ using System.Collections.Specialized;
 using System.Text;
 using System.Threading.Tasks;
 using Memphis.Client;
-using NATS.Client.Internals;
 
 namespace Producer
 {
@@ -29,6 +28,7 @@ namespace Producer
                     await Task.Delay(1_000);
                     var text = $"Message #{i}: Welcome to Memphis";
                     await producer.ProduceAsync(Encoding.UTF8.GetBytes(text), commonHeaders);
+                    Console.WriteLine($"Message #{i} sent successfully");
                 }
             }
             catch (Exception ex)

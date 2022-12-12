@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Memphis.Client;
 using Memphis.Client.Consumer;
@@ -27,8 +26,6 @@ namespace Consumer
                     ConsumerGroup = "test",
                 });
 
-                var cancellationTokenSource = new CancellationTokenSource();
-
                 EventHandler<MemphisMessageHandlerEventArgs> msgHandler = (sender, args) =>
                 {
                     if (args.Exception != null)
@@ -54,7 +51,7 @@ namespace Consumer
                     }
                 };
 
-                await consumer.Consume(msgHandler, msgHandler, cancellationTokenSource.Token);
+                await consumer.ConsumeAsync(msgHandler, msgHandler);
             }
             catch (Exception ex)
             {

@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Threading.Tasks;
 using Memphis.Client.Constants;
 using Memphis.Client.Exception;
 using Memphis.Client.Helper;
+using Memphis.Client.Models.Response;
 using NATS.Client;
 using NATS.Client.Internals;
 using NATS.Client.JetStream;
@@ -16,6 +19,7 @@ namespace Memphis.Client.Producer
         private readonly string _producerName;
         private readonly string _stationName;
         private readonly string _internalStationName;
+
 
         public MemphisProducer(MemphisClient memphisClient, string producerName, string stationName)
         {
@@ -72,7 +76,7 @@ namespace Memphis.Client.Producer
                 throw new MemphisException(publishAck.ErrorDescription);
             }
         }
-
+        
         public string ProducerName => _producerName;
 
         public string StationName => _stationName;
