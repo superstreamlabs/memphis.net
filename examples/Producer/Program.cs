@@ -13,12 +13,15 @@ namespace Producer
             try
             {
                 var options = MemphisClientFactory.GetDefaultOptions();
-                options.Host = "localhost";
-                options.Username = "dotnetapp";
-                options.ConnectionToken = "memphis";
+                options.Host = "<memphis-host>";
+                options.Username = "<application type username>";
+                options.ConnectionToken = "<broker-token>";
                 var client = MemphisClientFactory.CreateClient(options);
 
-                var producer = await client.CreateProducer("test-station", "dotnetapp", true);
+                var producer = await client.CreateProducer(
+                    stationName: "<memphis-station-name>",
+                    producerName: "<memphis-producer-name>",
+                    generateRandomSuffix:true);
 
                 var commonHeaders = new NameValueCollection();
                 commonHeaders.Add("key-1", "value-1");
