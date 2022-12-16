@@ -3,7 +3,7 @@
 namespace Memphis.Client.Models.Response
 {
     [DataContract]
-    public class ProducerSchemaUpdate
+    public sealed class ProducerSchemaUpdate
     {
         [DataMember(Name = "UpdateType")] public string UpdateType { get; set; }
 

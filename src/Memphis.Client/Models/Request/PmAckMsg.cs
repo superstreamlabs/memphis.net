@@ -3,7 +3,7 @@
 namespace Memphis.Client.Models.Request
 {
     [DataContract]
-    public class PmAckMsg
+    public sealed class PmAckMsg
     {
         [DataMember(Name = "id")]
         public string Id { get; set; }

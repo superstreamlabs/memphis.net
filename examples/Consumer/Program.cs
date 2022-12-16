@@ -14,16 +14,16 @@ namespace Consumer
             try
             {
                 var options = MemphisClientFactory.GetDefaultOptions();
-                options.Host = "localhost";
-                options.Username = "dotnetapp";
-                options.ConnectionToken = "memphis";
+                options.Host = "<memphis-host>";
+                options.Username = "<application type username>";
+                options.ConnectionToken = "<broker-token>";
                 var client = MemphisClientFactory.CreateClient(options);
 
                 var consumer = await client.CreateConsumer(new ConsumerOptions
                 {
-                    StationName = "test-station",
-                    ConsumerName = "dotnetappconsumer",
-                    ConsumerGroup = "test",
+                    StationName = "<station-name>",
+                    ConsumerName = "<consumer-name>",
+                    ConsumerGroup = "<consumer-group-name>",
                 });
 
                 EventHandler<MemphisMessageHandlerEventArgs> msgHandler = (sender, args) =>
@@ -31,6 +31,7 @@ namespace Consumer
                     if (args.Exception != null)
                     {
                         Console.Error.WriteLine(args.Exception);
+                        return;
                     }
 
                     foreach (var msg in args.MessageList)
@@ -51,7 +52,9 @@ namespace Consumer
                     }
                 };
 
-                await consumer.ConsumeAsync(msgHandler, msgHandler);
+                await consumer.ConsumeAsync(
+                    msgCallbackHandler:msgHandler,
+                    dlqCallbackHandler:msgHandler);
             }
             catch (Exception ex)
             {

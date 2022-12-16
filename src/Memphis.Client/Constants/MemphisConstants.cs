@@ -4,7 +4,7 @@ namespace Memphis.Client.Constants
     {
         public const string MEMPHIS_PRODUCER_CREATIONS = "$memphis_producer_creations";
         public const string MEMPHIS_CONSUMER_CREATIONS = "$memphis_consumer_creations";
-        
+        public const string MEMPHIS_STATION_CREATIONS = "$memphis_station_creations";
     }
 
     public class MemphisHeaders

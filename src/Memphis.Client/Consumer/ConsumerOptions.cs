@@ -1,6 +1,6 @@
 ﻿namespace Memphis.Client.Consumer
 {
-    public class ConsumerOptions
+    public sealed class ConsumerOptions
     {
         public string StationName { get; set; }
         public string ConsumerName { get; set; }

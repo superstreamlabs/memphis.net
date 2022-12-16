@@ -11,6 +11,7 @@ using Memphis.Client.Helper;
 using Memphis.Client.Models.Request;
 using Memphis.Client.Models.Response;
 using Memphis.Client.Producer;
+using Memphis.Client.Station;
 using NATS.Client;
 using NATS.Client.JetStream;
 
@@ -158,11 +159,11 @@ namespace Memphis.Client
 
                 Msg createConsumerResp = await _brokerConnection.RequestAsync(
                     MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes);
-                string respAsJson = Encoding.UTF8.GetString(createConsumerResp.Data);
+                string errResp = Encoding.UTF8.GetString(createConsumerResp.Data);
 
-                if (!string.IsNullOrEmpty(respAsJson))
+                if (!string.IsNullOrEmpty(errResp))
                 {
-                    throw new MemphisException(respAsJson);
+                    throw new MemphisException(errResp);
                 }
 
                 return new MemphisConsumer(this, consumerOptions);
@@ -172,8 +173,66 @@ namespace Memphis.Client
                 throw new MemphisException("Failed to create memphis producer", e);
             }
         }
+        
+        
+        /// <summary>
+        /// Create Station 
+        /// </summary>
+        /// <param name="stationOptions">options used to customize the parameters of station</param>
+        /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
+        public async Task<MemphisStation> CreateStation(StationOptions stationOptions)
+        {
+            if (!_connectionActive)
+            {
+                throw new MemphisConnectionException("Connection is dead");
+            }
+            
+            try
+            {
+                var createStationModel = new CreateStationRequest()
+                {
+                    StationName = stationOptions.Name,
+                    RetentionType = stationOptions.RetentionType,
+                    RetentionValue = stationOptions.RetentionValue,
+                    StorageType = stationOptions.StorageType,
+                    Replicas = stationOptions.Replicas,
+                    IdempotencyWindowsInMs = stationOptions.IdempotencyWindowMs,
+                    SchemaName = stationOptions.SchemaName,
+                    DlsConfiguration = new DlsConfiguration()
+                    {
+                        Poison = stationOptions.SendPoisonMessageToDls,
+                        SchemaVerse = stationOptions.SendSchemaFailedMessageToDls,
+                    }
+                };
 
+                var createStationModelJson = JsonSerDes.PrepareJsonString<CreateStationRequest>(createStationModel);
 
+                byte[] createStationReqBytes = Encoding.UTF8.GetBytes(createStationModelJson);
+
+                Msg createStationResp = await _brokerConnection.RequestAsync(
+                    MemphisStations.MEMPHIS_STATION_CREATIONS, createStationReqBytes);
+                string errResp = Encoding.UTF8.GetString(createStationResp.Data);
+
+                if (!string.IsNullOrEmpty(errResp))
+                {
+
+                    if (errResp.Contains("already exist"))
+                    {
+                        return new MemphisStation(this, stationOptions.Name);
+                    }
+                    
+                    throw new MemphisException(errResp);
+                }
+
+                return new MemphisStation(this, stationOptions.Name);
+            }
+            catch (System.Exception e)
+            {
+                throw new MemphisException("Failed to create memphis station", e);
+            }
+        }
+        
+        
         private async Task listenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
         {
             var schemaUpdateSubject = MemphisSubjects.MEMPHIS_SCHEMA_UPDATE + internalStationName;
@@ -207,6 +266,16 @@ namespace Memphis.Client
             }, _cancellationTokenSource.Token);
 
             _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+        }
+        
+        public async Task AttachSchema(string stationName, string schemaName)
+        {
+            throw new System.NotImplementedException();
+        }
+        
+        public async Task DetachSchema(string stationName, string schemaName)
+        {
+            throw new System.NotImplementedException();
         }
 
 
