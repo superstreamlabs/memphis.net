@@ -2,6 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Memphis.Client.Constants;
 using Memphis.Client.Exception;
@@ -10,6 +14,7 @@ using Memphis.Client.Models.Response;
 using NATS.Client;
 using NATS.Client.Internals;
 using NATS.Client.JetStream;
+using NJsonSchema;
 
 namespace Memphis.Client.Producer
 {
@@ -42,7 +47,7 @@ namespace Memphis.Client.Producer
         public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15,
             string messageId = null)
         {
-            //TODO Validate message with schema defined for station, and raise exception when
+            await validateMessage(message);
 
             var msg = new Msg
             {
@@ -77,6 +82,49 @@ namespace Memphis.Client.Producer
             }
         }
         
+        private async Task validateMessage(byte[] message, CancellationToken cancellationToken = default)
+        {
+            if (!_memphisClient.TryGetSchemaDetail(_stationName, out ProducerSchemaUpdateInit schema))
+                return;
+                
+            switch (schema.SchemaType)
+            {
+                case MemphisSchemaTypes.NONE:
+                    return;
+                case MemphisSchemaTypes.JSON:
+                    await validateJsonMessage(message, schema.ActiveVersion.Content, cancellationToken);
+                    break;
+                case MemphisSchemaTypes.GRAPH_QL:
+                case MemphisSchemaTypes.PROTO_BUF:
+                default:
+                    throw new NotImplementedException(schema.SchemaType);
+            }
+        }
+
+        private async Task validateJsonMessage(byte[] message, string schema, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var jsonSchema = await JsonSchema.FromJsonAsync(schema, cancellationToken);
+                var json = Encoding.UTF8.GetString(message);
+                var errors = jsonSchema.Validate(json);
+
+                if (errors.Any())
+                {
+                    var sb = new StringBuilder();
+                    foreach (var error in errors)
+                    {
+                        sb.AppendLine(error.ToString());
+                    }
+                    throw new MemphisException(sb.ToString());
+                }
+            }
+            catch (System.Exception e)
+            {
+                throw new MemphisException("Message does not match schema", e);
+            }
+        }
+
         public string ProducerName => _producerName;
 
         public string StationName => _stationName;

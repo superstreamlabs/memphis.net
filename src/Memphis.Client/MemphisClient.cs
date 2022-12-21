@@ -232,7 +232,17 @@ namespace Memphis.Client
             }
         }
         
-        
+        /// <summary>
+        /// Get station schema if available
+        /// </summary>
+        /// <param name="stationName">name of station which will provide the schema</param>
+        /// <param name="schema">Object representing producer schema</param>
+        /// <returns>True if schema exists; otherwise, false.</returns>
+        public bool TryGetSchemaDetail(string stationName, out ProducerSchemaUpdateInit schema)
+        {
+            return _schemaUpdateDictionary.TryGetValue(stationName, out schema);
+        }
+
         private async Task listenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
         {
             var schemaUpdateSubject = MemphisSubjects.MEMPHIS_SCHEMA_UPDATE + internalStationName;
