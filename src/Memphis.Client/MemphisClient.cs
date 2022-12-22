@@ -20,20 +20,20 @@ namespace Memphis.Client
 {
     public class MemphisClient : IDisposable
     {
-        //TODO replace it with mature solution
-        private bool _connectionActive;
-
         private readonly Options _brokerConnOptions;
         private readonly IConnection _brokerConnection;
         private readonly IJetStream _jetStreamContext;
         private readonly string _connectionId;
 
-        private Dictionary<string, string> _schemaUpdateData = new Dictionary<string, string>();
         private CancellationTokenSource _cancellationTokenSource;
 
+        // Dictionary key: station (internal)name, value: schema update data for that station
         private readonly ConcurrentDictionary<string, ProducerSchemaUpdateInit> _schemaUpdateDictionary;
-        private readonly ConcurrentDictionary<string, object> _subscriptionPerSchema;
 
+        // Dictionary key: station (internal)name, value: subscription for fetching schema updates for station
+        private readonly ConcurrentDictionary<string, ISyncSubscription> _subscriptionPerSchema;
+
+        // Dictionary key: station (internal)name, value: number of producer created per that station
         private readonly ConcurrentDictionary<string, int> _producerPerStations;
 
         private readonly ConcurrentDictionary<ValidatorType, ISchemaValidator> _schemaValidators;
@@ -46,12 +46,10 @@ namespace Memphis.Client
             this._jetStreamContext = jetStreamContext ?? throw new ArgumentNullException(nameof(jetStreamContext));
             this._connectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
 
-            //TODO need to handle mechanism to check connection being active throughout client is being used
-            this._connectionActive = true;
             this._cancellationTokenSource = new CancellationTokenSource();
 
             this._schemaUpdateDictionary = new ConcurrentDictionary<string, ProducerSchemaUpdateInit>();
-            this._subscriptionPerSchema = new ConcurrentDictionary<string, object>();
+            this._subscriptionPerSchema = new ConcurrentDictionary<string, ISyncSubscription>();
             this._producerPerStations = new ConcurrentDictionary<string, int>();
 
             this._schemaValidators = new ConcurrentDictionary<ValidatorType, ISchemaValidator>();
@@ -69,7 +67,7 @@ namespace Memphis.Client
         public async Task<MemphisProducer> CreateProducer(string stationName, string producerName,
             bool generateRandomSuffix = false)
         {
-            if (!_connectionActive)
+            if (_brokerConnection.IsClosed())
             {
                 throw new MemphisConnectionException("Connection is dead");
             }
@@ -109,13 +107,6 @@ namespace Memphis.Client
 
                 await this.listenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
 
-                if (_schemaUpdateData.TryGetValue(internalStationName, out string schemaForStation))
-                {
-                    //TODO if schema data is protoBuf then parse its descriptors
-                    //self.schema_updates_data[station_name_internal]['type'] == "protobuf"
-                    // elf.parse_descriptor(station_name_internal)
-                }
-
                 return new MemphisProducer(this, producerName, stationName);
             }
             catch (System.Exception e)
@@ -131,7 +122,7 @@ namespace Memphis.Client
         /// <returns>An <see cref="MemphisConsumer"/> object connected to the station from consuming data</returns>
         public async Task<MemphisConsumer> CreateConsumer(ConsumerOptions consumerOptions)
         {
-            if (!_connectionActive)
+            if (_brokerConnection.IsClosed())
             {
                 throw new MemphisConnectionException("Connection is dead");
             }
@@ -188,7 +179,7 @@ namespace Memphis.Client
         /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
         public async Task<MemphisStation> CreateStation(StationOptions stationOptions)
         {
-            if (!_connectionActive)
+            if (_brokerConnection.IsClosed())
             {
                 throw new MemphisConnectionException("Connection is dead");
             }
@@ -248,7 +239,7 @@ namespace Memphis.Client
             }
 
 
-            if (_subscriptionPerSchema.TryGetValue(internalStationName, out object schemaSub))
+            if (_subscriptionPerSchema.TryGetValue(internalStationName, out ISyncSubscription schemaSub))
             {
                 _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
                 return;
@@ -362,6 +353,48 @@ namespace Memphis.Client
             }
         }
 
+        public async Task NotifyRemoveProducer(string stationName)
+        {
+            var internalStationName = MemphisUtil.GetInternalName(stationName);
+            if (_producerPerStations.TryGetValue(internalStationName, out int prodCnt))
+            {
+                if (prodCnt == 0)
+                {
+                    return;
+                }
+                
+                var prodCntAfterRemove = prodCnt - 1;
+                _producerPerStations.TryUpdate(internalStationName, prodCntAfterRemove, prodCnt);
+
+                // Is there any producer for given station ?
+                if (prodCntAfterRemove == 0)
+                {
+                    //unsubscribe for listening schema updates
+                    if (_subscriptionPerSchema.TryGetValue(internalStationName, out ISyncSubscription subscription))
+                    {
+                        await subscription.DrainAsync();
+                    }
+
+                    if (_schemaUpdateDictionary.TryRemove(internalStationName,
+                        out ProducerSchemaUpdateInit schemaUpdateInit)
+                    )
+                    {
+                        // clean up cache from unused schema data
+                        foreach (var schemaValidator in _schemaValidators.Values)
+                        {
+                            schemaValidator.RemoveSchema(schemaUpdateInit.SchemaName);
+                        }
+                    }
+                }
+            }
+        }
+        
+        public void NotifyRemoveConsumer(string stationName)
+        {
+            return;
+        }
+
+        
         private void registerSchemaValidators()
         {
             if (!_schemaValidators.TryAdd(ValidatorType.GRAPHQL, new GraphqlValidator()))
@@ -376,7 +409,6 @@ namespace Memphis.Client
             _cancellationTokenSource?.Dispose();
 
             _brokerConnection.Dispose();
-            _connectionActive = false;
         }
 
         internal IConnection BrokerConnection
@@ -392,16 +424,6 @@ namespace Memphis.Client
         internal string ConnectionId
         {
             get { return _connectionId; }
-        }
-
-        internal bool ConnectionActive
-        {
-            get { return _connectionActive; }
-        }
-
-        internal ConcurrentDictionary<ValidatorType, ISchemaValidator> SchemaValidators
-        {
-            get { return _schemaValidators; }
         }
     }
 }

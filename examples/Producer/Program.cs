@@ -33,6 +33,8 @@ namespace Producer
                     await producer.ProduceAsync(Encoding.UTF8.GetBytes(text), commonHeaders);
                     Console.WriteLine($"Message #{i} sent successfully");
                 }
+
+                await producer.DestroyAsync();
             }
             catch (Exception ex)
             {

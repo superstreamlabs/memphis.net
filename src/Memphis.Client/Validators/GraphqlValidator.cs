@@ -71,5 +71,10 @@ namespace Memphis.Client.Validators
                 return false;
             }
         }
+
+        public void RemoveSchema(string schemaName)
+        {
+            _schemaCache.TryRemove(schemaName, out ISchema schemaObj);
+        }
     }
 }

@@ -2,10 +2,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Text;
 using System.Threading.Tasks;
 using Memphis.Client.Constants;
 using Memphis.Client.Exception;
 using Memphis.Client.Helper;
+using Memphis.Client.Models.Request;
 using Memphis.Client.Models.Response;
 using NATS.Client;
 using NATS.Client.Internals;
@@ -73,6 +75,37 @@ namespace Memphis.Client.Producer
             if (publishAck.HasError)
             {
                 throw new MemphisException(publishAck.ErrorDescription);
+            }
+        }
+
+        public async Task DestroyAsync()
+        {
+            try
+            {
+                var removeProducerModel = new RemoveProducerRequest()
+                {
+                    ProducerName = _producerName,
+                    StationName = _stationName,
+                };
+            
+                var removeProducerModelJson = JsonSerDes.PrepareJsonString<RemoveProducerRequest>(removeProducerModel);
+
+                byte[] removeProducerReqBytes = Encoding.UTF8.GetBytes(removeProducerModelJson);
+
+                Msg removeProducerResp = await _memphisClient.BrokerConnection.RequestAsync(
+                    MemphisStations.MEMPHIS_PRODUCER_DESTRUCTIONS, removeProducerReqBytes);
+                string errResp = Encoding.UTF8.GetString(removeProducerResp.Data);
+
+                if (!string.IsNullOrEmpty(errResp))
+                {
+                    throw new MemphisException(errResp);
+                }
+
+                await _memphisClient.NotifyRemoveProducer(_stationName);
+            }
+            catch (System.Exception e)
+            {
+                throw new MemphisException("Failed to destroy producer",e);
             }
         }
         
