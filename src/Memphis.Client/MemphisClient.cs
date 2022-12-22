@@ -12,6 +12,7 @@ using Memphis.Client.Models.Request;
 using Memphis.Client.Models.Response;
 using Memphis.Client.Producer;
 using Memphis.Client.Station;
+using Memphis.Client.Validators;
 using NATS.Client;
 using NATS.Client.JetStream;
 
@@ -35,6 +36,8 @@ namespace Memphis.Client
 
         private readonly ConcurrentDictionary<string, int> _producerPerStations;
 
+        private readonly ConcurrentDictionary<ValidatorType, ISchemaValidator> _schemaValidators;
+
         public MemphisClient(Options brokerConnOptions, IConnection brokerConnection,
             IJetStream jetStreamContext, string connectionId)
         {
@@ -50,6 +53,9 @@ namespace Memphis.Client
             this._schemaUpdateDictionary = new ConcurrentDictionary<string, ProducerSchemaUpdateInit>();
             this._subscriptionPerSchema = new ConcurrentDictionary<string, object>();
             this._producerPerStations = new ConcurrentDictionary<string, int>();
+
+            this._schemaValidators = new ConcurrentDictionary<ValidatorType, ISchemaValidator>();
+            this.registerSchemaValidators();
         }
 
 
@@ -173,8 +179,8 @@ namespace Memphis.Client
                 throw new MemphisException("Failed to create memphis producer", e);
             }
         }
-        
-        
+
+
         /// <summary>
         /// Create Station 
         /// </summary>
@@ -186,7 +192,7 @@ namespace Memphis.Client
             {
                 throw new MemphisConnectionException("Connection is dead");
             }
-            
+
             try
             {
                 var createStationModel = new CreateStationRequest()
@@ -215,12 +221,11 @@ namespace Memphis.Client
 
                 if (!string.IsNullOrEmpty(errResp))
                 {
-
                     if (errResp.Contains("already exist"))
                     {
                         return new MemphisStation(this, stationOptions.Name);
                     }
-                    
+
                     throw new MemphisException(errResp);
                 }
 
@@ -231,8 +236,8 @@ namespace Memphis.Client
                 throw new MemphisException("Failed to create memphis station", e);
             }
         }
-        
-        
+
+
         private async Task listenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
         {
             var schemaUpdateSubject = MemphisSubjects.MEMPHIS_SCHEMA_UPDATE + internalStationName;
@@ -267,17 +272,48 @@ namespace Memphis.Client
 
             _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
         }
-        
+
         public async Task AttachSchema(string stationName, string schemaName)
         {
             throw new System.NotImplementedException();
         }
-        
+
         public async Task DetachSchema(string stationName, string schemaName)
         {
             throw new System.NotImplementedException();
         }
 
+        public async Task ValidateMessageAsync(byte[] message, string internalStationName)
+        {
+            if (!_schemaUpdateDictionary.TryGetValue(internalStationName,
+                out ProducerSchemaUpdateInit schemaUpdateInit))
+            {
+                return;
+            }
+
+            switch (schemaUpdateInit.SchemaType)
+            {
+                case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+                {
+                    throw new NotImplementedException();
+                }
+                case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+                {
+                    if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
+                    {
+                        await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
+                    }
+
+                    break;
+                }
+                case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
+                {
+                    throw new NotImplementedException();
+                }
+                default:
+                    throw new NotImplementedException($"Schema of type: {schemaUpdateInit.SchemaType} not implemented");
+            }
+        }
 
         private async Task processAndStoreSchemaUpdate(string internalStationName, Msg message)
         {
@@ -289,9 +325,48 @@ namespace Memphis.Client
             {
                 if (!this._schemaUpdateDictionary.TryAdd(internalStationName, respAsObject.Init))
                 {
-                    throw new MemphisException("Unable to save schema data for station");
+                    throw new MemphisException(
+                        $"Unable to save schema: {respAsObject.Init.SchemaName} data for station: {internalStationName}");
                 }
-                //TODO add parse descriptor
+
+                switch (respAsObject.Init.SchemaType)
+                {
+                    case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+                    {
+                        throw new NotImplementedException();
+                    }
+                    case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+                    {
+                        if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
+                        {
+                            bool isDone = schemaValidator.ParseAndStore(
+                                respAsObject.Init.SchemaName,
+                                respAsObject.Init.ActiveVersion?.Content);
+
+                            if (!isDone)
+                            {
+                                //TODO raise notification regarding unable to parse schema pushed by Memphis
+                                throw new InvalidOperationException($"Unable to parse and store " +
+                                                                    $"schema: {respAsObject.Init?.SchemaName}, type: {respAsObject.Init?.SchemaType}" +
+                                                                    $" in local cache");
+                            }
+                        }
+
+                        break;
+                    }
+                    case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
+            }
+        }
+
+        private void registerSchemaValidators()
+        {
+            if (!_schemaValidators.TryAdd(ValidatorType.GRAPHQL, new GraphqlValidator()))
+            {
+                throw new InvalidOperationException($"Unable to register schema validator: {nameof(GraphqlValidator)}");
             }
         }
 
@@ -322,6 +397,11 @@ namespace Memphis.Client
         internal bool ConnectionActive
         {
             get { return _connectionActive; }
+        }
+
+        internal ConcurrentDictionary<ValidatorType, ISchemaValidator> SchemaValidators
+        {
+            get { return _schemaValidators; }
         }
     }
 }

@@ -39,10 +39,9 @@ namespace Memphis.Client.Producer
         /// <param name="ackWaitSec">duration of time in seconds for acknowledgement</param>
         /// <param name="messageId">ID of the message</param>
         /// <returns></returns>
-        public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15,
-            string messageId = null)
+        public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15, string messageId = null)
         {
-            //TODO Validate message with schema defined for station, and raise exception when
+            await _memphisClient.ValidateMessageAsync(message, _internalStationName);
 
             var msg = new Msg
             {

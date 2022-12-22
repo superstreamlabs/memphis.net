@@ -11,6 +11,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="GraphQL" Version="7.2.1" />
+      <PackageReference Include="GraphQL.SystemTextJson" Version="7.2.1" />
       <PackageReference Include="NATS.Client" Version="1.0.2" />
     </ItemGroup>
 

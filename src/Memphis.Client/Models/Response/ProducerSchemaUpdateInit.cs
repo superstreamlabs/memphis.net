@@ -13,5 +13,12 @@ namespace Memphis.Client.Models.Response
 
         [DataMember(Name = "type")]
         public string SchemaType { get; set; }
+        
+        public static class SchemaTypes
+        {
+            public const string PROTOBUF = "protobuf";
+            public const string JSON = "json";
+            public const string GRAPHQL = "graphql";
+        }
     }
 }
