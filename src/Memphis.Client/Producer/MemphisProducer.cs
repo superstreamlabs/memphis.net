@@ -116,12 +116,12 @@ namespace Memphis.Client.Producer
                     {
                         sb.AppendLine(error.ToString());
                     }
-                    throw new MemphisException(sb.ToString());
+                    throw new MemphisSchemeValidationException(sb.ToString());
                 }
             }
             catch (System.Exception e)
             {
-                throw new MemphisException("Message does not match schema", e);
+                throw new MemphisSchemeValidationException("Message does not match schema", e);
             }
         }
 
