@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,7 +6,6 @@ using Memphis.Client.Constants;
 using Memphis.Client.Exception;
 using Memphis.Client.Helper;
 using Memphis.Client.Models.Request;
-using Memphis.Client.Models.Response;
 using NATS.Client;
 using NATS.Client.Internals;
 using NATS.Client.JetStream;
@@ -41,7 +38,8 @@ namespace Memphis.Client.Producer
         /// <param name="ackWaitSec">duration of time in seconds for acknowledgement</param>
         /// <param name="messageId">ID of the message</param>
         /// <returns></returns>
-        public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15, string messageId = null)
+        public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15,
+            string messageId = null)
         {
             await _memphisClient.ValidateMessageAsync(message, _internalStationName);
 
@@ -87,7 +85,7 @@ namespace Memphis.Client.Producer
                     ProducerName = _producerName,
                     StationName = _stationName,
                 };
-            
+
                 var removeProducerModelJson = JsonSerDes.PrepareJsonString<RemoveProducerRequest>(removeProducerModel);
 
                 byte[] removeProducerReqBytes = Encoding.UTF8.GetBytes(removeProducerModelJson);
@@ -105,10 +103,10 @@ namespace Memphis.Client.Producer
             }
             catch (System.Exception e)
             {
-                throw new MemphisException("Failed to destroy producer",e);
+                throw new MemphisException("Failed to destroy producer", e);
             }
         }
-        
+
         public string ProducerName => _producerName;
 
         public string StationName => _stationName;

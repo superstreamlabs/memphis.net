@@ -2,7 +2,7 @@
 
 namespace Memphis.Client.Validators
 {
-    public interface ISchemaValidator
+    internal interface ISchemaValidator
     {
         Task ValidateAsync(byte[] messageToValidate, string schemaAsStr);
 

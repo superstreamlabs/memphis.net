@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace Memphis.Client.Models.Request
 {
     [DataContract]
-    public sealed class CreateConsumerRequest
+    internal sealed class CreateConsumerRequest
     {
         [DataMember(Name = "name")]
         public string ConsumerName { get; set; }

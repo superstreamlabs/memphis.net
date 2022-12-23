@@ -9,7 +9,7 @@ using Memphis.Client.Exception;
 
 namespace Memphis.Client.Validators
 {
-    public class GraphqlValidator : ISchemaValidator
+    internal class GraphqlValidator : ISchemaValidator
     {
         private readonly IDocumentExecuter _documentExecutor;
         private readonly ConcurrentDictionary<string, ISchema> _schemaCache;

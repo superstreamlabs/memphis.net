@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace Memphis.Client.Models.Request
 {
     [DataContract]
-    public sealed class RemoveProducerRequest
+    internal sealed class RemoveProducerRequest
     {
         [DataMember(Name = "name")]
         public string ProducerName { get; set; }
