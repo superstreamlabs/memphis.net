@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace Memphis.Client.Models.Response
 {
     [DataContract]
-    public sealed class ProducerSchemaUpdateVersion
+    internal sealed class ProducerSchemaUpdateVersion
     {
         [DataMember(Name = "version_number")]
         public string VersionNumber { get; set; }

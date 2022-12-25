@@ -50,11 +50,16 @@ namespace Consumer
                         Console.WriteLine("---------");
                         msg.Ack();
                     }
+                    Console.WriteLine("destroyed");
                 };
 
-                await consumer.ConsumeAsync(
+                consumer.ConsumeAsync(
                     msgCallbackHandler:msgHandler,
                     dlqCallbackHandler:msgHandler);
+
+                // Wait 10 seconds, consumer starts to consume, if you need block main thread use await keyword.
+                await Task.Delay(10_000);
+                await consumer.DestroyAsync();
             }
             catch (Exception ex)
             {

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Memphis.Client.Helper
 {
-    public class JsonSerDes
+    internal class JsonSerDes
     {
         internal static string PrepareJsonString<T>(object objectToBeParsed)
         {

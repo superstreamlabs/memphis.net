@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace Memphis.Client.Models.Request
 {
     [DataContract]
-    public sealed class CreateStationRequest
+    internal sealed class CreateStationRequest
     {
         [DataMember(Name = "name")]
         public string StationName { get; set; }
@@ -32,7 +32,7 @@ namespace Memphis.Client.Models.Request
     }
 
     [DataContract]
-    public sealed class DlsConfiguration
+    internal sealed class DlsConfiguration
     {
         [DataMember(Name = "poison")]
         public bool Poison { get; set; }
