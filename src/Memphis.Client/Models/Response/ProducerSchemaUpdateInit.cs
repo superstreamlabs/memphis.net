@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace Memphis.Client.Models.Response
 {
     [DataContract]
-    public sealed class ProducerSchemaUpdateInit
+    internal sealed class ProducerSchemaUpdateInit
     {
         [DataMember(Name = "schema_name")]
         public string SchemaName { get; set; }
@@ -13,5 +13,12 @@ namespace Memphis.Client.Models.Response
 
         [DataMember(Name = "type")]
         public string SchemaType { get; set; }
+        
+        internal static class SchemaTypes
+        {
+            public const string PROTOBUF = "protobuf";
+            public const string JSON = "json";
+            public const string GRAPHQL = "graphql";
+        }
     }
 }

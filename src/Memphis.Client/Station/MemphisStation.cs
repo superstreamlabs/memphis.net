@@ -22,5 +22,11 @@ namespace Memphis.Client.Station
         {
             get { return _name; }
         }
+        
+        
+        internal string InternalName
+        {
+            get { return _internalName; }
+        }
     }
 }

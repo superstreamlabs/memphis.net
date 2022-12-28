@@ -12,6 +12,7 @@ using Memphis.Client.Models.Request;
 using Memphis.Client.Models.Response;
 using Memphis.Client.Producer;
 using Memphis.Client.Station;
+using Memphis.Client.Validators;
 using NATS.Client;
 using NATS.Client.JetStream;
 
@@ -19,21 +20,23 @@ namespace Memphis.Client
 {
     public class MemphisClient : IDisposable
     {
-        //TODO replace it with mature solution
-        private bool _connectionActive;
-
         private readonly Options _brokerConnOptions;
         private readonly IConnection _brokerConnection;
         private readonly IJetStream _jetStreamContext;
         private readonly string _connectionId;
 
-        private Dictionary<string, string> _schemaUpdateData = new Dictionary<string, string>();
         private CancellationTokenSource _cancellationTokenSource;
 
+        // Dictionary key: station (internal)name, value: schema update data for that station
         private readonly ConcurrentDictionary<string, ProducerSchemaUpdateInit> _schemaUpdateDictionary;
-        private readonly ConcurrentDictionary<string, object> _subscriptionPerSchema;
 
+        // Dictionary key: station (internal)name, value: subscription for fetching schema updates for station
+        private readonly ConcurrentDictionary<string, ISyncSubscription> _subscriptionPerSchema;
+
+        // Dictionary key: station (internal)name, value: number of producer created per that station
         private readonly ConcurrentDictionary<string, int> _producerPerStations;
+
+        private readonly ConcurrentDictionary<ValidatorType, ISchemaValidator> _schemaValidators;
 
         public MemphisClient(Options brokerConnOptions, IConnection brokerConnection,
             IJetStream jetStreamContext, string connectionId)
@@ -43,13 +46,14 @@ namespace Memphis.Client
             this._jetStreamContext = jetStreamContext ?? throw new ArgumentNullException(nameof(jetStreamContext));
             this._connectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
 
-            //TODO need to handle mechanism to check connection being active throughout client is being used
-            this._connectionActive = true;
             this._cancellationTokenSource = new CancellationTokenSource();
 
             this._schemaUpdateDictionary = new ConcurrentDictionary<string, ProducerSchemaUpdateInit>();
-            this._subscriptionPerSchema = new ConcurrentDictionary<string, object>();
+            this._subscriptionPerSchema = new ConcurrentDictionary<string, ISyncSubscription>();
             this._producerPerStations = new ConcurrentDictionary<string, int>();
+
+            this._schemaValidators = new ConcurrentDictionary<ValidatorType, ISchemaValidator>();
+            this.registerSchemaValidators();
         }
 
 
@@ -63,7 +67,7 @@ namespace Memphis.Client
         public async Task<MemphisProducer> CreateProducer(string stationName, string producerName,
             bool generateRandomSuffix = false)
         {
-            if (!_connectionActive)
+            if (_brokerConnection.IsClosed())
             {
                 throw new MemphisConnectionException("Connection is dead");
             }
@@ -103,13 +107,6 @@ namespace Memphis.Client
 
                 await this.listenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
 
-                if (_schemaUpdateData.TryGetValue(internalStationName, out string schemaForStation))
-                {
-                    //TODO if schema data is protoBuf then parse its descriptors
-                    //self.schema_updates_data[station_name_internal]['type'] == "protobuf"
-                    // elf.parse_descriptor(station_name_internal)
-                }
-
                 return new MemphisProducer(this, producerName, stationName);
             }
             catch (System.Exception e)
@@ -125,7 +122,7 @@ namespace Memphis.Client
         /// <returns>An <see cref="MemphisConsumer"/> object connected to the station from consuming data</returns>
         public async Task<MemphisConsumer> CreateConsumer(ConsumerOptions consumerOptions)
         {
-            if (!_connectionActive)
+            if (_brokerConnection.IsClosed())
             {
                 throw new MemphisConnectionException("Connection is dead");
             }
@@ -173,8 +170,8 @@ namespace Memphis.Client
                 throw new MemphisException("Failed to create memphis producer", e);
             }
         }
-        
-        
+
+
         /// <summary>
         /// Create Station 
         /// </summary>
@@ -182,11 +179,11 @@ namespace Memphis.Client
         /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
         public async Task<MemphisStation> CreateStation(StationOptions stationOptions)
         {
-            if (!_connectionActive)
+            if (_brokerConnection.IsClosed())
             {
                 throw new MemphisConnectionException("Connection is dead");
             }
-            
+
             try
             {
                 var createStationModel = new CreateStationRequest()
@@ -215,12 +212,11 @@ namespace Memphis.Client
 
                 if (!string.IsNullOrEmpty(errResp))
                 {
-
                     if (errResp.Contains("already exist"))
                     {
                         return new MemphisStation(this, stationOptions.Name);
                     }
-                    
+
                     throw new MemphisException(errResp);
                 }
 
@@ -230,17 +226,6 @@ namespace Memphis.Client
             {
                 throw new MemphisException("Failed to create memphis station", e);
             }
-        }
-        
-        /// <summary>
-        /// Get station schema if available
-        /// </summary>
-        /// <param name="stationName">name of station which will provide the schema</param>
-        /// <param name="schema">Object representing producer schema</param>
-        /// <returns>True if schema exists; otherwise, false.</returns>
-        public bool TryGetSchemaDetail(string stationName, out ProducerSchemaUpdateInit schema)
-        {
-            return _schemaUpdateDictionary.TryGetValue(stationName, out schema);
         }
 
         private async Task listenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
@@ -253,7 +238,7 @@ namespace Memphis.Client
             }
 
 
-            if (_subscriptionPerSchema.TryGetValue(internalStationName, out object schemaSub))
+            if (_subscriptionPerSchema.TryGetValue(internalStationName, out ISyncSubscription schemaSub))
             {
                 _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
                 return;
@@ -277,17 +262,48 @@ namespace Memphis.Client
 
             _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
         }
-        
+
         public async Task AttachSchema(string stationName, string schemaName)
         {
             throw new System.NotImplementedException();
         }
-        
+
         public async Task DetachSchema(string stationName, string schemaName)
         {
             throw new System.NotImplementedException();
         }
 
+        public async Task ValidateMessageAsync(byte[] message, string internalStationName)
+        {
+            if (!_schemaUpdateDictionary.TryGetValue(internalStationName,
+                out ProducerSchemaUpdateInit schemaUpdateInit))
+            {
+                return;
+            }
+
+            switch (schemaUpdateInit.SchemaType)
+            {
+                case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+                {
+                    throw new NotImplementedException();
+                }
+                case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+                {
+                    if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
+                    {
+                        await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
+                    }
+
+                    break;
+                }
+                case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
+                {
+                    throw new NotImplementedException();
+                }
+                default:
+                    throw new NotImplementedException($"Schema of type: {schemaUpdateInit.SchemaType} not implemented");
+            }
+        }
 
         private async Task processAndStoreSchemaUpdate(string internalStationName, Msg message)
         {
@@ -299,9 +315,90 @@ namespace Memphis.Client
             {
                 if (!this._schemaUpdateDictionary.TryAdd(internalStationName, respAsObject.Init))
                 {
-                    throw new MemphisException("Unable to save schema data for station");
+                    throw new MemphisException(
+                        $"Unable to save schema: {respAsObject.Init.SchemaName} data for station: {internalStationName}");
                 }
-                //TODO add parse descriptor
+
+                switch (respAsObject.Init.SchemaType)
+                {
+                    case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+                    {
+                        throw new NotImplementedException();
+                    }
+                    case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+                    {
+                        if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
+                        {
+                            bool isDone = schemaValidator.ParseAndStore(
+                                respAsObject.Init.SchemaName,
+                                respAsObject.Init.ActiveVersion?.Content);
+
+                            if (!isDone)
+                            {
+                                //TODO raise notification regarding unable to parse schema pushed by Memphis
+                                throw new InvalidOperationException($"Unable to parse and store " +
+                                                                    $"schema: {respAsObject.Init?.SchemaName}, type: {respAsObject.Init?.SchemaType}" +
+                                                                    $" in local cache");
+                            }
+                        }
+
+                        break;
+                    }
+                    case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
+            }
+        }
+
+        public async Task NotifyRemoveProducer(string stationName)
+        {
+            var internalStationName = MemphisUtil.GetInternalName(stationName);
+            if (_producerPerStations.TryGetValue(internalStationName, out int prodCnt))
+            {
+                if (prodCnt == 0)
+                {
+                    return;
+                }
+                
+                var prodCntAfterRemove = prodCnt - 1;
+                _producerPerStations.TryUpdate(internalStationName, prodCntAfterRemove, prodCnt);
+
+                // Is there any producer for given station ?
+                if (prodCntAfterRemove == 0)
+                {
+                    //unsubscribe for listening schema updates
+                    if (_subscriptionPerSchema.TryGetValue(internalStationName, out ISyncSubscription subscription))
+                    {
+                        await subscription.DrainAsync();
+                    }
+
+                    if (_schemaUpdateDictionary.TryRemove(internalStationName,
+                        out ProducerSchemaUpdateInit schemaUpdateInit)
+                    )
+                    {
+                        // clean up cache from unused schema data
+                        foreach (var schemaValidator in _schemaValidators.Values)
+                        {
+                            schemaValidator.RemoveSchema(schemaUpdateInit.SchemaName);
+                        }
+                    }
+                }
+            }
+        }
+        
+        public void NotifyRemoveConsumer(string stationName)
+        {
+            return;
+        }
+
+        
+        private void registerSchemaValidators()
+        {
+            if (!_schemaValidators.TryAdd(ValidatorType.GRAPHQL, new GraphqlValidator()))
+            {
+                throw new InvalidOperationException($"Unable to register schema validator: {nameof(GraphqlValidator)}");
             }
         }
 
@@ -311,7 +408,6 @@ namespace Memphis.Client
             _cancellationTokenSource?.Dispose();
 
             _brokerConnection.Dispose();
-            _connectionActive = false;
         }
 
         internal IConnection BrokerConnection
@@ -327,11 +423,6 @@ namespace Memphis.Client
         internal string ConnectionId
         {
             get { return _connectionId; }
-        }
-
-        internal bool ConnectionActive
-        {
-            get { return _connectionActive; }
         }
     }
 }

@@ -45,7 +45,13 @@ eliminates coding barriers, and saves a great amount of dev time for data-orient
 ## Installation
 
 ```sh
-$ dotnet add package Memphis.Client -v ${MEMPHIS_CLIENT_VERSION}
+ dotnet add package Memphis.Client -v ${MEMPHIS_CLIENT_VERSION}
+```
+
+## Update
+
+```sh
+Update-Package Memphis.Client
 ```
 
 ## Importing
@@ -83,6 +89,75 @@ To disconnect from Memphis, call `Dispose()` on the `MemphisClient`.
 
 ```c#
 await memphisClient.Dispose()
+```
+### Creating a Station
+
+```c#
+try
+{
+    // First: creating Memphis client
+    var options = MemphisClientFactory.GetDefaultOptions();
+    options.Host = "<memphis-host>";
+    options.Username = "<application type username>";
+    options.ConnectionToken = "<broker-token>";
+    var client = MemphisClientFactory.CreateClient(options);
+    
+    // Second: creaing Memphis station
+    var station = await client.CreateStation(
+        stationOptions: new StationOptions()
+        {
+            Name = "<station-name>",
+            RetentionType = RetentionTypes.MAX_MESSAGE_AGE_SECONDS,
+            RetentionValue = 604_800,
+            StorageType = StorageTypes.DISK,
+            Replicas = 1,
+            IdempotencyWindowMs = 0,
+            SendPoisonMessageToDls = true,
+            SendSchemaFailedMessageToDls = true,
+        });
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine("Exception: " + ex.Message);
+    Console.Error.WriteLine(ex);
+}
+```
+
+Memphis currently supports the following types of retention:
+
+```c#
+RetentionTypes.MAX_MESSAGE_AGE_SECONDS
+```
+The above means that every message persists for the value set in the retention value field (in seconds).
+
+```c#
+RetentionTypes.MESSAGES
+```
+The above means that after the maximum number of saved messages (set in retention value) has been reached, the oldest messages will be deleted.
+
+```c#
+RetentionTypes.BYTES
+```
+The above means that after maximum number of saved bytes (set in retention value) has been reached, the oldest messages will be deleted.
+
+### Storage Types
+Memphis currently supports the following types of messages storage:
+
+```c#
+StorageTypes.DISK
+```
+The above means that messages persist on disk.
+
+```c#
+StorageTypes.MEMORY
+```
+The above means that messages persist on the main memory.
+
+### Destroying a Station
+
+Destroying a station will remove all its resources (including producers and consumers).
+```c#
+station.DestroyAsync()
 ```
 
 ### Produce and Consume messages
@@ -132,6 +207,12 @@ commonHeaders.Add("key-1", "value-1");
 await producer.ProduceAsync(Encoding.UTF8.GetBytes(text), commonHeaders);
 ```
 
+### Destroying a Producer
+
+```c#
+await producer.DestroyAsync()
+```
+
 ### Creating a Consumer
 
 ```c#
@@ -161,6 +242,10 @@ catch (Exception ex)
 ```
 
 ### Creating message handler for consuming a message
+
+First, create a callback functions that receives a args that holds list of MemhpisMessage.
+Then, pass this callback into consumer.Consume function.
+The consumer will try to fetch messages every _PullIntervalMs_ (that was given in Consumer's creation) and call the defined message handler.
 
 ```c#
 EventHandler<MemphisMessageHandlerEventArgs> msgHandler = (sender, args) =>
@@ -195,35 +280,25 @@ EventHandler<MemphisMessageHandlerEventArgs> msgHandler = (sender, args) =>
 ```c#
  await consumer.ConsumeAsync( msgCallbackHandler:msgHandler, dlqCallbackHandler:msgHandler);
 ```
-### Creating a Station
+
+### Acknowledging a Message
+
+Acknowledging a message indicates to the Memphis server to not re-send the same message again to the same consumer or consumers group.
 
 ```c#
-try
-{
-    // First: creating Memphis client
-    var options = MemphisClientFactory.GetDefaultOptions();
-    options.Host = "<memphis-host>";
-    options.Username = "<application type username>";
-    options.ConnectionToken = "<broker-token>";
-    var client = MemphisClientFactory.CreateClient(options);
-    
-    // Second: creaing Memphis station
-    var station = await client.CreateStation(
-        stationOptions: new StationOptions()
-        {
-            Name = "<station-name>",
-            RetentionType = RetentionTypes.MAX_MESSAGE_AGE_SECONDS,
-            RetentionValue = 604_800,
-            StorageType = StorageTypes.DISK,
-            Replicas = 1,
-            IdempotencyWindowMs = 0,
-            SendPoisonMessageToDls = true,
-            SendSchemaFailedMessageToDls = true,
-        });
-}
-catch (Exception ex)
-{
-    Console.Error.WriteLine("Exception: " + ex.Message);
-    Console.Error.WriteLine(ex);
-}
+msg.Ack();
+```
+
+### Get headers
+
+Get headers per message
+
+```c#
+msg.GetHeaders()
+```
+
+### Destroying a Consumer
+
+```c#
+await consumer.DestroyAsync();
 ```

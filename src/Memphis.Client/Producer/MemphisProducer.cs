@@ -1,16 +1,11 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Linq;
 using System.Text;
-using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using Memphis.Client.Constants;
 using Memphis.Client.Exception;
 using Memphis.Client.Helper;
-using Memphis.Client.Models.Response;
+using Memphis.Client.Models.Request;
 using NATS.Client;
 using NATS.Client.Internals;
 using NATS.Client.JetStream;
@@ -47,7 +42,7 @@ namespace Memphis.Client.Producer
         public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15,
             string messageId = null)
         {
-            await validateMessage(message);
+            await _memphisClient.ValidateMessageAsync(message, _internalStationName);
 
             var msg = new Msg
             {
@@ -81,47 +76,35 @@ namespace Memphis.Client.Producer
                 throw new MemphisException(publishAck.ErrorDescription);
             }
         }
-        
-        private async Task validateMessage(byte[] message, CancellationToken cancellationToken = default)
-        {
-            if (!_memphisClient.TryGetSchemaDetail(_stationName, out ProducerSchemaUpdateInit schema))
-                return;
-                
-            switch (schema.SchemaType)
-            {
-                case MemphisSchemaTypes.NONE:
-                    return;
-                case MemphisSchemaTypes.JSON:
-                    await validateJsonMessage(message, schema.ActiveVersion.Content, cancellationToken);
-                    break;
-                case MemphisSchemaTypes.GRAPH_QL:
-                case MemphisSchemaTypes.PROTO_BUF:
-                default:
-                    throw new NotImplementedException(schema.SchemaType);
-            }
-        }
 
-        private async Task validateJsonMessage(byte[] message, string schema, CancellationToken cancellationToken = default)
+        public async Task DestroyAsync()
         {
             try
             {
-                var jsonSchema = await JsonSchema.FromJsonAsync(schema, cancellationToken);
-                var json = Encoding.UTF8.GetString(message);
-                var errors = jsonSchema.Validate(json);
-
-                if (errors.Any())
+                var removeProducerModel = new RemoveProducerRequest()
                 {
-                    var sb = new StringBuilder();
-                    foreach (var error in errors)
-                    {
-                        sb.AppendLine(error.ToString());
-                    }
-                    throw new MemphisSchemeValidationException(sb.ToString());
+                    ProducerName = _producerName,
+                    StationName = _stationName,
+                };
+
+                var removeProducerModelJson = JsonSerDes.PrepareJsonString<RemoveProducerRequest>(removeProducerModel);
+
+                byte[] removeProducerReqBytes = Encoding.UTF8.GetBytes(removeProducerModelJson);
+
+                Msg removeProducerResp = await _memphisClient.BrokerConnection.RequestAsync(
+                    MemphisStations.MEMPHIS_PRODUCER_DESTRUCTIONS, removeProducerReqBytes);
+                string errResp = Encoding.UTF8.GetString(removeProducerResp.Data);
+
+                if (!string.IsNullOrEmpty(errResp))
+                {
+                    throw new MemphisException(errResp);
                 }
+
+                await _memphisClient.NotifyRemoveProducer(_stationName);
             }
             catch (System.Exception e)
             {
-                throw new MemphisSchemeValidationException("Message does not match schema", e);
+                throw new MemphisException("Failed to destroy producer", e);
             }
         }
 

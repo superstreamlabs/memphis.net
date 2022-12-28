@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Memphis.Client.Constants;
 using Memphis.Client.Core;
+using Memphis.Client.Exception;
 using Memphis.Client.Helper;
+using Memphis.Client.Models.Request;
 using NATS.Client;
 using NATS.Client.JetStream;
 
@@ -39,9 +42,11 @@ namespace Memphis.Client.Consumer
         public async Task ConsumeAsync(EventHandler<MemphisMessageHandlerEventArgs> msgCallbackHandler,
             EventHandler<MemphisMessageHandlerEventArgs> dlqCallbackHandler)
         {
-            var taskForStationConsumption = Task.Run(async () => await consume(msgCallbackHandler, _cancellationTokenSource.Token),
+            var taskForStationConsumption = Task.Run(
+                async () => await consume(msgCallbackHandler, _cancellationTokenSource.Token),
                 _cancellationTokenSource.Token);
-            var taskForDlqConsumption = Task.Run(async () => await consumeFromDlq(dlqCallbackHandler, _cancellationTokenSource.Token),
+            var taskForDlqConsumption = Task.Run(
+                async () => await consumeFromDlq(dlqCallbackHandler, _cancellationTokenSource.Token),
                 _cancellationTokenSource.Token);
             await Task.WhenAll(taskForStationConsumption, taskForDlqConsumption);
         }
@@ -65,7 +70,7 @@ namespace Memphis.Client.Consumer
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (_memphisClient.ConnectionActive)
+                if (_pullSubscription.IsValid && _pullSubscription.Connection.State != ConnState.CLOSED)
                 {
                     try
                     {
@@ -84,8 +89,6 @@ namespace Memphis.Client.Consumer
                     catch (System.Exception e)
                     {
                         msgCallbackHandler(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
-
-                        Console.WriteLine(e);
                     }
                 }
             }
@@ -108,12 +111,16 @@ namespace Memphis.Client.Consumer
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (_memphisClient.ConnectionActive)
+                if (_dlqSubscription.IsValid && _dlqSubscription.Connection.State != ConnState.CLOSED)
                 {
                     try
                     {
                         var msg = _dlqSubscription.NextMessage();
 
+                        if (msg == null)
+                        {
+                            continue;
+                        }
                         var memphisMessageList = new List<MemphisMessage>()
                         {
                             new MemphisMessage(msg, _memphisClient, _consumerOptions.ConsumerGroup,
@@ -127,15 +134,59 @@ namespace Memphis.Client.Consumer
                     catch (System.Exception e)
                     {
                         dlqCallbackHandler(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
-
-                        Console.WriteLine(e);
                     }
                 }
             }
         }
 
-        public void Dispose()
+        public async Task DestroyAsync()
         {
+            try
+            {
+                if (_dlqSubscription.IsValid)
+                {
+                    await _dlqSubscription.DrainAsync();
+                }
+                
+                if (_pullSubscription.IsValid)
+                {
+                    await _pullSubscription.DrainAsync();
+                }
+
+                _cancellationTokenSource?.Cancel();
+
+                var removeConsumerModel = new RemoveConsumerRequest()
+                {
+                    ConsumerName = _consumerOptions.ConsumerName,
+                    StationName = _consumerOptions.StationName,
+                };
+
+                var removeConsumerModelJson = JsonSerDes.PrepareJsonString<RemoveConsumerRequest>(removeConsumerModel);
+
+                byte[] removeConsumerReqBytes = Encoding.UTF8.GetBytes(removeConsumerModelJson);
+
+                Msg removeProducerResp = await _memphisClient.BrokerConnection.RequestAsync(
+                    MemphisStations.MEMPHIS_CONSUMER_DESTRUCTIONS, removeConsumerReqBytes);
+                string errResp = Encoding.UTF8.GetString(removeProducerResp.Data);
+
+                if (!string.IsNullOrEmpty(errResp))
+                {
+                    throw new MemphisException(errResp);
+                }
+
+                _memphisClient.NotifyRemoveConsumer(_consumerOptions.StationName);
+            }
+            catch (System.Exception e)
+            {
+                throw new MemphisException("Failed to destroy consumer", e);
+            }
+        }
+
+        public async void Dispose()
+        {
+            await _pullSubscription.DrainAsync();
+            await _dlqSubscription.DrainAsync();
+
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
 
