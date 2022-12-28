@@ -9,6 +9,8 @@ namespace Memphis.Client.Constants
         public const string MEMPHIS_PRODUCER_DESTRUCTIONS = "$memphis_producer_destructions";
         public const string MEMPHIS_CONSUMER_DESTRUCTIONS = "$memphis_consumer_destructions";
 
+        public const string MEMPHIS_SCHEMA_ATTACHMENTS = "$memphis_schema_attachments";
+        public const string MEMPHIS_SCHEMA_DETACHMENTS = "$memphis_schema_detachments";
     }
 
     internal class MemphisHeaders

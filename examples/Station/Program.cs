@@ -31,6 +31,14 @@ namespace Station
                     });
 
                 Console.WriteLine("Station created successfully...");
+
+                await client.AttachSchema(station.Name, "test-schema-01");
+
+                Console.WriteLine("Schema is attached ...");
+                
+                await client.DetachSchema(station.Name);
+
+                Console.WriteLine("Schema is detached ...");
             }
             catch (Exception ex)
             {
