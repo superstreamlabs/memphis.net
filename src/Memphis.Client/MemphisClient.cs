@@ -285,7 +285,12 @@ namespace Memphis.Client
             {
                 case ProducerSchemaUpdateInit.SchemaTypes.JSON:
                 {
-                    throw new NotImplementedException();
+                    if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
+                    {
+                        await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
+                    }
+
+                    break;
                 }
                 case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
                 {
@@ -323,7 +328,22 @@ namespace Memphis.Client
                 {
                     case ProducerSchemaUpdateInit.SchemaTypes.JSON:
                     {
-                        throw new NotImplementedException();
+                        if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
+                        {
+                            bool isDone = schemaValidator.ParseAndStore(
+                                respAsObject.Init.SchemaName,
+                                respAsObject.Init.ActiveVersion?.Content);
+
+                            if (!isDone)
+                            {
+                                //TODO raise notification regarding unable to parse schema pushed by Memphis
+                                throw new InvalidOperationException($"Unable to parse and store " +
+                                                                    $"schema: {respAsObject.Init?.SchemaName}, type: {respAsObject.Init?.SchemaType}" +
+                                                                    $" in local cache");
+                            }
+                        }
+
+                        break;
                     }
                     case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
                     {
@@ -399,6 +419,11 @@ namespace Memphis.Client
             if (!_schemaValidators.TryAdd(ValidatorType.GRAPHQL, new GraphqlValidator()))
             {
                 throw new InvalidOperationException($"Unable to register schema validator: {nameof(GraphqlValidator)}");
+            }
+
+            if (!_schemaValidators.TryAdd(ValidatorType.JSON, new JsonValidator()))
+            {
+                throw new InvalidOperationException($"Unable to register schema validator: {nameof(JsonValidator)}");
             }
         }
 

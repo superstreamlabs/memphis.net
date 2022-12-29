@@ -20,13 +20,9 @@
 
     <ItemGroup>
         <!-- Make assembly visible to test assembly -->
-        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-            <_Parameter1>$(AssemblyName).UnitTests</_Parameter1>
-        </AssemblyAttribute>
-
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
         <!-- Make assembly usable for Moq, so Moq is able to instanciate objects of 'internal' classes -->
-        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-            <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
-        </AssemblyAttribute>
+        <InternalsVisibleTo Include="$(AssemblyName).UnitTests" />
     </ItemGroup>
+    
 </Project>
