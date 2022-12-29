@@ -11,6 +11,9 @@ namespace Memphis.Client.Constants
 
         public const string MEMPHIS_SCHEMA_ATTACHMENTS = "$memphis_schema_attachments";
         public const string MEMPHIS_SCHEMA_DETACHMENTS = "$memphis_schema_detachments";
+        
+        public const string MEMPHIS_NOTIFICATIONS = "$memphis_notifications";
+
     }
 
     internal class MemphisHeaders

@@ -351,7 +351,7 @@ namespace Memphis.Client
         }
 
         
-        public async Task ValidateMessageAsync(byte[] message, string internalStationName)
+        internal async Task ValidateMessageAsync(byte[] message, string internalStationName, string producerName)
         {
             if (!_schemaUpdateDictionary.TryGetValue(internalStationName,
                 out ProducerSchemaUpdateInit schemaUpdateInit))
@@ -359,27 +359,40 @@ namespace Memphis.Client
                 return;
             }
 
-            switch (schemaUpdateInit.SchemaType)
+            try
             {
-                case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+                switch (schemaUpdateInit.SchemaType)
                 {
-                    throw new NotImplementedException();
-                }
-                case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
-                {
-                    if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
+                    case ProducerSchemaUpdateInit.SchemaTypes.JSON:
                     {
-                        await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
+                        throw new NotImplementedException();
                     }
+                    case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+                    {
+                        if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
+                        {
+                            await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
+                        }
 
-                    break;
+                        break;
+                    }
+                    case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
+                    {
+                        throw new NotImplementedException();
+                    }
+                    default:
+                        throw new NotImplementedException($"Schema of type: {schemaUpdateInit.SchemaType} not implemented");
                 }
-                case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
-                {
-                    throw new NotImplementedException();
-                }
-                default:
-                    throw new NotImplementedException($"Schema of type: {schemaUpdateInit.SchemaType} not implemented");
+            }
+            catch (MemphisSchemaValidationException e)
+            {
+                await SendNotificationAsync(title: "Schema validation has failed",
+                    message: $"Station: {MemphisUtil.GetStationName(internalStationName)}"
+                    + $"\nProducer: {producerName}"
+                    + $"\nError: {e.Message}",
+                    code:  Encoding.UTF8.GetString(message),
+                    msgType: "schema_validation_fail_alert");
+                throw;
             }
         }
 
@@ -471,6 +484,23 @@ namespace Memphis.Client
             return;
         }
 
+        internal async Task SendNotificationAsync(string title, string message, string code, string msgType)
+        {
+            var notificationModel = new NotificationRequest()
+            {
+                Title = title,
+                Message = message,
+                Code = code,
+                Type = msgType
+            };
+
+            var notificationModelJson = JsonSerDes.PrepareJsonString<NotificationRequest>(notificationModel);
+
+            byte[] notificationReqBytes = Encoding.UTF8.GetBytes(notificationModelJson);
+
+            _ = await _brokerConnection.RequestAsync(MemphisStations.MEMPHIS_NOTIFICATIONS, notificationReqBytes);
+        }
+        
         
         private void registerSchemaValidators()
         {

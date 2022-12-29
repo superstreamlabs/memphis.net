@@ -64,9 +64,10 @@ namespace Memphis.Client.UnitTests
 
             var givenMsgBytes = Encoding.UTF8.GetBytes("{ sayHello }");
             var givenInternalStationName = "test-station-name-which-not-exist-schema";
-
+            var givenProducerName = "test-producer-name";
+            
             // when:
-            await _sut.ValidateMessageAsync(givenMsgBytes, givenInternalStationName);
+            await _sut.ValidateMessageAsync(givenMsgBytes, givenInternalStationName, givenProducerName);
 
             // then:
         }
@@ -80,13 +81,14 @@ namespace Memphis.Client.UnitTests
 
             var givenMsgBytes = Encoding.UTF8.GetBytes("{ sayHello }");
             var givenInternalStationName = "test-station-name-graphql-01";
+            var givenProducerName = "test-producer-name";
 
             _graphqlValidatorMock.Setup(
                     mock => mock.ValidateAsync(It.IsAny<byte[]>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask);
 
             // when:
-            await _sut.ValidateMessageAsync(givenMsgBytes, givenInternalStationName);
+            await _sut.ValidateMessageAsync(givenMsgBytes, givenInternalStationName, givenProducerName);
 
             // then:
             _graphqlValidatorMock.Verify(
@@ -94,7 +96,7 @@ namespace Memphis.Client.UnitTests
         }
         
         [Fact]
-        public async Task ShouldDoThrowException_WhenValidateMessageAsync_WhereGraphqlMessageNotOkWithSchema()
+        public async Task ShouldDoThrowExceptionAndSendNotification_WhenValidateMessageAsync_WhereGraphqlMessageNotOkWithSchema()
         {
             // given:
             var schemaUpdateDictionaryMock = this.getSchemaUpdateDataMock();
@@ -102,6 +104,7 @@ namespace Memphis.Client.UnitTests
 
             var givenMsgBytes = Encoding.UTF8.GetBytes("{ sayHello888 }");
             var givenInternalStationName = "test-station-name-graphql-01";
+            var givenProducerName = "test-producer-name";
 
             _graphqlValidatorMock.Setup(
                     mock => mock.ValidateAsync(It.IsAny<byte[]>(), It.IsAny<string>()))
@@ -109,11 +112,13 @@ namespace Memphis.Client.UnitTests
 
             // when:
             await Assert.ThrowsAsync<MemphisSchemaValidationException>(
-                () => _sut.ValidateMessageAsync(givenMsgBytes, givenInternalStationName));
+                () => _sut.ValidateMessageAsync(givenMsgBytes, givenInternalStationName, givenProducerName));
             
             // then:
             _graphqlValidatorMock.Verify(
                 mock => mock.ValidateAsync(It.IsAny<byte[]>(), It.IsAny<string>()), Times.Once);
+            _connectionMock.Verify(
+                mock => mock.RequestAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Once);
         }
 
 
