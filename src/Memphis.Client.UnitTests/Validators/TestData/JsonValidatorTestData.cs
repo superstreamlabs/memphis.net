@@ -16,6 +16,7 @@ internal class JsonValidatorTestData
     {
         new object[] { invalidSch1 },
         new object[] { invalidSch2 },
+        new object[] { invalidSch3 },
     };
 
     public static IEnumerable<object[]> Message => new List<object[]>
@@ -151,16 +152,26 @@ internal class JsonValidatorTestData
 
     private const string invalidSch2 = """
         {
-            "type": "object",
+            "type": "object"
             "properties": {
                 "name": {
                 "type": "string"
                 }
             },
-            "required": ["name", "age"],
+            "required": ["name"],
             "additionalProperties": false
         }
     """;
+
+    private const string invalidSch3 = """
+        {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" }
+          },
+          "invalidKey": { "type": string }
+        }  
+        """;
 
     private const string simpleMsg = """
         {

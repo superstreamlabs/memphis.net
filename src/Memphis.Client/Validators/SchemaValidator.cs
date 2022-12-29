@@ -3,12 +3,11 @@ using System.Collections.Concurrent;
 
 namespace Memphis.Client.Validators
 {
-    internal abstract class SchemaValidatorBase<TSchema>
+    internal abstract class SchemaValidator<TSchema>
     {
         protected readonly ConcurrentDictionary<string, TSchema> _schemaCache;
 
-
-        public SchemaValidatorBase()
+        public SchemaValidator()
         {
             this._schemaCache = new ConcurrentDictionary<string, TSchema>();
         }

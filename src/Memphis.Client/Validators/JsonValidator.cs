@@ -6,11 +6,11 @@ using NJsonSchema;
 
 namespace Memphis.Client.Validators
 {
-    internal class JsonValidator : SchemaValidatorBase<JsonSchema>, ISchemaValidator
+    internal class JsonValidator : SchemaValidator<JsonSchema>, ISchemaValidator
     {
         protected override JsonSchema Parse(string schemaData)
         {
-            return JsonSchema.FromSampleJson(schemaData);
+            return JsonSchema.FromJsonAsync(schemaData).GetAwaiter().GetResult();
         }
 
         public Task ValidateAsync(byte[] messageToValidate, string schemaAsStr)
@@ -28,7 +28,7 @@ namespace Memphis.Client.Validators
                         sb.AppendLine(error.ToString());
                     }
                     
-                    throw new MemphisSchemeValidationException(sb.ToString());
+                    throw new MemphisSchemaValidationException(sb.ToString());
                 }
 
                 return Task.CompletedTask;

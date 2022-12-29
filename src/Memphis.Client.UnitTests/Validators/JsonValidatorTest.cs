@@ -31,7 +31,7 @@ namespace Memphis.Client.UnitTests.Validators
 
         [Theory]
         [MemberData(nameof(JsonValidatorTestData.InvalidSchema), MemberType = typeof(JsonValidatorTestData))]
-        public void ShouldReturnFalse_WhenParseAndStore_WhereInValidSchemaPassed(string invalidSchema)
+        public void ShouldReturnFalse_WhenParseAndStore_WhereInvalidSchemaPassed(string invalidSchema)
         {
             var actual = _sut.ParseAndStore("test-schema-001", invalidSchema);
 
@@ -59,7 +59,7 @@ namespace Memphis.Client.UnitTests.Validators
             _sut.ParseAndStore(schemaKey, schema);
 
              await Assert.ThrowsAsync<MemphisSchemaValidationException>(
-                async () => await _sut.ValidateAsync(msg, schemaKey));
+                  () => _sut.ValidateAsync(msg, schemaKey));
         }
 
         [Theory]
