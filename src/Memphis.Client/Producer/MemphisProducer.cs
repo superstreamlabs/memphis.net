@@ -9,6 +9,7 @@ using Memphis.Client.Models.Request;
 using NATS.Client;
 using NATS.Client.Internals;
 using NATS.Client.JetStream;
+using NJsonSchema;
 
 namespace Memphis.Client.Producer
 {

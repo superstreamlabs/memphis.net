@@ -32,4 +32,12 @@ namespace Memphis.Client.Constants
         public const string PM_RESEND_ACK_SUBJ = "$memphis_pm_acks";
         public const string MEMPHIS_SCHEMA_UPDATE = "$memphis_schema_updates_";
     }
+
+    public static class MemphisSchemaTypes
+    {
+        public const string NONE = "";
+        public const string JSON = "json";
+        public const string GRAPH_QL = "graphql";
+        public const string PROTO_BUF = "protobuf";
+    }
 }
