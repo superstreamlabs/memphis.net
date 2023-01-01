@@ -264,17 +264,94 @@ namespace Memphis.Client
             _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
         }
 
+        
+        /// <summary>
+        /// Attach Schema to an existing station
+        /// </summary>
+        /// <param name="stationName">station name</param>
+        /// <param name="schemaName">schema name</param>
+        /// <returns>No object or value is returned by this method when it completes.</returns>
         public async Task AttachSchema(string stationName, string schemaName)
         {
-            throw new System.NotImplementedException();
+            if (string.IsNullOrEmpty(stationName))
+            {
+                throw new ArgumentException($"{nameof(stationName)} cannot be null or empty");
+            }
+            
+            if (string.IsNullOrEmpty(schemaName))
+            {
+                throw new ArgumentException($"{nameof(schemaName)} cannot be null or empty");
+            }
+            
+            try
+            {
+                var attachSchemaRequestModel = new AttachSchemaRequest()
+                {
+                    SchemaName = schemaName,
+                    StationName = stationName,
+                };
+
+                var attachSchemaModelJson = JsonSerDes.PrepareJsonString<AttachSchemaRequest>(attachSchemaRequestModel);
+
+                byte[] attachSchemaReqBytes = Encoding.UTF8.GetBytes(attachSchemaModelJson);
+
+                Msg attachSchemaResp = await _brokerConnection.RequestAsync(
+                    MemphisStations.MEMPHIS_SCHEMA_ATTACHMENTS, attachSchemaReqBytes);
+                string errResp = Encoding.UTF8.GetString(attachSchemaResp.Data);
+
+                if (!string.IsNullOrEmpty(errResp))
+                {
+                    throw new MemphisException(errResp);
+                } 
+            }
+            catch (System.Exception e)
+            {
+                throw new MemphisException("Failed to attach schema to station", e);
+            }
+            
         }
 
-        public async Task DetachSchema(string stationName, string schemaName)
+        
+        /// <summary>
+        /// DetachSchema Schema from station
+        /// </summary>
+        /// <param name="stationName">station name</param>
+        /// <returns>No object or value is returned by this method when it completes.</returns>
+        public async Task DetachSchema(string stationName)
         {
-            throw new System.NotImplementedException();
+            if (string.IsNullOrEmpty(stationName))
+            {
+                throw new ArgumentException($"{nameof(stationName)} cannot be null or empty");
+            }
+            
+            try
+            {
+                var detachSchemaRequestModel = new DetachSchemaRequest()
+                {
+                    StationName = stationName,
+                };
+
+                var detachSchemaModelJson = JsonSerDes.PrepareJsonString<DetachSchemaRequest>(detachSchemaRequestModel);
+
+                byte[] detachSchemaReqBytes = Encoding.UTF8.GetBytes(detachSchemaModelJson);
+
+                Msg detachSchemaResp = await _brokerConnection.RequestAsync(
+                    MemphisStations.MEMPHIS_SCHEMA_DETACHMENTS, detachSchemaReqBytes);
+                string errResp = Encoding.UTF8.GetString(detachSchemaResp.Data);
+
+                if (!string.IsNullOrEmpty(errResp))
+                {
+                    throw new MemphisException(errResp);
+                } 
+            }
+            catch (System.Exception e)
+            {
+                throw new MemphisException("Failed to attach schema to station", e);
+            }
         }
 
-        public async Task ValidateMessageAsync(byte[] message, string internalStationName)
+        
+        internal async Task ValidateMessageAsync(byte[] message, string internalStationName, string producerName)
         {
             if (!_schemaUpdateDictionary.TryGetValue(internalStationName,
                 out ProducerSchemaUpdateInit schemaUpdateInit))
@@ -282,27 +359,40 @@ namespace Memphis.Client
                 return;
             }
 
-            switch (schemaUpdateInit.SchemaType)
+            try
             {
-                case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+                switch (schemaUpdateInit.SchemaType)
                 {
-                    throw new NotImplementedException();
-                }
-                case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
-                {
-                    if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
+                    case ProducerSchemaUpdateInit.SchemaTypes.JSON:
                     {
-                        await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
+                        throw new NotImplementedException();
                     }
+                    case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+                    {
+                        if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
+                        {
+                            await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
+                        }
 
-                    break;
+                        break;
+                    }
+                    case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
+                    {
+                        throw new NotImplementedException();
+                    }
+                    default:
+                        throw new NotImplementedException($"Schema of type: {schemaUpdateInit.SchemaType} not implemented");
                 }
-                case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
-                {
-                    throw new NotImplementedException();
-                }
-                default:
-                    throw new NotImplementedException($"Schema of type: {schemaUpdateInit.SchemaType} not implemented");
+            }
+            catch (MemphisSchemaValidationException e)
+            {
+                await SendNotificationAsync(title: "Schema validation has failed",
+                    message: $"Station: {MemphisUtil.GetStationName(internalStationName)}"
+                    + $"\nProducer: {producerName}"
+                    + $"\nError: {e.Message}",
+                    code:  Encoding.UTF8.GetString(message),
+                    msgType: "schema_validation_fail_alert");
+                throw;
             }
         }
 
@@ -394,6 +484,23 @@ namespace Memphis.Client
             return;
         }
 
+        internal async Task SendNotificationAsync(string title, string message, string code, string msgType)
+        {
+            var notificationModel = new NotificationRequest()
+            {
+                Title = title,
+                Message = message,
+                Code = code,
+                Type = msgType
+            };
+
+            var notificationModelJson = JsonSerDes.PrepareJsonString<NotificationRequest>(notificationModel);
+
+            byte[] notificationReqBytes = Encoding.UTF8.GetBytes(notificationModelJson);
+
+            _ = await _brokerConnection.RequestAsync(MemphisStations.MEMPHIS_NOTIFICATIONS, notificationReqBytes);
+        }
+        
         
         private void registerSchemaValidators()
         {
