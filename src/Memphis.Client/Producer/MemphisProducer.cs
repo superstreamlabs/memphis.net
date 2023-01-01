@@ -42,7 +42,7 @@ namespace Memphis.Client.Producer
         public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15,
             string messageId = null)
         {
-            await _memphisClient.ValidateMessageAsync(message, _internalStationName);
+            await _memphisClient.ValidateMessageAsync(message, _internalStationName, _producerName);
 
             var msg = new Msg
             {

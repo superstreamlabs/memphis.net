@@ -11,6 +11,11 @@ namespace Memphis.Client.Helper
             return name.Replace(".", "#");
         }
         
+        internal static string GetStationName(string internalStationName)
+        {
+            return internalStationName.Replace("#", ".");
+        }
+        
         internal static readonly char[] chars =
             "0123456789abcdef".ToCharArray(); 
 
