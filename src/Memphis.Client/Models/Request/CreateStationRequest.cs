@@ -28,6 +28,8 @@ namespace Memphis.Client.Models.Request
 
         [DataMember(Name = "dls_configuration")]
         public DlsConfiguration DlsConfiguration { get; set; }
+        [DataMember(Name = "user_name")]
+        public string UserName { get; set; }
         
     }
 

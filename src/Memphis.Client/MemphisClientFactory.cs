@@ -36,6 +36,7 @@ namespace Memphis.Client
             brokerConnOptions.ReconnectWait = opts.MaxReconnectIntervalMs;
             brokerConnOptions.Token = opts.ConnectionToken;
             brokerConnOptions.Name = $"{connectionId}::{opts.Username}";
+            brokerConnOptions.User = opts.Username;
             brokerConnOptions.Verbose = true;
             
             try
