@@ -1,4 +1,4 @@
-using System;
+using System.Security.Cryptography.X509Certificates;
 using Memphis.Client.Exception;
 using Memphis.Client.Helper;
 using NATS.Client;
@@ -31,14 +31,40 @@ namespace Memphis.Client
             var connectionId = MemphisUtil.GetUniqueKey(24);
 
             var brokerConnOptions = ConnectionFactory.GetDefaultOptions();
-            brokerConnOptions.Servers = new[] {$"{normalizeHost(opts.Host)}:{opts.Port}"};
+            brokerConnOptions.Servers = new[] { $"{normalizeHost(opts.Host)}:{opts.Port}" };
             brokerConnOptions.AllowReconnect = opts.Reconnect;
             brokerConnOptions.ReconnectWait = opts.MaxReconnectIntervalMs;
             brokerConnOptions.Token = opts.ConnectionToken;
             brokerConnOptions.Name = $"{connectionId}::{opts.Username}";
             brokerConnOptions.User = opts.Username;
             brokerConnOptions.Verbose = true;
-            
+
+            if (opts.Tls != null)
+            {
+                brokerConnOptions.Secure = true;
+                brokerConnOptions.CheckCertificateRevocation = true;
+                if (opts.Tls.Certificate != null)
+                {
+                    brokerConnOptions.AddCertificate(opts.Tls.Certificate);
+                }
+                else if (!string.IsNullOrWhiteSpace(opts.Tls.FileName))
+                {
+                    if (!string.IsNullOrWhiteSpace(opts.Tls.Password))
+                    {
+                        brokerConnOptions.AddCertificate(new X509Certificate2(opts.Tls.FileName, opts.Tls.Password));
+                    }
+                    else
+                    {
+                        brokerConnOptions.AddCertificate(opts.Tls.FileName);
+                    }
+                }
+               
+                if(opts.Tls.RemoteCertificateValidationCallback != null)
+                {
+                    brokerConnOptions.TLSRemoteCertificationValidationCallback = opts.Tls.RemoteCertificateValidationCallback;   
+                }
+            }
+
             try
             {
                 IConnection brokerConnection = new ConnectionFactory()
