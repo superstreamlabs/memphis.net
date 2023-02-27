@@ -7,8 +7,10 @@ namespace Memphis.Client.Models.Request
     {
         [DataMember(Name = "name")]
         public string SchemaName { get; set; }
-        
+
         [DataMember(Name = "station_name")]
         public string StationName { get; set; }
+        [DataMember(Name = "user_name")]
+        public string UserName { get; set; }
     }
 }

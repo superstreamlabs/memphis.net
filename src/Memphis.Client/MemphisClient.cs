@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +23,7 @@ namespace Memphis.Client
         private readonly IConnection _brokerConnection;
         private readonly IJetStream _jetStreamContext;
         private readonly string _connectionId;
+        private readonly string _userName;
 
         private CancellationTokenSource _cancellationTokenSource;
 
@@ -45,6 +45,7 @@ namespace Memphis.Client
             this._brokerConnection = brokerConnection ?? throw new ArgumentNullException(nameof(brokerConnection));
             this._jetStreamContext = jetStreamContext ?? throw new ArgumentNullException(nameof(jetStreamContext));
             this._connectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
+            this._userName = brokerConnOptions.User;
 
             this._cancellationTokenSource = new CancellationTokenSource();
 
@@ -85,7 +86,8 @@ namespace Memphis.Client
                     StationName = MemphisUtil.GetInternalName(stationName),
                     ConnectionId = _connectionId,
                     ProducerType = "application",
-                    RequestVersion = 1
+                    RequestVersion = 1,
+                    UserName = _userName
                 };
 
                 var createProducerModelJson = JsonSerDes.PrepareJsonString<CreateProducerRequest>(createProducerModel);
@@ -148,6 +150,7 @@ namespace Memphis.Client
                     ConsumerGroup = consumerOptions.ConsumerGroup,
                     MaxAckTimeMs = consumerOptions.MaxAckTimeMs,
                     MaxMsgCountForDelivery = consumerOptions.MaxMsdgDeliveries,
+                    UserName = _userName
                 };
 
                 var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
@@ -199,7 +202,8 @@ namespace Memphis.Client
                     {
                         Poison = stationOptions.SendPoisonMessageToDls,
                         SchemaVerse = stationOptions.SendSchemaFailedMessageToDls,
-                    }
+                    },
+                    UserName = _userName
                 };
 
                 var createStationModelJson = JsonSerDes.PrepareJsonString<CreateStationRequest>(createStationModel);
@@ -288,6 +292,7 @@ namespace Memphis.Client
                 {
                     SchemaName = schemaName,
                     StationName = stationName,
+                    UserName = _userName
                 };
 
                 var attachSchemaModelJson = JsonSerDes.PrepareJsonString<AttachSchemaRequest>(attachSchemaRequestModel);
@@ -328,6 +333,7 @@ namespace Memphis.Client
                 var detachSchemaRequestModel = new DetachSchemaRequest()
                 {
                     StationName = stationName,
+                    UserName  = _userName
                 };
 
                 var detachSchemaModelJson = JsonSerDes.PrepareJsonString<DetachSchemaRequest>(detachSchemaRequestModel);

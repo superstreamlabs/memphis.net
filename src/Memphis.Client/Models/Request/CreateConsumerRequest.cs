@@ -25,5 +25,7 @@ namespace Memphis.Client.Models.Request
         
         [DataMember(Name = "max_msg_deliveries")]
         public int MaxMsgCountForDelivery { get; set; }
+        [DataMember(Name = "user_name")]
+        public string UserName { get; set; }
     }
 }
