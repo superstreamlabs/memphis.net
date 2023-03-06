@@ -57,6 +57,16 @@ namespace Memphis.Client
             this.registerSchemaValidators();
         }
 
+        /// <summary>
+        /// Check if Memphis is connected
+        /// </summary>
+        /// <returns>
+        /// True if the Memphis is connected; otherwise, false.
+        /// </returns>
+        public bool IsConnected()
+        {
+            return !_brokerConnection.IsClosed();
+        }
 
         /// <summary>
         /// Create Producer for station 

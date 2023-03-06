@@ -327,3 +327,9 @@ msg.GetHeaders()
 ```c#
 await consumer.DestroyAsync();
 ```
+
+### Check if broker is connected
+
+```c#
+memphisClient.IsConnected();
+```
