@@ -12,6 +12,7 @@ namespace Memphis.Client.Station
         public string SchemaName { get; set; } = string.Empty;
         public bool SendPoisonMessageToDls { get; set; } = false;
         public bool SendSchemaFailedMessageToDls { get; set; } = true;
+        public bool TieredStorageEnabled { get; set; } = false;
     }
 
     public class RetentionTypes

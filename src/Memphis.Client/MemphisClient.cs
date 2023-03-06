@@ -213,7 +213,8 @@ namespace Memphis.Client
                         Poison = stationOptions.SendPoisonMessageToDls,
                         SchemaVerse = stationOptions.SendSchemaFailedMessageToDls,
                     },
-                    UserName = _userName
+                    UserName = _userName,
+                    TieredStorageEnabled = stationOptions.TieredStorageEnabled
                 };
 
                 var createStationModelJson = JsonSerDes.PrepareJsonString<CreateStationRequest>(createStationModel);
