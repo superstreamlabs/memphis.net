@@ -73,7 +73,7 @@ try
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<broker-address>";
     options.Username = "<application-type-username>";
-    options.ConnectionToken = "<token>";
+    options.ConnectionToken = "<token>"; // you will get it on application type user creation
     var memphisClient = MemphisClientFactory.CreateClient(options);
     ...
 }
