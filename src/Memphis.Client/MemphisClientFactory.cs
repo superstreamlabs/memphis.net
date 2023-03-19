@@ -1,3 +1,4 @@
+using System;
 using System.Security.Cryptography.X509Certificates;
 using Memphis.Client.Exception;
 using Memphis.Client.Helper;
@@ -28,7 +29,7 @@ namespace Memphis.Client
         /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
         public static MemphisClient CreateClient(ClientOptions opts)
         {
-            var connectionId = MemphisUtil.GetUniqueKey(24);
+            var connectionId = Guid.NewGuid().ToString();
 
             var brokerConnOptions = ConnectionFactory.GetDefaultOptions();
             brokerConnOptions.Servers = new[] { $"{normalizeHost(opts.Host)}:{opts.Port}" };
