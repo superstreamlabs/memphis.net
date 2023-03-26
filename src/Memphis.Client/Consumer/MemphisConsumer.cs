@@ -19,7 +19,7 @@ namespace Memphis.Client.Consumer
     {
         public event EventHandler<MemphisMessageHandlerEventArgs> MessageReceived;
         public event EventHandler<MemphisMessageHandlerEventArgs> DlsMessageReceived;
-        
+
         internal string InternalStationName { get; private set; }
         internal string Key => $"{InternalStationName}_{_consumerOptions.RealName}";
 
@@ -50,10 +50,10 @@ namespace Memphis.Client.Consumer
         public async Task ConsumeAsync(CancellationToken cancellationToken = default)
         {
             var taskForStationConsumption = Task.Run(
-                async () => await consume(_cancellationTokenSource.Token),
+                async () => await Consume(_cancellationTokenSource.Token),
                 _cancellationTokenSource.Token);
             var taskForDlqConsumption = Task.Run(
-                async () => await consumeFromDlq(_cancellationTokenSource.Token),
+                async () => await ConsumeFromDlq(_cancellationTokenSource.Token),
                 _cancellationTokenSource.Token);
             await Task.WhenAll(taskForStationConsumption, taskForDlqConsumption);
         }
@@ -65,7 +65,7 @@ namespace Memphis.Client.Consumer
         /// <param name="msgCallbackHandler">the event handler for messages consumed from station in which MemphisConsumer created for</param>
         /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
         /// <returns></returns>
-        private async Task consume(CancellationToken cancellationToken)
+        private async Task Consume(CancellationToken cancellationToken)
         {
             var internalSubjectName = MemphisUtil.GetInternalName(_consumerOptions.StationName);
             var consumerGroup = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
@@ -76,26 +76,24 @@ namespace Memphis.Client.Consumer
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (_pullSubscription.IsValid && _pullSubscription.Connection.State != ConnState.CLOSED)
+                if (!IsSubscriptionActive(_pullSubscription))
+                    continue;
+
+                try
                 {
-                    try
-                    {
-                        IList<Msg> msgList = _pullSubscription.Fetch(_consumerOptions.BatchSize,
-                            _consumerOptions.BatchMaxTimeToWaitMs);
+                    var msgList = _pullSubscription.Fetch(_consumerOptions.BatchSize,
+                        _consumerOptions.BatchMaxTimeToWaitMs);
+                    var memphisMessageList = msgList
+                        .Select(item => new MemphisMessage(item, _memphisClient, _consumerOptions.ConsumerGroup,
+                            _consumerOptions.MaxAckTimeMs))
+                        .ToList();
 
-                        var memphisMessageList = msgList
-                            .Select(item => new MemphisMessage(item, _memphisClient, _consumerOptions.ConsumerGroup,
-                                _consumerOptions.MaxAckTimeMs))
-                            .ToList();
-
-                        MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, null));
-
-                        await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
-                    }
-                    catch (System.Exception e)
-                    {
-                        MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
-                    }
+                    MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, null));
+                    await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
+                }
+                catch (System.Exception e)
+                {
+                    MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
                 }
             }
         }
@@ -106,7 +104,7 @@ namespace Memphis.Client.Consumer
         /// <param name="dlqCallbackHandler">event handler for messages consumed from dead letter queue or juts DLQ.</param>
         /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
         /// <returns></returns>
-        private async Task consumeFromDlq(CancellationToken cancellationToken)
+        private async Task ConsumeFromDlq(CancellationToken cancellationToken)
         {
             var subjectToConsume = MemphisUtil.GetInternalName(_consumerOptions.StationName);
             var consumerGroup = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
@@ -134,7 +132,7 @@ namespace Memphis.Client.Consumer
                             continue;
                         }
 
-                        var memphisMessageList = new List<MemphisMessage>{ memphisMsg };
+                        var memphisMessageList = new List<MemphisMessage> { memphisMsg };
 
                         DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, null));
 
@@ -214,16 +212,14 @@ namespace Memphis.Client.Consumer
                 }
 
                 string durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
-                if(!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
+                if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
                 {
                     durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
                 }
 
-                PullSubscribeOptions options = PullSubscribeOptions.Builder()
-                .WithDurable(durableName)
-                .Build();
-
-                var subscription = _memphisClient.JetStreamConnection.PullSubscribe(InternalStationName, options);
+                var subscription = _memphisClient.JetStreamConnection.PullSubscribe(
+                    $"{InternalStationName}.final",
+                    PullSubscribeOptions.BindTo(InternalStationName, durableName));
                 var batch = subscription.Fetch(batchSize, _consumerOptions.BatchMaxTimeToWaitMs);
                 return batch
                     .Select<Msg, MemphisMessage>(
@@ -282,6 +278,5 @@ namespace Memphis.Client.Consumer
             _pullSubscription?.Dispose();
             _dlqSubscription?.Dispose();
         }
-
     }
 }

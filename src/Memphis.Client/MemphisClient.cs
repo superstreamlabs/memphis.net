@@ -48,20 +48,22 @@ namespace Memphis.Client
         public MemphisClient(Options brokerConnOptions, IConnection brokerConnection,
             IJetStream jetStreamContext, string connectionId)
         {
-            this._brokerConnOptions = brokerConnOptions ?? throw new ArgumentNullException(nameof(brokerConnOptions));
-            this._brokerConnection = brokerConnection ?? throw new ArgumentNullException(nameof(brokerConnection));
-            this._jetStreamContext = jetStreamContext ?? throw new ArgumentNullException(nameof(jetStreamContext));
-            this._connectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
-            this._userName = brokerConnOptions.User;
+            _brokerConnOptions = brokerConnOptions ?? throw new ArgumentNullException(nameof(brokerConnOptions));
+            _brokerConnection = brokerConnection ?? throw new ArgumentNullException(nameof(brokerConnection));
+            _jetStreamContext = jetStreamContext ?? throw new ArgumentNullException(nameof(jetStreamContext));
+            _connectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
+            _userName = brokerConnOptions.User;
 
-            this._cancellationTokenSource = new();
+            _cancellationTokenSource = new();
 
-            this._schemaUpdateDictionary = new();
-            this._subscriptionPerSchema = new();
-            this._producerPerStations = new();
-            this._producerCache = new();
-            this._schemaValidators = new();
-            this.registerSchemaValidators();
+            _schemaUpdateDictionary = new();
+            _subscriptionPerSchema = new();
+            _producerPerStations = new();
+            _producerCache = new();
+            _consumerCache = new();
+            
+            _schemaValidators = new();
+            RegisterSchemaValidators();
         }
 
         /// <summary>
@@ -70,7 +72,7 @@ namespace Memphis.Client
         /// <returns>
         /// True if the Memphis is connected; otherwise, false.
         /// </returns>
-        public bool IsConnected()
+        private bool IsConnected()
         {
             return !_brokerConnection.IsClosed();
         }
@@ -124,7 +126,7 @@ namespace Memphis.Client
 
                 string internalStationName = MemphisUtil.GetInternalName(stationName);
 
-                await this.listenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
+                await ListenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
 
                 return new MemphisProducer(this, producerName, stationName, producerName.ToLower());
             }
@@ -146,17 +148,14 @@ namespace Memphis.Client
 
             MemphisConsumer consumer = default;
             var internalStationName = MemphisUtil.GetInternalName(options.StationName);
-            var consumerKey = $"{internalStationName}_{options.ConsumerName.ToLower()}";
+            var consumerKey = $"{{internalStationName}}_{options.ConsumerName.ToLower()}";
 
-            if(_consumerCache.TryGetValue(consumerKey, out MemphisConsumer cacheConsumer))
+            if(_consumerCache.TryGetValue(consumerKey, out var cacheConsumer))
             {
                 consumer = cacheConsumer;
             }
 
-            if(consumer is null)
-            {
-                consumer = await CreateConsumer(options);
-            }
+            consumer ??= await CreateConsumer(options);
 
             return await consumer.Fetch(options.BatchSize, cancellationToken);
         }
@@ -516,69 +515,78 @@ namespace Memphis.Client
             get { return _connectionId; }
         }
 
-        private async Task processAndStoreSchemaUpdate(string internalStationName, Msg message)
+        private async Task ProcessAndStoreSchemaUpdate(string internalStationName, Msg message)
         {
             string respAsJson = Encoding.UTF8.GetString(message.Data);
             var respAsObject =
                 (ProducerSchemaUpdate)JsonSerDes.PrepareObjectFromString<ProducerSchemaUpdate>(respAsJson);
 
-            if (!string.IsNullOrEmpty(respAsObject?.Init?.SchemaName))
+            await ProcessAndStoreSchemaUpdate(internalStationName, respAsObject.Init);
+        }
+        
+        private async Task ProcessAndStoreSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdate)
+        {
+            if (string.IsNullOrWhiteSpace(internalStationName))
             {
-                if (!this._schemaUpdateDictionary.TryAdd(internalStationName, respAsObject.Init))
-                {
-                    throw new MemphisException(
-                        $"Unable to save schema: {respAsObject.Init.SchemaName} data for station: {internalStationName}");
-                }
+                throw new MemphisException(
+                    $"Unable to save schema: invalid internal station name: {internalStationName}");
+            }
+            
+            if(schemaUpdate is null || string.IsNullOrWhiteSpace(schemaUpdate.SchemaName))
+                return;
 
-                switch (respAsObject.Init.SchemaType)
-                {
-                    case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+            _schemaUpdateDictionary.AddOrUpdate(internalStationName, 
+                schemaUpdate,
+                (key, _) => schemaUpdate);
+            
+            switch (schemaUpdate.SchemaType)
+            {
+                case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+                    {
+                        if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
                         {
-                            if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
+                            bool isDone = schemaValidator.ParseAndStore(
+                                schemaUpdate.SchemaName,
+                                schemaUpdate.ActiveVersion?.Content);
+
+                            if (!isDone)
                             {
-                                bool isDone = schemaValidator.ParseAndStore(
-                                    respAsObject.Init.SchemaName,
-                                    respAsObject.Init.ActiveVersion?.Content);
-
-                                if (!isDone)
-                                {
-                                    //TODO raise notification regarding unable to parse schema pushed by Memphis
-                                    throw new InvalidOperationException($"Unable to parse and store " +
-                                                                        $"schema: {respAsObject.Init?.SchemaName}, type: {respAsObject.Init?.SchemaType}" +
-                                                                        $" in local cache");
-                                }
+                                //TODO raise notification regarding unable to parse schema pushed by Memphis
+                                throw new InvalidOperationException($"Unable to parse and store " +
+                                                                    $"schema: {schemaUpdate?.SchemaName}, type: {schemaUpdate?.SchemaType}" +
+                                                                    $" in local cache");
                             }
-
-                            break;
                         }
-                    case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+
+                        break;
+                    }
+                case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+                    {
+                        if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
                         {
-                            if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
+                            bool isDone = schemaValidator.ParseAndStore(
+                                schemaUpdate.SchemaName,
+                                schemaUpdate.ActiveVersion?.Content);
+
+                            if (!isDone)
                             {
-                                bool isDone = schemaValidator.ParseAndStore(
-                                    respAsObject.Init.SchemaName,
-                                    respAsObject.Init.ActiveVersion?.Content);
-
-                                if (!isDone)
-                                {
-                                    //TODO raise notification regarding unable to parse schema pushed by Memphis
-                                    throw new InvalidOperationException($"Unable to parse and store " +
-                                                                        $"schema: {respAsObject.Init?.SchemaName}, type: {respAsObject.Init?.SchemaType}" +
-                                                                        $" in local cache");
-                                }
+                                //TODO raise notification regarding unable to parse schema pushed by Memphis
+                                throw new InvalidOperationException($"Unable to parse and store " +
+                                                                    $"schema: {schemaUpdate?.SchemaName}, type: {schemaUpdate?.SchemaType}" +
+                                                                    $" in local cache");
                             }
+                        }
 
-                            break;
-                        }
-                    case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
-                        {
-                            throw new NotImplementedException();
-                        }
-                }
+                        break;
+                    }
+                case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
+                    {
+                        throw new NotImplementedException();
+                    }
             }
         }
 
-        private void registerSchemaValidators()
+        private void RegisterSchemaValidators()
         {
             if (!_schemaValidators.TryAdd(ValidatorType.GRAPHQL, new GraphqlValidator()))
             {
@@ -591,7 +599,7 @@ namespace Memphis.Client
             }
         }
 
-        private async Task listenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
+        private async Task ListenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
         {
             var schemaUpdateSubject = MemphisSubjects.MEMPHIS_SCHEMA_UPDATE + internalStationName;
 
@@ -613,13 +621,15 @@ namespace Memphis.Client
             {
                 throw new MemphisException("Unable to add subscription of schema updates for station");
             }
-
+            
+            await ProcessAndStoreSchemaUpdate(internalStationName,schemaUpdateInit);
+            
             Task.Run(async () =>
             {
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
                     var schemaUpdateMsg = subscription.NextMessage();
-                    await processAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
+                    await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
                 }
             }, _cancellationTokenSource.Token);
 
