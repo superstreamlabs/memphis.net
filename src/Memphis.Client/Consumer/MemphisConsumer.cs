@@ -15,12 +15,11 @@ using NATS.Client.JetStream;
 
 namespace Memphis.Client.Consumer
 {
-    public class MemphisConsumer : IDisposable
+    public sealed class MemphisConsumer : IDisposable
     {
         public event EventHandler<MemphisMessageHandlerEventArgs> MessageReceived;
         public event EventHandler<MemphisMessageHandlerEventArgs> DlsMessageReceived;
         
-
         internal string InternalStationName { get; private set; }
         internal string Key => $"{InternalStationName}_{_consumerOptions.RealName}";
 
@@ -48,14 +47,13 @@ namespace Memphis.Client.Consumer
         /// <param name="msgCallbackHandler">the event handler for messages consumed from station in which MemphisConsumer created for</param>
         /// <param name="dlqCallbackHandler">event handler for messages consumed from dead letter queue or juts DLQ.</param>
         /// <returns></returns>
-        public async Task ConsumeAsync(EventHandler<MemphisMessageHandlerEventArgs> msgCallbackHandler,
-            EventHandler<MemphisMessageHandlerEventArgs> dlqCallbackHandler, CancellationToken cancellationToken = default)
+        public async Task ConsumeAsync(CancellationToken cancellationToken = default)
         {
             var taskForStationConsumption = Task.Run(
-                async () => await consume(msgCallbackHandler, _cancellationTokenSource.Token),
+                async () => await consume(_cancellationTokenSource.Token),
                 _cancellationTokenSource.Token);
             var taskForDlqConsumption = Task.Run(
-                async () => await consumeFromDlq(dlqCallbackHandler, _cancellationTokenSource.Token),
+                async () => await consumeFromDlq(_cancellationTokenSource.Token),
                 _cancellationTokenSource.Token);
             await Task.WhenAll(taskForStationConsumption, taskForDlqConsumption);
         }
@@ -67,8 +65,7 @@ namespace Memphis.Client.Consumer
         /// <param name="msgCallbackHandler">the event handler for messages consumed from station in which MemphisConsumer created for</param>
         /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
         /// <returns></returns>
-        private async Task consume(EventHandler<MemphisMessageHandlerEventArgs> msgCallbackHandler,
-            CancellationToken cancellationToken)
+        private async Task consume(CancellationToken cancellationToken)
         {
             var internalSubjectName = MemphisUtil.GetInternalName(_consumerOptions.StationName);
             var consumerGroup = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
@@ -91,13 +88,13 @@ namespace Memphis.Client.Consumer
                                 _consumerOptions.MaxAckTimeMs))
                             .ToList();
 
-                        msgCallbackHandler(this, new MemphisMessageHandlerEventArgs(memphisMessageList, null));
+                        MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, null));
 
                         await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
                     }
                     catch (System.Exception e)
                     {
-                        msgCallbackHandler(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
+                        MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
                     }
                 }
             }
@@ -109,8 +106,7 @@ namespace Memphis.Client.Consumer
         /// <param name="dlqCallbackHandler">event handler for messages consumed from dead letter queue or juts DLQ.</param>
         /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
         /// <returns></returns>
-        private async Task consumeFromDlq(EventHandler<MemphisMessageHandlerEventArgs> dlqCallbackHandler,
-            CancellationToken cancellationToken)
+        private async Task consumeFromDlq(CancellationToken cancellationToken)
         {
             var subjectToConsume = MemphisUtil.GetInternalName(_consumerOptions.StationName);
             var consumerGroup = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
@@ -132,7 +128,7 @@ namespace Memphis.Client.Consumer
 
                         var memphisMsg = new MemphisMessage(msg, _memphisClient, _consumerOptions.ConsumerGroup,
                                 _consumerOptions.MaxAckTimeMs);
-                        if (dlqCallbackHandler is null)
+                        if (DlsMessageReceived is null)
                         {
                             EnqueueDlqMessage(memphisMsg);
                             continue;
@@ -140,13 +136,13 @@ namespace Memphis.Client.Consumer
 
                         var memphisMessageList = new List<MemphisMessage>{ memphisMsg };
 
-                        dlqCallbackHandler?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, null));
+                        DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, null));
 
                         await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
                     }
                     catch (System.Exception e)
                     {
-                        dlqCallbackHandler?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
+                        DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
                     }
                 }
             }

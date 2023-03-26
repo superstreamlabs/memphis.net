@@ -12,7 +12,7 @@ using NATS.Client.JetStream;
 
 namespace Memphis.Client.Producer
 {
-    public class MemphisProducer
+    public sealed class MemphisProducer
     {
         internal string Key => $"{_internalStationName}_{_realName}";
         internal string InternalStationName { get => _internalStationName; }

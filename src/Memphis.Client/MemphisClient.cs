@@ -20,7 +20,7 @@ using NATS.Client.JetStream;
 
 namespace Memphis.Client
 {
-    public class MemphisClient : IDisposable
+    public sealed class MemphisClient : IDisposable
     {
         private bool _desposed;
         private readonly Options _brokerConnOptions;
@@ -666,7 +666,7 @@ namespace Memphis.Client
             GC.SuppressFinalize(true);
         }
 
-        public virtual void Dispose(bool disposing)
+        public void Dispose(bool disposing)
         {
             if (_desposed)
                 return;
