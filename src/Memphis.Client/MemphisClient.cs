@@ -148,7 +148,7 @@ namespace Memphis.Client
 
             MemphisConsumer consumer = default;
             var internalStationName = MemphisUtil.GetInternalName(options.StationName);
-            var consumerKey = $"{{internalStationName}}_{options.ConsumerName.ToLower()}";
+            var consumerKey = $"{internalStationName}_{options.ConsumerName.ToLower()}";
 
             if(_consumerCache.TryGetValue(consumerKey, out var cacheConsumer))
             {

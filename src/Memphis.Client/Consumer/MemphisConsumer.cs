@@ -211,12 +211,12 @@ namespace Memphis.Client.Consumer
                     return messages;
                 }
 
-                string durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
+                var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
                 if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
                 {
                     durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
                 }
-
+                
                 var subscription = _memphisClient.JetStreamConnection.PullSubscribe(
                     $"{InternalStationName}.final",
                     PullSubscribeOptions.BindTo(InternalStationName, durableName));

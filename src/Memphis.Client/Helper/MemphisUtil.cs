@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Memphis.Client.Helper
 {
-    internal class MemphisUtil
+    internal static class MemphisUtil
     {
         internal static string GetInternalName(string name)
         {
