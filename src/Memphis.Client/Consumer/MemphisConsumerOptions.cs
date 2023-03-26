@@ -1,6 +1,6 @@
 ﻿namespace Memphis.Client.Consumer
 {
-    public sealed class ConsumerOptions
+    public sealed class MemphisConsumerOptions
     {
         public string StationName { get; set; }
         public string ConsumerName { get; set; }
@@ -10,6 +10,10 @@
         public int BatchMaxTimeToWaitMs { get; set; } = 5_000;
         public int MaxAckTimeMs { get; set; } = 30_000;
         public int MaxMsdgDeliveries { get; set; } = 10;
-        public bool GenerateRandomSuffix { get; set; } = false;
+        public bool GenerateUniqueSuffix { get; set; } = false;
+        public int StartConsumeFromSequence { get; set; }
+        public int LastMessages { get; set; }
+        
+        internal string RealName { get; set; }
     }
 }

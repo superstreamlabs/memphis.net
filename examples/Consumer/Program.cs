@@ -19,7 +19,7 @@ namespace Consumer
                 options.ConnectionToken = "<broker-token>";
                 var client = MemphisClientFactory.CreateClient(options);
 
-                var consumer = await client.CreateConsumer(new ConsumerOptions
+                var consumer = await client.CreateConsumer(new MemphisConsumerOptions
                 {
                     StationName = "<station-name>",
                     ConsumerName = "<consumer-name>",
