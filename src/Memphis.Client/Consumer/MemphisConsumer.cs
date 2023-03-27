@@ -88,12 +88,12 @@ namespace Memphis.Client.Consumer
                             _consumerOptions.MaxAckTimeMs))
                         .ToList();
 
-                    MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, null));
+                    MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, _pullSubscription.Context, null));
                     await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
                 }
                 catch (System.Exception e)
                 {
-                    MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
+                    MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), _pullSubscription?.Context, e));
                 }
             }
         }
@@ -134,13 +134,13 @@ namespace Memphis.Client.Consumer
 
                         var memphisMessageList = new List<MemphisMessage> { memphisMsg };
 
-                        DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, null));
+                        DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, _pullSubscription?.Context, null));
 
                         await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
                     }
                     catch (System.Exception e)
                     {
-                        DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), e));
+                        DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), _pullSubscription?.Context, e));
                     }
                 }
             }
@@ -216,7 +216,7 @@ namespace Memphis.Client.Consumer
                 {
                     durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
                 }
-                
+
                 var subscription = _memphisClient.JetStreamConnection.PullSubscribe(
                     $"{InternalStationName}.final",
                     PullSubscribeOptions.BindTo(InternalStationName, durableName));

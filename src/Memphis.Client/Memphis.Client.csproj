@@ -8,6 +8,7 @@
         <Company>Memphis.dev</Company>
         <PackageTags>Memphis, client</PackageTags>
         <LangVersion>11</LangVersion>
+        <Nullable>enable</Nullable>
         <Description>Memphis.Client SDK intended to make easy integration of Memphis into .NET projects</Description>
     </PropertyGroup>
 
