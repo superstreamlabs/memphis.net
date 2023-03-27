@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using NATS.Client.JetStream;
 
 namespace Memphis.Client.Core
 {
     public class MemphisMessageHandlerEventArgs : EventArgs
     {
-        public MemphisMessageHandlerEventArgs(List<MemphisMessage> messageList, System.Exception ex)
+        public MemphisMessageHandlerEventArgs(List<MemphisMessage> messageList, IJetStream? context, System.Exception? ex)
         {
             MessageList = messageList;
+            Context = context;
             Exception = ex;
         }
 
@@ -17,6 +19,8 @@ namespace Memphis.Client.Core
         /// </summary>
         public List<MemphisMessage> MessageList { get; }
 
-        public System.Exception Exception { get; }
+        public System.Exception? Exception { get; }
+
+        public IJetStream? Context { get; set; }
     }
 }

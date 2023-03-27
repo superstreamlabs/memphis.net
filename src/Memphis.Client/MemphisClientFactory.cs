@@ -7,7 +7,7 @@ using NATS.Client.JetStream;
 
 namespace Memphis.Client
 {
-    public class MemphisClientFactory
+    public static class MemphisClientFactory
     {
         public static ClientOptions GetDefaultOptions()
         {
@@ -21,7 +21,6 @@ namespace Memphis.Client
             };
         }
 
-
         /// <summary>
         /// Create Memphis Client
         /// </summary>
@@ -32,7 +31,7 @@ namespace Memphis.Client
             var connectionId = Guid.NewGuid().ToString();
 
             var brokerConnOptions = ConnectionFactory.GetDefaultOptions();
-            brokerConnOptions.Servers = new[] { $"{normalizeHost(opts.Host)}:{opts.Port}" };
+            brokerConnOptions.Servers = new[] { $"{NormalizeHost(opts.Host)}:{opts.Port}" };
             brokerConnOptions.AllowReconnect = opts.Reconnect;
             brokerConnOptions.ReconnectWait = opts.MaxReconnectIntervalMs;
             brokerConnOptions.Token = opts.ConnectionToken;
@@ -82,19 +81,14 @@ namespace Memphis.Client
             }
         }
 
-        private static string normalizeHost(string host)
+        private static string NormalizeHost(string host)
         {
             if (host.StartsWith("http://"))
             {
                 return host.Replace("http://", string.Empty);
             }
 
-            if (host.StartsWith("https://"))
-            {
-                return host.Replace("https://", string.Empty);
-            }
-
-            return host;
+            return host.StartsWith("https://") ? host.Replace("https://", string.Empty) : host;
         }
     }
 }

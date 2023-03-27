@@ -1,5 +1,6 @@
 using System.Runtime.Serialization;
 
+#nullable disable
 namespace Memphis.Client.Models.Request
 {
     [DataContract]
@@ -19,13 +20,20 @@ namespace Memphis.Client.Models.Request
         
         [DataMember(Name = "consumers_group")]
         public string ConsumerGroup { get; set; }
-
+        
         [DataMember(Name = "max_ack_time_ms")]
         public int MaxAckTimeMs { get; set; }
         
         [DataMember(Name = "max_msg_deliveries")]
         public int MaxMsgCountForDelivery { get; set; }
+        
         [DataMember(Name = "user_name")]
         public string UserName { get; set; }
+        
+        [DataMember(Name = "start_consume_from_sequence")]
+        public int StartConsumeFromSequence { get; set; }
+        
+        [DataMember(Name = "last_messages")]
+        public int LastMessages { get; set; }
     }
 }

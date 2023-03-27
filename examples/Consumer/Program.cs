@@ -19,14 +19,14 @@ namespace Consumer
                 options.ConnectionToken = "<broker-token>";
                 var client = MemphisClientFactory.CreateClient(options);
 
-                var consumer = await client.CreateConsumer(new ConsumerOptions
+                var consumer = await client.CreateConsumer(new MemphisConsumerOptions
                 {
                     StationName = "<station-name>",
                     ConsumerName = "<consumer-name>",
                     ConsumerGroup = "<consumer-group-name>",
                 });
 
-                EventHandler<MemphisMessageHandlerEventArgs> msgHandler = (sender, args) =>
+                consumer.MessageReceived += (sender, args) =>
                 {
                     if (args.Exception != null)
                     {
@@ -53,9 +53,7 @@ namespace Consumer
                     Console.WriteLine("destroyed");
                 };
 
-                consumer.ConsumeAsync(
-                    msgCallbackHandler:msgHandler,
-                    dlqCallbackHandler:msgHandler);
+                consumer.ConsumeAsync();
 
                 // Wait 10 seconds, consumer starts to consume, if you need block main thread use await keyword.
                 await Task.Delay(10_000);

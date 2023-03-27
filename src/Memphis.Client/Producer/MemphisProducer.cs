@@ -9,38 +9,39 @@ using Memphis.Client.Models.Request;
 using NATS.Client;
 using NATS.Client.Internals;
 using NATS.Client.JetStream;
-using NJsonSchema;
 
 namespace Memphis.Client.Producer
 {
-    public class MemphisProducer
+    public sealed class MemphisProducer
     {
-        private readonly MemphisClient _memphisClient;
+        internal string Key => $"{_internalStationName}_{_realName}";
+        internal string InternalStationName { get => _internalStationName; }
+
+        private readonly string _realName;
         private readonly string _producerName;
         private readonly string _stationName;
         private readonly string _internalStationName;
+        private readonly MemphisClient _memphisClient;
 
-
-        public MemphisProducer(MemphisClient memphisClient, string producerName, string stationName)
+        public MemphisProducer(MemphisClient memphisClient, string producerName, string stationName, string realName)
         {
-            this._memphisClient = memphisClient ?? throw new ArgumentNullException(nameof(memphisClient));
-            this._producerName = producerName ?? throw new ArgumentNullException(nameof(producerName));
-            this._stationName = stationName ?? throw new ArgumentNullException(nameof(stationName));
-
-            this._internalStationName = MemphisUtil.GetInternalName(stationName);
+            _realName = realName ?? throw new ArgumentNullException(nameof(realName));
+            _memphisClient = memphisClient ?? throw new ArgumentNullException(nameof(memphisClient));
+            _producerName = producerName ?? throw new ArgumentNullException(nameof(producerName));
+            _stationName = stationName ?? throw new ArgumentNullException(nameof(stationName));
+            _internalStationName = MemphisUtil.GetInternalName(stationName);
         }
-
 
         /// <summary>
         /// Produce messages into station
         /// </summary>
         /// <param name="message">the event handler for messages consumed from station in which MemphisConsumer created for</param>
         /// <param name="headers">headers used to send data in the form of key and value</param>
-        /// <param name="ackWaitSec">duration of time in seconds for acknowledgement</param>
+        /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
         /// <param name="messageId">ID of the message</param>
         /// <returns></returns>
-        public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitSec = 15,
-            string messageId = null)
+        public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
+            string messageId = default)
         {
             await _memphisClient.ValidateMessageAsync(message, _internalStationName, _producerName);
 
@@ -68,7 +69,7 @@ namespace Memphis.Client.Producer
 
             var publishAck = await _memphisClient.JetStreamConnection.PublishAsync(
                 msg, PublishOptions.Builder()
-                    .WithTimeout(Duration.OfSeconds(ackWaitSec))
+                    .WithTimeout(Duration.OfMillis(ackWaitMs))
                     .Build());
 
             if (publishAck.HasError)
@@ -107,9 +108,5 @@ namespace Memphis.Client.Producer
                 throw new MemphisException("Failed to destroy producer", e);
             }
         }
-
-        public string ProducerName => _producerName;
-
-        public string StationName => _stationName;
     }
 }

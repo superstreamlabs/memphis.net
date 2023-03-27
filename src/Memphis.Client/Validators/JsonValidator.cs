@@ -15,26 +15,26 @@ namespace Memphis.Client.Validators
 
         public Task ValidateAsync(byte[] messageToValidate, string schemaAsStr)
         {
-            if (_schemaCache.TryGetValue(schemaAsStr, out JsonSchema schemaObj))
+            if (!_schemaCache.TryGetValue(schemaAsStr, out var schemaObj))
+                throw new MemphisSchemaValidationException($"Schema: {schemaAsStr} not found in local cache");
+            try
             {
                 var jsonMsg = Encoding.UTF8.GetString(messageToValidate);
                 var errors = schemaObj.Validate(jsonMsg);
 
-                if (errors.Any())
+                if (!errors.Any()) return Task.CompletedTask;
+                var sb = new StringBuilder();
+                foreach (var error in errors)
                 {
-                    var sb = new StringBuilder();
-                    foreach (var error in errors)
-                    {
-                        sb.AppendLine(error.ToString());
-                    }
-                    
-                    throw new MemphisSchemaValidationException(sb.ToString());
+                    sb.AppendLine(error.ToString());
                 }
-
-                return Task.CompletedTask;
+                    
+                throw new MemphisSchemaValidationException(sb.ToString());
             }
-
-            throw new MemphisSchemaValidationException($"Schema: {schemaAsStr} not found in local cache");
+            catch (System.Exception ex)
+            {
+                throw new MemphisSchemaValidationException(ex.Message, ex);
+            }
         }
     }
 }
