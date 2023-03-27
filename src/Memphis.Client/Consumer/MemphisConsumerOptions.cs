@@ -1,5 +1,6 @@
 ﻿namespace Memphis.Client.Consumer
 {
+    #nullable disable
     public sealed class MemphisConsumerOptions
     {
         public string StationName { get; set; }
@@ -11,8 +12,8 @@
         public int MaxAckTimeMs { get; set; } = 30_000;
         public int MaxMsdgDeliveries { get; set; } = 10;
         public bool GenerateUniqueSuffix { get; set; } = false;
-        public int StartConsumeFromSequence { get; set; }
-        public int LastMessages { get; set; }
+        public int StartConsumeFromSequence { get; set; } = 0;
+        public int LastMessages { get; set; } = -1;
         
         internal string RealName { get; set; }
     }

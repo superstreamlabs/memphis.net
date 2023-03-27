@@ -224,6 +224,8 @@ namespace Memphis.Client
                     MaxAckTimeMs = consumerOptions.MaxAckTimeMs,
                     MaxMsgCountForDelivery = consumerOptions.MaxMsdgDeliveries,
                     UserName = _userName,
+                    StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
+                    LastMessages = consumerOptions.LastMessages
                 };
 
                 var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);

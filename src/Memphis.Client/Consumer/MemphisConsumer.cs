@@ -31,11 +31,17 @@ namespace Memphis.Client.Consumer
 
         private readonly CancellationTokenSource _cancellationTokenSource;
 
-        public MemphisConsumer(MemphisClient memphisClient, MemphisConsumerOptions consumerOptions)
+        public MemphisConsumer(MemphisClient memphisClient, MemphisConsumerOptions options)
         {
+            if (options.StartConsumeFromSequence < 0) 
+                throw new MemphisException($"Value of {nameof(options.StartConsumeFromSequence)} must be positive");
+            if (options.LastMessages < -1)
+                throw new MemphisException($"Value of {nameof(options.LastMessages)} can not be less than -1");
+            if (options is { StartConsumeFromSequence: > 1, LastMessages: > -1 })
+                throw new MemphisException($"Consumer creation option can't contain both {nameof(options.StartConsumeFromSequence)} and {nameof(options.LastMessages)}");
             _memphisClient = memphisClient ?? throw new ArgumentNullException(nameof(memphisClient));
-            _consumerOptions = consumerOptions ?? throw new ArgumentNullException(nameof(consumerOptions));
-            InternalStationName = MemphisUtil.GetInternalName(consumerOptions.StationName);
+            _consumerOptions = options ?? throw new ArgumentNullException(nameof(options));
+            InternalStationName = MemphisUtil.GetInternalName(options.StationName);
             _dlqMessages = new();
 
             _cancellationTokenSource = new();
