@@ -28,7 +28,7 @@ namespace Memphis.Client
         /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
         public static MemphisClient CreateClient(ClientOptions opts)
         {
-            var connectionId = Guid.NewGuid().ToString();
+            var connectionId = MemphisUtil.GetUniqueKey(24);
 
             var brokerConnOptions = ConnectionFactory.GetDefaultOptions();
             brokerConnOptions.Servers = new[] { $"{NormalizeHost(opts.Host)}:{opts.Port}" };
