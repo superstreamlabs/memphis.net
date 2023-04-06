@@ -56,7 +56,7 @@ namespace Memphis.Client.Producer
                 }
             };
 
-            if (string.IsNullOrEmpty(messageId))
+            if (!string.IsNullOrWhiteSpace(messageId))
             {
                 msg.Header.Add(MemphisHeaders.MESSAGE_ID, messageId);
             }
