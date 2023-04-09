@@ -57,5 +57,49 @@ namespace Memphis.Client.Core
         {
             return _msg.Header;
         }
+
+        /// <summary>
+        ///    Delay message for a given time.
+        /// </summary>
+        /// <param name="delayMilliSeconds">Delay time in milliseconds</param>
+        /// <exception cref="MemphisConnectionException">Throws when unable to delay message</exception>
+        public void Delay(long delayMilliSeconds)
+        {
+            var headers = GetHeaders();
+            if(TryGetHeaderValue("$memphis_pm_id", out string _))
+            {
+                _msg.NakWithDelay(delayMilliSeconds);
+                return;
+            }
+
+            if(TryGetHeaderValue("$memphis_pm_cg_name", out string _))
+            {
+                _msg.NakWithDelay(delayMilliSeconds);
+                return;
+            }
+
+            throw new MemphisConnectionException("Unable to delay DLS message");
+        }
+
+        /// <summary>
+        /// gets header value from message header
+        /// </summary>
+        /// <param name="key">header key</param>
+        /// <param name="value">header value</param>
+        /// <returns>true if header exists, false otherwise</returns>
+
+        private bool TryGetHeaderValue(string key, out string value)
+        {
+            try
+            {
+                value = _msg.Header[key];
+                return true;
+            }
+            catch
+            {
+                value = string.Empty;
+                return false;
+            }
+        }
     }
 }
