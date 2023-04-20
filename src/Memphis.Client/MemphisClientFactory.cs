@@ -34,9 +34,11 @@ namespace Memphis.Client
             brokerConnOptions.Servers = new[] { $"{NormalizeHost(opts.Host)}:{opts.Port}" };
             brokerConnOptions.AllowReconnect = opts.Reconnect;
             brokerConnOptions.ReconnectWait = opts.MaxReconnectIntervalMs;
+            brokerConnOptions.Timeout = opts.TimeoutMs;
             brokerConnOptions.Token = opts.ConnectionToken;
             brokerConnOptions.Name = $"{connectionId}::{opts.Username}";
             brokerConnOptions.User = opts.Username;
+            brokerConnOptions.Password = opts.Password;
             brokerConnOptions.Verbose = true;
 
             if (opts.Tls != null)

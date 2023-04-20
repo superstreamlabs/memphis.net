@@ -65,7 +65,7 @@ using Memphis.Client;
 
 ### Connecting to Memphis
 
-First, we need to create or use default `ClientOptions` and then connect with Memphis by using `MemphisClientFactory.CreateClient(ClientOptions opst)`.
+First, we need to create or use default `ClientOptions` and then connect to Memphis by using `MemphisClientFactory.CreateClient(ClientOptions opst)`.
 
 ```c#
 try
@@ -73,7 +73,26 @@ try
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<broker-address>";
     options.Username = "<application-type-username>";
-    options.ConnectionToken = "<token>"; // you will get it on application type user creation
+    options.ConnectionToken = "<broker-token>"; // you will get it on broker creation
+    var memphisClient = MemphisClientFactory.CreateClient(options);
+    ...
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine("Exception: " + ex.Message);
+    Console.Error.WriteLine(ex);
+}
+```
+
+We can also connect using a password:
+
+```c#
+try
+{
+    var options = MemphisClientFactory.GetDefaultOptions();
+    options.Host = "<broker-address>";
+    options.Username = "<application-type-username>";
+    options.Password = "<application-type-password>"; // you will get it on application type user creation
     var memphisClient = MemphisClientFactory.CreateClient(options);
     ...
 }
@@ -102,7 +121,7 @@ try
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<memphis-host>";
     options.Username = "<application type username>";
-    options.ConnectionToken = "<broker-token>";
+    options.Password = "<application-type-password>";
     var client = MemphisClientFactory.CreateClient(options);
     
     // Second: creaing Memphis station
@@ -207,7 +226,7 @@ try
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<memphis-host>";
     options.Username = "<application type username>";
-    options.ConnectionToken = "<broker-token>";
+    options.Password = "<application-type-password>";
     var client = MemphisClientFactory.CreateClient(options);
 
     // Second: creating the Memphis producer 
@@ -247,7 +266,7 @@ try
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<memphis-host>";
     options.Username = "<application type username>";
-    options.ConnectionToken = "<broker-token>";
+    options.Password = "<application-type-password>";
     var client = MemphisClientFactory.CreateClient(options);
     
     // Second: creaing Memphis consumer
