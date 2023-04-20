@@ -1,6 +1,8 @@
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
+#nullable disable 
+
 namespace Memphis.Client
 {
     public sealed class TlsOptions
@@ -24,8 +26,8 @@ namespace Memphis.Client
     {
         public string Host { get; set; }
         public string Username { get; set; }
-        public string ConnectionToken { get; set; }
         public string Password { get; set; }
+        public string ConnectionToken { get; set; }
         public int Port { get; set; }
         public bool Reconnect { get; set; }
         public int MaxReconnect { get; set; }
