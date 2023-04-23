@@ -24,6 +24,7 @@ namespace Memphis.Client
     {
         public string Host { get; set; }
         public string Username { get; set; }
+        public string Password { get; set; }
         public string ConnectionToken { get; set; }
         public int Port { get; set; }
         public bool Reconnect { get; set; }
