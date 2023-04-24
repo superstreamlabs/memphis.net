@@ -1,6 +1,8 @@
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
+#nullable disable 
+
 namespace Memphis.Client
 {
     public sealed class TlsOptions

@@ -24,28 +24,40 @@ namespace Memphis.Client
         /// <summary>
         /// Create Memphis Client
         /// </summary>
-        /// <param name="opts">Client Options used to customize behaviour of client used to connect Memmphis</param>
+        /// <param name="opts">Client Options used to customize behavior of client used to connect Memphis</param>
         /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
         public static MemphisClient CreateClient(ClientOptions opts)
         {
-            var connectionId = MemphisUtil.GetUniqueKey(24);
+            if (XNOR(string.IsNullOrWhiteSpace(opts.ConnectionToken),
+               string.IsNullOrWhiteSpace(opts.Password)))
+                throw new MemphisException("You have to connect with one of the following methods: connection token / password");
+
+            var connectionId = Guid.NewGuid().ToString();
 
             var brokerConnOptions = ConnectionFactory.GetDefaultOptions();
             brokerConnOptions.Servers = new[] { $"{NormalizeHost(opts.Host)}:{opts.Port}" };
             brokerConnOptions.AllowReconnect = opts.Reconnect;
             brokerConnOptions.ReconnectWait = opts.MaxReconnectIntervalMs;
-            brokerConnOptions.Timeout = opts.TimeoutMs;
-            brokerConnOptions.Token = opts.ConnectionToken;
             brokerConnOptions.Name = $"{connectionId}::{opts.Username}";
-            brokerConnOptions.User = opts.Username;
-            brokerConnOptions.Password = opts.Password;
+            brokerConnOptions.Timeout = opts.TimeoutMs;
             brokerConnOptions.Verbose = true;
+
+            if (!string.IsNullOrWhiteSpace(opts.ConnectionToken))
+            {
+                brokerConnOptions.Token = opts.ConnectionToken;
+            }
+            else
+            {
+                brokerConnOptions.User = opts.Username;
+                brokerConnOptions.Password = opts.Password;
+            }
+
 
             if (opts.Tls != null)
             {
                 brokerConnOptions.Secure = true;
                 brokerConnOptions.CheckCertificateRevocation = true;
-                if (opts.Tls.Certificate != null)
+                if (opts.Tls.Certificate is not null)
                 {
                     brokerConnOptions.AddCertificate(opts.Tls.Certificate);
                 }
@@ -60,10 +72,10 @@ namespace Memphis.Client
                         brokerConnOptions.AddCertificate(opts.Tls.FileName);
                     }
                 }
-               
-                if(opts.Tls.RemoteCertificateValidationCallback != null)
+
+                if (opts.Tls.RemoteCertificateValidationCallback is not null)
                 {
-                    brokerConnOptions.TLSRemoteCertificationValidationCallback = opts.Tls.RemoteCertificateValidationCallback;   
+                    brokerConnOptions.TLSRemoteCertificationValidationCallback = opts.Tls.RemoteCertificateValidationCallback;
                 }
             }
 
@@ -79,9 +91,18 @@ namespace Memphis.Client
             }
             catch (System.Exception e)
             {
-                throw new MemphisConnectionException("error occured, when connecting memphis", e);
+                throw new MemphisConnectionException("error occurred, when connecting memphis", e);
             }
         }
+
+        /// <summary>
+        /// XNOR operator
+        /// </summary>
+        /// <param name="a">First boolean value</param>
+        /// <param name="b">Second boolean value</param>
+        /// <returns>True if both values are equal, otherwise false</returns>
+        private static bool XNOR(bool a, bool b)
+            => a == b;
 
         private static string NormalizeHost(string host)
         {

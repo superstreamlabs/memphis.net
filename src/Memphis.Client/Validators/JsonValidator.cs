@@ -29,11 +29,11 @@ namespace Memphis.Client.Validators
                     sb.AppendLine(error.ToString());
                 }
                     
-                throw new MemphisSchemaValidationException(sb.ToString());
+                throw new MemphisSchemaValidationException($"Schema validation has failed: \n {sb.ToString()}");
             }
             catch (System.Exception ex)
             {
-                throw new MemphisSchemaValidationException(ex.Message, ex);
+                throw new MemphisSchemaValidationException($"Schema validation has failed: \n {ex.Message}", ex);
             }
         }
     }
