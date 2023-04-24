@@ -34,5 +34,6 @@ namespace Memphis.Client
         public int MaxReconnectIntervalMs { get; set; }
         public int TimeoutMs { get; set; }
         public TlsOptions Tls { get; set; }
+        public int AccountId { get; set; }
     }
 }

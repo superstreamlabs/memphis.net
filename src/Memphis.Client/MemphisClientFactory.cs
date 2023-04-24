@@ -18,6 +18,7 @@ namespace Memphis.Client
                 MaxReconnect = 10,
                 MaxReconnectIntervalMs = 1_500,
                 TimeoutMs = 15_000,
+                AccountId = 1
             };
         }
 
@@ -48,7 +49,7 @@ namespace Memphis.Client
             }
             else
             {
-                brokerConnOptions.User = opts.Username;
+                brokerConnOptions.User = $"{opts.Username}${opts.AccountId}";
                 brokerConnOptions.Password = opts.Password;
             }
 
