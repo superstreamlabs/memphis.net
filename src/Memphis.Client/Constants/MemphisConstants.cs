@@ -25,12 +25,14 @@ namespace Memphis.Client.Constants
     
     internal class MemphisSubcriptions
     {
-        public const string DLQ_PREFIX = "$memphis_dlq_";
+        public const string DLS_PREFIX = "$memphis_dlq_";
     }
     internal class MemphisSubjects
     {
         public const string PM_RESEND_ACK_SUBJ = "$memphis_pm_acks";
         public const string MEMPHIS_SCHEMA_UPDATE = "$memphis_schema_updates_";
+        public const string SDK_CLIENTS_UPDATE = "$memphis_sdk_clients_updates";
+        public const string MEMPHIS_SCHEMA_VERSE_DLS = "$memphis_schemaverse_dls";
     }
 
     public static class MemphisSchemaTypes
@@ -39,5 +41,12 @@ namespace Memphis.Client.Constants
         public const string JSON = "json";
         public const string GRAPH_QL = "graphql";
         public const string PROTO_BUF = "protobuf";
+    }
+
+    internal static class MemphisSdkClientUpdateTypes
+    {
+        public const string SEND_NOTIFICATION = "send_notification";
+        public const string SCHEMA_VERSE_TO_DLS = "schemaverse_to_dls";
+        public const string REMOVE_STATION = "remove_station";
     }
 }

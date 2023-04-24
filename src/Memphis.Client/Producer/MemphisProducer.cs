@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Memphis.Client.Constants;
 using Memphis.Client.Exception;
@@ -9,6 +11,7 @@ using Memphis.Client.Models.Request;
 using NATS.Client;
 using NATS.Client.Internals;
 using NATS.Client.JetStream;
+using Newtonsoft.Json;
 
 namespace Memphis.Client.Producer
 {
@@ -41,9 +44,9 @@ namespace Memphis.Client.Producer
         /// <param name="messageId">ID of the message</param>
         /// <returns></returns>
         public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
-            string messageId = default)
+            string? messageId = default)
         {
-            await _memphisClient.ValidateMessageAsync(message, _internalStationName, _producerName);
+            await EnsureMessageIsValid(message, headers);
 
             var msg = new Msg
             {
@@ -108,5 +111,77 @@ namespace Memphis.Client.Producer
                 throw new MemphisException("Failed to destroy producer", e);
             }
         }
+
+        /// <summary>
+        /// Ensure message is valid
+        /// </summary>
+        /// <remark>
+        /// This method is used to validate message against schema. If message is not valid, it will be sent to DLS, otherwise it will be sent to corresponding station
+        /// </remark>
+        /// <param name="message">Message to validate</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns></returns>
+        private async Task EnsureMessageIsValid(byte[] message, NameValueCollection headers, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await _memphisClient.ValidateMessageAsync(message, _internalStationName, _producerName);
+            }
+            catch (MemphisSchemaValidationException exception)
+            {
+                await SendMessageToDls(message, headers, exception, cancellationToken);
+                throw;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        private async Task SendMessageToDls(byte[] message, NameValueCollection headers, MemphisSchemaValidationException validationError, CancellationToken cancellationToken = default)
+        {
+            if (!_memphisClient.IsSchemaVerseToDlsEnabled(_internalStationName))
+                return;
+            var headersForDls = new Dictionary<string,string>
+            {
+                [MemphisHeaders.MEMPHIS_CONNECTION_ID] = _memphisClient.ConnectionId,
+                [MemphisHeaders.MEMPHIS_PRODUCED_BY] = _producerName
+            };
+
+            foreach (var headerKey in headers.AllKeys)
+            {
+                headersForDls.Add(headerKey, headers[headerKey]);
+            }
+            var dlsMessage = new DlsMessage
+            {
+                StationName = _internalStationName,
+                Producer = new ProducerDetails
+                {
+                    Name = _producerName,
+                    ConnectionId = _memphisClient.ConnectionId,
+                },
+                Message = new MessagePayloadDls
+                {
+                    Data = BitConverter.ToString(message).Replace("-", string.Empty),
+                    Headers = headersForDls,
+                },
+                ValidationError = validationError.Message,
+            };
+            
+            var dlsMessageJson = JsonConvert.SerializeObject(dlsMessage);
+            var dlsMessageBytes = Encoding.UTF8.GetBytes(dlsMessageJson);
+            _memphisClient.BrokerConnection.Publish(MemphisSubjects.MEMPHIS_SCHEMA_VERSE_DLS, dlsMessageBytes);
+          
+            if (!_memphisClient.IsSendingNotificationEnabled)
+                return;
+            await _memphisClient.SendNotificationAsync(
+                "Schema validation has failed",
+                $"Schema validation has failed for station {_internalStationName} and producer {_producerName}. Error: {validationError.Message}",
+                Encoding.UTF8.GetString(message),
+                "schema_validation_fail_alert"
+            );
+
+        }
+
     }
 }

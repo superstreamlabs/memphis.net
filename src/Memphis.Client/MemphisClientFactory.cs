@@ -24,7 +24,7 @@ namespace Memphis.Client
         /// <summary>
         /// Create Memphis Client
         /// </summary>
-        /// <param name="opts">Client Options used to customize behaviour of client used to connect Memmphis</param>
+        /// <param name="opts">Client Options used to customize behavior of client used to connect Memphis</param>
         /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
         public static MemphisClient CreateClient(ClientOptions opts)
         {
@@ -32,7 +32,7 @@ namespace Memphis.Client
                string.IsNullOrWhiteSpace(opts.Password)))
                 throw new MemphisException("You have to connect with one of the following methods: connection token / password");
 
-            var connectionId = MemphisUtil.GetUniqueKey(24);
+            var connectionId = Guid.NewGuid().ToString();
 
             var brokerConnOptions = ConnectionFactory.GetDefaultOptions();
             brokerConnOptions.Servers = new[] { $"{NormalizeHost(opts.Host)}:{opts.Port}" };

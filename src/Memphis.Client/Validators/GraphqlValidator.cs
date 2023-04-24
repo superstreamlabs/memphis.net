@@ -38,7 +38,7 @@ namespace Memphis.Client.Validators
                     var errMsg = string.Join("; ", execResult.Errors?
                         .Select(err => $"Code: {err.Code}, Message: {err.Message}"));
 
-                    throw new MemphisSchemaValidationException(errMsg);
+                    throw new MemphisSchemaValidationException($"Schema validation has failed: \n {errMsg}");
                 }
 
                 return;
