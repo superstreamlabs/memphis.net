@@ -116,7 +116,7 @@ namespace Memphis.Client.Consumer
         /// <param name="batchSize">the number of messages to fetch</param>
         /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
         /// <returns>A batch of messages</returns>
-        internal IEnumerable<MemphisMessage> Fetch(int batchSize, bool prefetch)
+        public IEnumerable<MemphisMessage> Fetch(int batchSize, bool prefetch)
         {
             try
             {
