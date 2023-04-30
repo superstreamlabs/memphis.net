@@ -105,6 +105,14 @@ namespace Memphis.Client
         private static bool XNOR(bool a, bool b)
             => a == b;
 
+        /// <summary>
+        /// Normalize host
+        /// </summary>
+        /// <remark>
+        /// Remove http:// or https:// from host
+        /// </remark>
+        /// <param name="host">Host</param>
+        /// <returns>Normalized host</returns>
         private static string NormalizeHost(string host)
         {
             if (host.StartsWith("http://"))

@@ -116,7 +116,7 @@ namespace Memphis.Client.Consumer
         /// <param name="batchSize">the number of messages to fetch</param>
         /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
         /// <returns>A batch of messages</returns>
-        internal async Task<IEnumerable<MemphisMessage>> Fetch(int batchSize, CancellationToken cancellationToken)
+        internal IEnumerable<MemphisMessage> Fetch(int batchSize, bool prefetch)
         {
             try
             {
@@ -138,22 +138,22 @@ namespace Memphis.Client.Consumer
                     return messages;
                 }
 
-                var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
-                if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
+                if(TryGetAndRemovePrefetchedMessages(batchSize, out IEnumerable<MemphisMessage> prefetchedMessages))
                 {
-                    durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
+                    messages = prefetchedMessages;
                 }
 
-                var subscription = _memphisClient.JetStreamConnection.PullSubscribe(
-                    $"{InternalStationName}.final",
-                    PullSubscribeOptions.BindTo(InternalStationName, durableName));
-                var batch = subscription.Fetch(batchSize, _consumerOptions.BatchMaxTimeToWaitMs);
-                return batch
-                    .Select<Msg, MemphisMessage>(
-                        msg => new(msg, _memphisClient, _consumerOptions.ConsumerGroup,
-                            _consumerOptions.MaxAckTimeMs)
-                    )
-                    .ToList();
+                if (prefetch)
+                {
+                    Task.Run(() => Prefetch(), _cancellationTokenSource.Token);
+                }
+
+                if(messages.Any())
+                {
+                    return messages;
+                }
+
+                return FetchSubscriptionWithTimeOut(batchSize);
             }
             catch (System.Exception ex)
             {
@@ -161,6 +161,65 @@ namespace Memphis.Client.Consumer
             }
         }
 
+        internal bool TryGetAndRemovePrefetchedMessages(int batchSize, out IEnumerable<MemphisMessage> messages)
+        {
+            messages = Enumerable.Empty<MemphisMessage>();
+            var lowerCaseStationName = _consumerOptions.StationName.ToLower();
+            var consumerGroup = _consumerOptions.ConsumerGroup;
+            if (!_memphisClient.PrefetchedMessages.ContainsKey(lowerCaseStationName))
+                return false;
+            if (!_memphisClient.PrefetchedMessages[lowerCaseStationName].ContainsKey(consumerGroup))
+                return false;
+            if (!_memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup].Any())
+                return false;
+            var prefetchedMessages = _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup];
+            if(prefetchedMessages.Count <= batchSize)
+            {
+                messages = prefetchedMessages;
+                _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup] = new();
+                return true;
+            }
+            messages = prefetchedMessages.Take(batchSize);
+            _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup] = prefetchedMessages
+                .Skip(batchSize)
+                .ToList();
+            return true;
+        }
+
+        internal void Prefetch()
+        {
+            var lowerCaseStationName = _consumerOptions.StationName.ToLower();
+            var consumerGroup = _consumerOptions.ConsumerGroup;
+            if (!_memphisClient.PrefetchedMessages.ContainsKey(lowerCaseStationName))
+            {
+                _memphisClient.PrefetchedMessages[lowerCaseStationName] = new();
+            }
+            if (!_memphisClient.PrefetchedMessages[lowerCaseStationName].ContainsKey(consumerGroup))
+            {
+                _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup] = new();
+            }
+            var messages = FetchSubscriptionWithTimeOut(_consumerOptions.BatchSize);
+            _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup].AddRange(messages);
+        }
+
+        private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(int batchSize)
+        {
+            var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
+            if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
+            {
+                durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
+            }
+            var subscription = _memphisClient.JetStreamConnection.PullSubscribe(
+                    $"{InternalStationName}.final",
+                    PullSubscribeOptions.BindTo(InternalStationName, durableName));
+            var batch = subscription.Fetch(batchSize, _consumerOptions.BatchMaxTimeToWaitMs);
+            return batch
+                .Select<Msg, MemphisMessage>(
+                    msg => new(msg, _memphisClient, _consumerOptions.ConsumerGroup,
+                        _consumerOptions.MaxAckTimeMs)
+                )
+                .ToList();
+        }
 
         /// <summary>
         /// ConsumeAsync messages from station

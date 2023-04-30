@@ -68,6 +68,8 @@ namespace Memphis.Client
 
             _schemaValidators = new();
             RegisterSchemaValidators();
+
+            PrefetchedMessages = new();
         }
 
         /// <summary>
@@ -145,7 +147,7 @@ namespace Memphis.Client
         }
 
         public async Task<IEnumerable<MemphisMessage>> FetchMessages(
-            MemphisConsumerOptions options,
+            FetchMessageOptions options,
             CancellationToken cancellationToken = default
         )
         {
@@ -154,7 +156,7 @@ namespace Memphis.Client
                 throw new MemphisConnectionException("Connection is dead. Can't produce a message without being connected!");
             }
 
-            MemphisConsumer consumer = default;
+            MemphisConsumer? consumer = default;
             var internalStationName = MemphisUtil.GetInternalName(options.StationName);
             var consumerKey = $"{internalStationName}_{options.ConsumerName.ToLower()}";
 
@@ -165,7 +167,7 @@ namespace Memphis.Client
 
             consumer ??= await CreateConsumer(options);
 
-            return await consumer.Fetch(options.BatchSize, cancellationToken);
+            return consumer.Fetch(options.BatchSize, options.Prefetch);
         }
 
         public async Task Produce(
@@ -230,7 +232,7 @@ namespace Memphis.Client
                     ConsumerType = "application",
                     ConsumerGroup = consumerOptions.ConsumerGroup,
                     MaxAckTimeMs = consumerOptions.MaxAckTimeMs,
-                    MaxMsgCountForDelivery = consumerOptions.MaxMsdgDeliveries,
+                    MaxMsgCountForDelivery = consumerOptions.MaxMsgDeliveries,
                     UserName = _userName,
                     StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
                     LastMessages = consumerOptions.LastMessages
@@ -493,6 +495,23 @@ namespace Memphis.Client
             return;
         }
 
+        public async Task<MemphisConsumer> CreateConsumer(FetchMessageOptions fetchMessageOptions)
+        {
+            return await CreateConsumer(new MemphisConsumerOptions
+            {
+                StationName = fetchMessageOptions.StationName,
+                ConsumerName = fetchMessageOptions.ConsumerName,
+                ConsumerGroup = fetchMessageOptions.ConsumerGroup,
+                BatchSize = fetchMessageOptions.BatchSize,
+                BatchMaxTimeToWaitMs = fetchMessageOptions.BatchMaxTimeToWaitMs,
+                MaxAckTimeMs = fetchMessageOptions.MaxAckTimeMs,
+                MaxMsgDeliveries = fetchMessageOptions.MaxMsgDeliveries,
+                GenerateUniqueSuffix = fetchMessageOptions.GenerateUniqueSuffix,
+                StartConsumeFromSequence = fetchMessageOptions.StartConsumeFromSequence,
+                LastMessages = fetchMessageOptions.LastMessages,
+            });
+        }
+
         internal async Task SendNotificationAsync(string title, string message, string code, string msgType)
         {
             var notificationModel = new NotificationRequest()
@@ -515,6 +534,8 @@ namespace Memphis.Client
             get { return _brokerConnection; }
         }
 
+        internal ConcurrentDictionary<string, Dictionary<string, List<MemphisMessage>>> PrefetchedMessages { get; set; }
+
         internal IJetStream JetStreamConnection
         {
             get { return _jetStreamContext; }
@@ -525,11 +546,11 @@ namespace Memphis.Client
             get { return _connectionId; }
         }
 
-        internal bool IsSchemaVerseToDlsEnabled(string stationName) 
+        internal bool IsSchemaVerseToDlsEnabled(string stationName)
             => _stationSchemaVerseToDlsMap.TryGetValue(stationName, out bool schemaVerseToDls) && schemaVerseToDls;
 
         internal bool IsSendingNotificationEnabled
-           => _clusterConfigurations.TryGetValue(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, out bool sendNotification) && sendNotification; 
+           => _clusterConfigurations.TryGetValue(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, out bool sendNotification) && sendNotification;
 
         private async Task ProcessAndStoreSchemaUpdate(string internalStationName, Msg message)
         {
