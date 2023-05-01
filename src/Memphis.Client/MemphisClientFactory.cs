@@ -26,6 +26,7 @@ namespace Memphis.Client
         /// Create Memphis Client
         /// </summary>
         /// <param name="opts">Client Options used to customize behavior of client used to connect Memphis</param>
+        /// <param name="isAccountIdIgnored">If true, account id will be ignored</param>
         /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
         public static MemphisClient CreateClient(ClientOptions opts, bool isAccountIdIgnored = false)
         {
