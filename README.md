@@ -287,12 +287,10 @@ catch (Exception ex)
 
 ### Creating message handler for consuming a message
 
-First, create a callback functions that receives a args that holds list of MemhpisMessage.
-Then, pass this callback into consumer.Consume function.
-The consumer will try to fetch messages every _PullIntervalMs_ (that was given in Consumer's creation) and call the defined message handler.
+To configure message handler, use the `MessageReceived` event:
 
 ```c#
-EventHandler<MemphisMessageHandlerEventArgs> msgHandler = (sender, args) =>
+consumer.MessageReceived += (sender, args) =>
 {
     if (args.Exception != null)
     {
@@ -316,13 +314,16 @@ EventHandler<MemphisMessageHandlerEventArgs> msgHandler = (sender, args) =>
         Console.WriteLine("---------");
         msg.Ack();
     }
+    Console.WriteLine("destroyed");
 };
 ```
 
 ### Consuming a message
 
+The consumer will try to fetch messages every _PullIntervalMs_ (that was given in Consumer's creation) and call the defined message handler.
+
 ```c#
- await consumer.ConsumeAsync( msgCallbackHandler:msgHandler, dlqCallbackHandler:msgHandler);
+ await consumer.ConsumeAsync();
 ```
 
 ### Acknowledging a Message
