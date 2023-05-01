@@ -145,6 +145,8 @@ catch (Exception ex)
 }
 ```
 
+### Retention types
+
 Memphis currently supports the following types of retention:
 
 ```c#
@@ -248,7 +250,22 @@ catch (Exception ex)
 var commonHeaders = new NameValueCollection();
 commonHeaders.Add("key-1", "value-1");
 
-await producer.ProduceAsync(Encoding.UTF8.GetBytes(text), commonHeaders);
+await producer.ProduceAsync(
+    message: Encoding.UTF8.GetBytes(text),
+    headers:commonHeaders
+);
+```
+
+### Message ID
+
+Stations are idempotent by default for 2 minutes (can be configured), Idempotence achieved by adding a message id
+
+```c#
+await producer.ProduceAsync(
+    message: Encoding.UTF8.GetBytes(text),
+    headers:commonHeaders, 
+    messageId:"id" // defaults to null
+);
 ```
 
 ### Destroying a Producer
@@ -287,12 +304,10 @@ catch (Exception ex)
 
 ### Creating message handler for consuming a message
 
-First, create a callback functions that receives a args that holds list of MemhpisMessage.
-Then, pass this callback into consumer.Consume function.
-The consumer will try to fetch messages every _PullIntervalMs_ (that was given in Consumer's creation) and call the defined message handler.
+To configure message handler, use the `MessageReceived` event:
 
 ```c#
-EventHandler<MemphisMessageHandlerEventArgs> msgHandler = (sender, args) =>
+consumer.MessageReceived += (sender, args) =>
 {
     if (args.Exception != null)
     {
@@ -316,13 +331,44 @@ EventHandler<MemphisMessageHandlerEventArgs> msgHandler = (sender, args) =>
         Console.WriteLine("---------");
         msg.Ack();
     }
+    Console.WriteLine("destroyed");
 };
 ```
 
 ### Consuming a message
 
+The consumer will try to fetch messages every _PullIntervalMs_ (that was given in Consumer's creation) and call the defined message handler.
+
 ```c#
- await consumer.ConsumeAsync( msgCallbackHandler:msgHandler, dlqCallbackHandler:msgHandler);
+ await consumer.ConsumeAsync();
+```
+
+### Fetch a single batch of messages
+
+```c#
+client.FetchMessages(new FetchMessageOptions
+{
+    StationName= "<station-name>",
+    ConsumerName= "<consumer-name>",
+    ConsumerGroup= "<group-name>", // defaults to the consumer name.
+    BatchSize= 10, // defaults to 10
+    BatchMaxTimeToWaitMs= 5000, // defaults to 5000
+    MaxAckTimeMs= 30000, // defaults to 30000
+    MaxMsgDeliveries= 10, // defaults to 10
+    GenerateUniqueSuffix= false, // defaults to false
+    StartConsumeFromSequence= 1, // start consuming from a specific sequence. defaults to 1
+    LastMessages= -1 // consume the last N messages, defaults to -1 (all messages in the station)
+});
+```
+
+### Fetch a single batch of messages after creating a consumer
+`prefetch = true` will prefetch next batch of messages and save it in memory for future Fetch() request<br>
+Note: Use a higher MaxAckTime as the messages will sit in a local cache for some time before processing
+```C#
+var messages = consumer.Fetch(
+    batchSize: 10,
+    prefetch: true
+);
 ```
 
 ### Acknowledging a Message
