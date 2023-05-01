@@ -1,5 +1,7 @@
 using System.Runtime.Serialization;
 
+#nullable disable
+
 namespace Memphis.Client.Models.Request
 {
     [DataContract]
@@ -29,7 +31,7 @@ namespace Memphis.Client.Models.Request
         [DataMember(Name = "dls_configuration")]
         public DlsConfiguration DlsConfiguration { get; set; }
 
-        [DataMember(Name = "user_name")]
+        [DataMember(Name = "username")]
         public string UserName { get; set; }
 
         [DataMember(Name = "tiered_storage_enabled")]

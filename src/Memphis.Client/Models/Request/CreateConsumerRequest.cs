@@ -1,6 +1,7 @@
 using System.Runtime.Serialization;
 
 #nullable disable
+
 namespace Memphis.Client.Models.Request
 {
     [DataContract]
@@ -27,7 +28,7 @@ namespace Memphis.Client.Models.Request
         [DataMember(Name = "max_msg_deliveries")]
         public int MaxMsgCountForDelivery { get; set; }
         
-        [DataMember(Name = "user_name")]
+        [DataMember(Name = "username")]
         public string UserName { get; set; }
         
         [DataMember(Name = "start_consume_from_sequence")]
