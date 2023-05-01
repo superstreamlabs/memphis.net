@@ -27,7 +27,7 @@ namespace Memphis.Client
         /// </summary>
         /// <param name="opts">Client Options used to customize behavior of client used to connect Memphis</param>
         /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
-        public static MemphisClient CreateClient(ClientOptions opts)
+        public static MemphisClient CreateClient(ClientOptions opts, bool isAccountIdIgnored = false)
         {
             if (XNOR(string.IsNullOrWhiteSpace(opts.ConnectionToken),
                string.IsNullOrWhiteSpace(opts.Password)))
@@ -49,7 +49,7 @@ namespace Memphis.Client
             }
             else
             {
-                brokerConnOptions.User = $"{opts.Username}${opts.AccountId}";
+                brokerConnOptions.User = isAccountIdIgnored ? opts.Username : $"{opts.Username}${opts.AccountId}";
                 brokerConnOptions.Password = opts.Password;
             }
 
@@ -92,6 +92,10 @@ namespace Memphis.Client
             }
             catch (System.Exception e)
             {
+                if(!isAccountIdIgnored)
+                {
+                   return CreateClient(opts, true);
+                }
                 throw new MemphisConnectionException("error occurred, when connecting memphis", e);
             }
         }
