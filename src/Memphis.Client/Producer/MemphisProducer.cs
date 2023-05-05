@@ -81,6 +81,28 @@ namespace Memphis.Client.Producer
             }
         }
 
+        /// <summary>
+        /// Produce messages into station
+        /// </summary>
+        /// <param name="message">the event handler for messages consumed from station in which MemphisConsumer created for</param>
+        /// <param name="headers">headers used to send data in the form of key and value</param>
+        /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
+        /// <param name="messageId">ID of the message</param>
+        /// <returns></returns>
+        public async Task ProduceAsync<T>(T message, NameValueCollection headers, int ackWaitMs = 15_000,
+            string? messageId = default)
+        {
+            string encodedMessage = IsPrimitiveType(message) ?
+                message.ToString() :
+                JsonConvert.SerializeObject(message);
+
+            await ProduceAsync(
+                Encoding.UTF8.GetBytes(encodedMessage),
+                headers,
+                ackWaitMs,
+                messageId);
+        }
+
         public async Task DestroyAsync()
         {
             try
@@ -142,7 +164,7 @@ namespace Memphis.Client.Producer
         {
             if (!_memphisClient.IsSchemaVerseToDlsEnabled(_internalStationName))
                 return;
-            var headersForDls = new Dictionary<string,string>
+            var headersForDls = new Dictionary<string, string>
             {
                 [MemphisHeaders.MEMPHIS_CONNECTION_ID] = _memphisClient.ConnectionId,
                 [MemphisHeaders.MEMPHIS_PRODUCED_BY] = _producerName
@@ -183,5 +205,20 @@ namespace Memphis.Client.Producer
 
         }
 
+        /// <summary>
+        /// Check if data is primitive type
+        /// </summary>
+        /// <typeparam name="T">Type of data</typeparam>
+        /// <param name="data">Data to check</param>
+        /// <returns>true if data type is primitive, otherwise false.</returns>
+        private bool IsPrimitiveType<T>(T data)
+        {
+            var type = typeof(T);
+            return type.IsPrimitive ||
+                type.IsEnum ||
+                type == typeof(DateTime) ||
+                type == typeof(decimal) ||
+                type == typeof(string);
+        }
     }
 }
