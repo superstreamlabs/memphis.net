@@ -59,6 +59,9 @@ namespace Memphis.Client.Producer
                 }
             };
 
+            if (messageId == string.Empty)
+                throw new MemphisMessageIdException("Message ID cannot be empty");
+
             if (!string.IsNullOrWhiteSpace(messageId))
             {
                 msg.Header.Add(MemphisHeaders.MESSAGE_ID, messageId);
@@ -189,11 +192,11 @@ namespace Memphis.Client.Producer
                 },
                 ValidationError = validationError.Message,
             };
-            
+
             var dlsMessageJson = JsonConvert.SerializeObject(dlsMessage);
             var dlsMessageBytes = Encoding.UTF8.GetBytes(dlsMessageJson);
             _memphisClient.BrokerConnection.Publish(MemphisSubjects.MEMPHIS_SCHEMA_VERSE_DLS, dlsMessageBytes);
-          
+
             if (!_memphisClient.IsSendingNotificationEnabled)
                 return;
             await _memphisClient.SendNotificationAsync(
