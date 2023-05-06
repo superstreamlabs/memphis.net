@@ -1,7 +1,8 @@
 using System;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
+using System.Threading.Tasks;
 using Memphis.Client.Exception;
-using Memphis.Client.Helper;
 using NATS.Client;
 using NATS.Client.JetStream;
 
@@ -26,9 +27,11 @@ namespace Memphis.Client
         /// Create Memphis Client
         /// </summary>
         /// <param name="opts">Client Options used to customize behavior of client used to connect Memphis</param>
-        /// <param name="isAccountIdIgnored">If true, account id will be ignored</param>
+        /// <param name="isAccountIdIgnored">If true, account id will be ignored. This param is added for backward compatibility.</param>
         /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
-        public static MemphisClient CreateClient(ClientOptions opts, bool isAccountIdIgnored = false)
+        public static async Task<MemphisClient> CreateClient(ClientOptions opts, 
+            bool isAccountIdIgnored = false, 
+            CancellationToken cancellationToken = default)
         {
             if (XNOR(string.IsNullOrWhiteSpace(opts.ConnectionToken),
                string.IsNullOrWhiteSpace(opts.Password)))
@@ -86,16 +89,18 @@ namespace Memphis.Client
                 IConnection brokerConnection = new ConnectionFactory()
                     .CreateConnection(brokerConnOptions);
                 IJetStream jetStreamContext = brokerConnection.CreateJetStreamContext();
-
-                return new MemphisClient(
+                MemphisClient client = new(
                     brokerConnOptions, brokerConnection,
                     jetStreamContext, connectionId);
+                await client.ConfigureTenantName(opts.AccountId, cancellationToken);
+                await client.ListenForSdkClientUpdate();
+                return client;
             }
             catch (System.Exception e)
             {
                 if(!isAccountIdIgnored)
                 {
-                   return CreateClient(opts, true);
+                   return await CreateClient(opts, true, cancellationToken);
                 }
                 throw new MemphisConnectionException("error occurred, when connecting memphis", e);
             }

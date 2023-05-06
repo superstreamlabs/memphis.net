@@ -8,7 +8,7 @@ namespace Memphis.Client.Station
         public int RetentionValue { get; set; } = 604_800;
         public string StorageType { get; set; } = StorageTypes.DISK;
         public int Replicas { get; set; } = 1;
-        public int IdempotencyWindowMs { get; set; } = 120_000;
+        public int IdempotenceWindowMs { get; set; } = 120_000;
         public string SchemaName { get; set; } = string.Empty;
         public bool SendPoisonMessageToDls { get; set; } = false;
         public bool SendSchemaFailedMessageToDls { get; set; } = true;

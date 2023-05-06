@@ -16,7 +16,7 @@ namespace Producer
                 options.Host = "<memphis-host>";
                 options.Username = "<application type username>";
                 options.ConnectionToken = "<broker-token>";
-                var client = MemphisClientFactory.CreateClient(options);
+                var client = await MemphisClientFactory.CreateClient(options);
 
                 var producer = await client.CreateProducer(
                     stationName: "<memphis-station-name>",

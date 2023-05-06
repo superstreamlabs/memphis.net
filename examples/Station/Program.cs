@@ -15,7 +15,7 @@ namespace Station
                 options.Host = "<memphis-host>";
                 options.Username = "<application type username>";
                 options.ConnectionToken = "<broker-token>";
-                var client = MemphisClientFactory.CreateClient(options);
+                var client = await MemphisClientFactory.CreateClient(options);
 
                 var station = await client.CreateStation(
                     stationOptions: new StationOptions()
@@ -25,7 +25,7 @@ namespace Station
                         RetentionValue = 604_800,
                         StorageType = StorageTypes.DISK,
                         Replicas = 1,
-                        IdempotencyWindowMs = 0,
+                        IdempotenceWindowMs = 0,
                         SendPoisonMessageToDls = true,
                         SendSchemaFailedMessageToDls = true,
                     });

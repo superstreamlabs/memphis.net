@@ -17,7 +17,7 @@ namespace Consumer
                 options.Host = "<memphis-host>";
                 options.Username = "<application type username>";
                 options.ConnectionToken = "<broker-token>";
-                var client = MemphisClientFactory.CreateClient(options);
+                var client = await MemphisClientFactory.CreateClient(options);
 
                 var consumer = await client.CreateConsumer(new MemphisConsumerOptions
                 {

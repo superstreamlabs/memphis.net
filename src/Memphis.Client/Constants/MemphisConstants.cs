@@ -23,16 +23,18 @@ namespace Memphis.Client.Constants
         public const string MEMPHIS_CONNECTION_ID = "$memphis_connectionId";
     }
     
-    internal class MemphisSubcriptions
+    internal class MemphisSubscriptions
     {
         public const string DLS_PREFIX = "$memphis_dlq_";
     }
+
     internal class MemphisSubjects
     {
         public const string PM_RESEND_ACK_SUBJ = "$memphis_pm_acks";
         public const string MEMPHIS_SCHEMA_UPDATE = "$memphis_schema_updates_";
         public const string SDK_CLIENTS_UPDATE = "$memphis_sdk_clients_updates";
         public const string MEMPHIS_SCHEMA_VERSE_DLS = "$memphis_schemaverse_dls";
+        public const string GET_TENANT_NAME = "$memphis_get_tenant_name";
     }
 
     public static class MemphisSchemaTypes
@@ -48,5 +50,10 @@ namespace Memphis.Client.Constants
         public const string SEND_NOTIFICATION = "send_notification";
         public const string SCHEMA_VERSE_TO_DLS = "schemaverse_to_dls";
         public const string REMOVE_STATION = "remove_station";
+    }
+
+    internal static class MemphisGlobalVariables
+    {
+        public const string GLOBAL_ACCOUNT_NAME = "$memphis";
     }
 }

@@ -17,18 +17,19 @@ using Memphis.Client.Station;
 using Memphis.Client.Validators;
 using NATS.Client;
 using NATS.Client.JetStream;
+using Newtonsoft.Json;
 
 namespace Memphis.Client
 {
     public sealed class MemphisClient : IDisposable
     {
         private bool _desposed;
+        private string _tenantName;
         private readonly Options _brokerConnOptions;
         private readonly IConnection _brokerConnection;
         private readonly IJetStream _jetStreamContext;
         private readonly string _connectionId;
         private readonly string _userName;
-
         private CancellationTokenSource _cancellationTokenSource;
 
         // Dictionary key: station (internal)name, value: schema update data for that station
@@ -136,7 +137,7 @@ namespace Memphis.Client
                 _clusterConfigurations.AddOrUpdate(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, respAsObject.SendNotification, (_, _) => respAsObject.SendNotification);
 
                 await ListenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
-                await ListenForSdkClientUpdate();
+                //await ListenForSdkClientUpdate();
 
                 return new MemphisProducer(this, producerName, stationName, producerName.ToLower());
             }
@@ -170,6 +171,16 @@ namespace Memphis.Client
             return consumer.Fetch(options.BatchSize, options.Prefetch);
         }
 
+        /// <summary>
+        /// Produce a message to a station
+        /// </summary>
+        /// <param name="options">options for producing a message</param>
+        /// <param name="message">message to be produced</param>
+        /// <param name="asyncProduce">feature flag based param used to produce message asynchronously</param>
+        /// <param name="headers">headers of the message</param>
+        /// <param name="messageId">id of the message</param>
+        /// <param name="cancellationToken">cancellation token</param>
+        /// <returns></returns>
         public async Task Produce(
             MemphisProducerOptions options,
             byte[] message,
@@ -281,7 +292,7 @@ namespace Memphis.Client
                     RetentionValue = stationOptions.RetentionValue,
                     StorageType = stationOptions.StorageType,
                     Replicas = stationOptions.Replicas,
-                    IdempotencyWindowsInMs = stationOptions.IdempotencyWindowMs,
+                    IdempotencyWindowsInMs = stationOptions.IdempotenceWindowMs,
                     SchemaName = stationOptions.SchemaName,
                     DlsConfiguration = new DlsConfiguration()
                     {
@@ -495,6 +506,11 @@ namespace Memphis.Client
             return;
         }
 
+        /// <summary>
+        /// Create a new consumer
+        /// </summary>
+        /// <param name="fetchMessageOptions">Fetch message options</param>
+        /// <returns>MemphisConsumer</returns>
         public async Task<MemphisConsumer> CreateConsumer(FetchMessageOptions fetchMessageOptions)
         {
             return await CreateConsumer(new MemphisConsumerOptions
@@ -546,11 +562,27 @@ namespace Memphis.Client
             get { return _connectionId; }
         }
 
+        internal string TenantName
+        {
+            get { return _tenantName; }
+        }
+
         internal bool IsSchemaVerseToDlsEnabled(string stationName)
             => _stationSchemaVerseToDlsMap.TryGetValue(stationName, out bool schemaVerseToDls) && schemaVerseToDls;
 
         internal bool IsSendingNotificationEnabled
            => _clusterConfigurations.TryGetValue(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, out bool sendNotification) && sendNotification;
+
+        /// <summary>
+        /// Sets the tenant name for the connection
+        /// </summary>
+        /// <param name="accountId">Tenant account id</param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        internal async Task ConfigureTenantName(int accountId, CancellationToken cancellationToken)
+        {
+            _tenantName = await GetTenantName(accountId, cancellationToken);
+        }
 
         private async Task ProcessAndStoreSchemaUpdate(string internalStationName, Msg message)
         {
@@ -673,7 +705,7 @@ namespace Memphis.Client
             _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
         }
 
-        private Task ListenForSdkClientUpdate()
+        internal Task ListenForSdkClientUpdate()
         {
             var subscription = _brokerConnection.SubscribeSync(MemphisSubjects.SDK_CLIENTS_UPDATE);
 
@@ -747,6 +779,42 @@ namespace Memphis.Client
                 {
                     _producerCache.TryRemove(entry.Key, out MemphisProducer _);
                 }
+            }
+        }
+
+        /// <summary>
+        ///   This method is used to retrieve tenant name
+        /// </summary>
+        /// <param name="accountId"></param>
+        /// <returns>Tenant name</returns>
+        private async Task<string?> GetTenantName(int accountId, CancellationToken cancellationToken = default)
+        {
+            var encodedRequest = JsonConvert.SerializeObject(new GetTenantNameRequest { TenantId = accountId });
+            var tenantNameResponse = await _brokerConnection.RequestAsync(
+                MemphisSubjects.GET_TENANT_NAME,
+                Encoding.UTF8.GetBytes(encodedRequest));
+
+            string responseData = Encoding.UTF8.GetString(tenantNameResponse.Data);
+            var responseDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseData);
+            if (responseDict is null)
+                throw new MemphisException("Unable to retrieve tenant name");
+            if (responseDict.TryGetValue("error", out object error) &&
+                !string.IsNullOrWhiteSpace(error.ToString()))
+            {
+                if (TryGetPropertyValue(error, "code", out string? code) && code == "503")
+                    return MemphisGlobalVariables.GLOBAL_ACCOUNT_NAME;
+                throw new MemphisException(error.ToString());
+            }
+            return responseDict.TryGetValue("tenant_name", out object tenantName) ? tenantName.ToString() : null;
+
+            bool TryGetPropertyValue(object obj, string propertyName, out string? value)
+            {
+                value = default;
+                var property = obj.GetType().GetProperty(propertyName);
+                if (property is null)
+                    return false;
+                value = property?.GetValue(obj, null)?.ToString();
+                return true;
             }
         }
 

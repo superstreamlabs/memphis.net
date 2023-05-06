@@ -269,7 +269,7 @@ namespace Memphis.Client.Consumer
             var subjectToConsume = MemphisUtil.GetInternalName(_consumerOptions.StationName);
             var consumerGroup = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
 
-            var dlsSubscriptionName = MemphisSubcriptions.DLS_PREFIX + subjectToConsume + "_" + consumerGroup;
+            var dlsSubscriptionName = MemphisSubscriptions.DLS_PREFIX + subjectToConsume + "_" + consumerGroup;
             _dlsSubscription = _memphisClient.BrokerConnection.SubscribeSync(dlsSubscriptionName, dlsSubscriptionName);
 
             while (!cancellationToken.IsCancellationRequested)

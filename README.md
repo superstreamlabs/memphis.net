@@ -74,7 +74,7 @@ try
     options.Host = "<broker-address>";
     options.Username = "<application-type-username>";
     options.ConnectionToken = "<broker-token>"; // you will get it on broker creation
-    var memphisClient = MemphisClientFactory.CreateClient(options);
+    var memphisClient = await MemphisClientFactory.CreateClient(options);
     ...
 }
 catch (Exception ex)
@@ -93,7 +93,7 @@ try
     options.Host = "<broker-address>";
     options.Username = "<application-type-username>";
     options.Password = "<application-type-password>"; // you will get it on application type user creation
-    var memphisClient = MemphisClientFactory.CreateClient(options);
+    var memphisClient = await MemphisClientFactory.CreateClient(options);
     ...
 }
 catch (Exception ex)
@@ -122,7 +122,7 @@ try
     options.Host = "<memphis-host>";
     options.Username = "<application type username>";
     options.Password = "<application-type-password>";
-    var client = MemphisClientFactory.CreateClient(options);
+    var client = await MemphisClientFactory.CreateClient(options);
     
     // Second: creaing Memphis station
     var station = await client.CreateStation(
@@ -229,7 +229,7 @@ try
     options.Host = "<memphis-host>";
     options.Username = "<application type username>";
     options.Password = "<application-type-password>";
-    var client = MemphisClientFactory.CreateClient(options);
+    var client = await MemphisClientFactory.CreateClient(options);
 
     // Second: creating the Memphis producer 
     var producer = await client.CreateProducer(
@@ -284,7 +284,7 @@ try
     options.Host = "<memphis-host>";
     options.Username = "<application type username>";
     options.Password = "<application-type-password>";
-    var client = MemphisClientFactory.CreateClient(options);
+    var client = await MemphisClientFactory.CreateClient(options);
     
     // Second: creaing Memphis consumer
     var consumer = await client.CreateConsumer(new ConsumerOptions
