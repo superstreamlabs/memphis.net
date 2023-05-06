@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Runtime.Serialization;
+
 #nullable disable
 
 namespace Memphis.Client.Models.Request
@@ -37,5 +37,7 @@ namespace Memphis.Client.Models.Request
 
         [DataMember(Name = "validation_error")]
         public string ValidationError { get; set; }
+        [DataMember(Name = "tenant_name")]
+        public string TenantName { get; set; }
     }
 }
