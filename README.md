@@ -362,8 +362,10 @@ client.FetchMessages(new FetchMessageOptions
 ```
 
 ### Fetch a single batch of messages after creating a consumer
-`prefetch = true` will prefetch next batch of messages and save it in memory for future Fetch() request<br>
+
+`prefetch = true` will prefetch next batch of messages and save it in memory for future Fetch() request \
 Note: Use a higher MaxAckTime as the messages will sit in a local cache for some time before processing
+
 ```C#
 var messages = consumer.Fetch(
     batchSize: 10,
@@ -377,6 +379,15 @@ Acknowledging a message indicates to the Memphis server to not re-send the same 
 
 ```c#
 msg.Ack();
+```
+
+### Delay the message after a given duration
+
+Delay the message and tell Memphis server to re-send the same message again to the same consumer group.\
+The message will be redelivered only in case `Consumer.MaxMsgDeliveries` is not reached yet.
+
+```C#
+msg.Delay(<delayMilliSeconds>);
 ```
 
 ### Get headers
