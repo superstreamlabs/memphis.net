@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-#
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Memphis.Client", "Memphis.Client\Memphis.Client.csproj", "{A289A923-C0A5-4C55-B710-6BE4AAE9E7C0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consumer", "..\examples\Consumer\Consumer.csproj", "{9CF27C02-3430-4B20-8FD6-56D7A7719712}"
@@ -10,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Station", "..\examples\Station\Station.csproj", "{8B27EE9B-F6AA-4F21-9E15-867246B430D1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Memphis.Client.UnitTests", "Memphis.Client.UnitTests\Memphis.Client.UnitTests.csproj", "{1EBDE5FA-0BFE-498F-A3EE-741E8BD3F4F8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Memphis.Client.IntegrationTests", "Memphis.Client.IntegrationTests\Memphis.Client.IntegrationTests.csproj", "{B8C2B262-046B-4028-AB21-67EA39FB9AD1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,5 +47,9 @@ Global
 		{1EBDE5FA-0BFE-498F-A3EE-741E8BD3F4F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1EBDE5FA-0BFE-498F-A3EE-741E8BD3F4F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1EBDE5FA-0BFE-498F-A3EE-741E8BD3F4F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8C2B262-046B-4028-AB21-67EA39FB9AD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8C2B262-046B-4028-AB21-67EA39FB9AD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8C2B262-046B-4028-AB21-67EA39FB9AD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8C2B262-046B-4028-AB21-67EA39FB9AD1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

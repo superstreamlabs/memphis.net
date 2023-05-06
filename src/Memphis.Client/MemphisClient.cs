@@ -91,9 +91,12 @@ namespace Memphis.Client
         /// <param name="producerName">name of producer which used to define uniquely</param>
         /// <param name="generateRandomSuffix">feature flag based param used to add randomly generated suffix for producer's name</param>
         /// <returns>An <see cref="MemphisProducer"/> object connected to the station to produce data</returns>
-        public async Task<MemphisProducer> CreateProducer(string stationName, string producerName,
-            bool generateRandomSuffix = false)
+        public async Task<MemphisProducer> CreateProducer(MemphisProducerOptions producerOptions)
         {
+            string stationName = producerOptions.StationName; 
+            string producerName = producerOptions.ProducerName;
+            bool generateRandomSuffix = producerOptions.GenerateUniqueSuffix;
+
             if (_brokerConnection.IsClosed())
             {
                 throw new MemphisConnectionException("Connection is dead");
@@ -176,15 +179,13 @@ namespace Memphis.Client
         /// </summary>
         /// <param name="options">options for producing a message</param>
         /// <param name="message">message to be produced</param>
-        /// <param name="asyncProduce">feature flag based param used to produce message asynchronously</param>
         /// <param name="headers">headers of the message</param>
         /// <param name="messageId">id of the message</param>
         /// <param name="cancellationToken">cancellation token</param>
         /// <returns></returns>
-        public async Task Produce(
+        public async Task ProduceAsync(
             MemphisProducerOptions options,
             byte[] message,
-            bool asyncProduce = false,
             NameValueCollection headers = default,
             string messageId = default,
             CancellationToken cancellationToken = default)
@@ -204,11 +205,49 @@ namespace Memphis.Client
 
             if (producer is null)
             {
-                producer = await CreateProducer(options.StationName, options.ProducerName, options.GenerateUniqueSuffix);
+                producer = await CreateProducer(options);
             }
 
             await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId);
         }
+
+        /// <summary>
+        /// Produce a message to a station
+        /// </summary>
+        /// <param name="options">options for producing a message</param>
+        /// <param name="message">message to be produced</param>
+        /// <param name="headers">headers of the message</param>
+        /// <param name="messageId">id of the message</param>
+        /// <param name="cancellationToken">cancellation token</param>
+        /// <returns></returns>
+        public async Task ProduceAsync<T>(
+            MemphisProducerOptions options,
+            T message,
+            NameValueCollection headers = default,
+            string messageId = default,
+            CancellationToken cancellationToken = default)
+        {
+            if (!IsConnected())
+            {
+                throw new MemphisConnectionException("Connection is dead. Can't produce a message without being connected!");
+            }
+
+            MemphisProducer producer = default;
+            var internalStationName = MemphisUtil.GetInternalName(options.StationName);
+            var producerKey = $"{internalStationName}_{options.ProducerName.ToLower()}";
+            if (_producerCache.TryGetValue(producerKey, out MemphisProducer cacheProducer))
+            {
+                producer = cacheProducer;
+            }
+
+            if (producer is null)
+            {
+                producer = await CreateProducer(options);
+            }
+
+            await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId);
+        }
+
         /// <summary>
         /// Create Consumer for station 
         /// </summary>
@@ -275,8 +314,9 @@ namespace Memphis.Client
         /// Create Station 
         /// </summary>
         /// <param name="stationOptions">options used to customize the parameters of station</param>
+        /// <param name="cancellationToken">cancellation token</param>
         /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
-        public async Task<MemphisStation> CreateStation(StationOptions stationOptions)
+        public async Task<MemphisStation> CreateStation(StationOptions stationOptions, CancellationToken cancellationToken = default)
         {
             if (_brokerConnection.IsClosed())
             {
@@ -327,6 +367,17 @@ namespace Memphis.Client
             {
                 throw new MemphisException("Failed to create memphis station", e);
             }
+        }
+        
+        /// <summary>
+        /// Create Station
+        /// </summary>
+        /// <param name="stationName">station name</param>
+        /// <param name="cancellationToken">cancellation token</param>
+        /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
+        public async Task<MemphisStation> CreateStation(string stationName, CancellationToken cancellationToken = default)
+        {
+            return await CreateStation(new StationOptions{ Name = stationName }, cancellationToken);
         }
 
         /// <summary>

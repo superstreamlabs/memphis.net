@@ -232,10 +232,12 @@ try
     var client = await MemphisClientFactory.CreateClient(options);
 
     // Second: creating the Memphis producer 
-    var producer = await client.CreateProducer(
-        stationName: "<memphis-station-name>",
-        producerName: "<memphis-producer-name>",
-        generateRandomSuffix:true);    
+    var producer = await client.CreateProducer(new MemphisProducerOptions
+    {
+        StationName = "<memphis-station-name>",
+        ProducerName = "<memphis-producer-name>",
+        GenerateUniqueSuffix = true
+    });
 }
 catch (Exception ex)
 {
