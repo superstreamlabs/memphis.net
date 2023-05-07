@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Memphis.Client.Helper;
+using Memphis.Client.Models.Request;
 
 namespace Memphis.Client.Station
 {
@@ -27,6 +29,11 @@ namespace Memphis.Client.Station
         internal string InternalName
         {
             get { return _internalName; }
+        }
+
+        public async Task Destroy()
+        {
+            await _memphisClient.RemoveStation(this);
         }
     }
 }

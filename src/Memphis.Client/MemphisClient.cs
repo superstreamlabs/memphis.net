@@ -93,7 +93,7 @@ namespace Memphis.Client
         /// <returns>An <see cref="MemphisProducer"/> object connected to the station to produce data</returns>
         public async Task<MemphisProducer> CreateProducer(MemphisProducerOptions producerOptions)
         {
-            string stationName = producerOptions.StationName; 
+            string stationName = producerOptions.StationName;
             string producerName = producerOptions.ProducerName;
             bool generateRandomSuffix = producerOptions.GenerateUniqueSuffix;
 
@@ -368,7 +368,7 @@ namespace Memphis.Client
                 throw new MemphisException("Failed to create memphis station", e);
             }
         }
-        
+
         /// <summary>
         /// Create Station
         /// </summary>
@@ -377,7 +377,7 @@ namespace Memphis.Client
         /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
         public async Task<MemphisStation> CreateStation(string stationName, CancellationToken cancellationToken = default)
         {
-            return await CreateStation(new StationOptions{ Name = stationName }, cancellationToken);
+            return await CreateStation(new StationOptions { Name = stationName }, cancellationToken);
         }
 
         /// <summary>
@@ -577,6 +577,39 @@ namespace Memphis.Client
                 StartConsumeFromSequence = fetchMessageOptions.StartConsumeFromSequence,
                 LastMessages = fetchMessageOptions.LastMessages,
             });
+        }
+
+
+        internal async Task RemoveStation(MemphisStation station, CancellationToken cancellationToken = default)
+        {
+            var request = new RemoveStationRequest
+            {
+                StationName = station.Name,
+                Username = _userName
+            };
+
+            if (_subscriptionPerSchema.TryGetValue(station.InternalName, out ISyncSubscription subscription))
+            {
+                subscription.Unsubscribe();
+            }
+            _stationSchemaVerseToDlsMap.TryRemove(station.InternalName, out bool _);
+            _schemaUpdateDictionary.TryRemove(station.InternalName, out ProducerSchemaUpdateInit _);
+            _subscriptionPerSchema.TryRemove(station.InternalName, out ISyncSubscription _);
+            _producerPerStations.TryRemove(station.InternalName, out int _);
+
+            var requestJson = JsonSerDes.PrepareJsonString<RemoveStationRequest>(request);
+            var result = await _brokerConnection.RequestAsync(
+                MemphisStations.MEMPHIS_STATION_DESTRUCTION, Encoding.UTF8.GetBytes(requestJson), cancellationToken);
+
+            string errResp = Encoding.UTF8.GetString(result.Data);
+
+            if (!string.IsNullOrEmpty(errResp))
+            {
+                throw new MemphisException(errResp);
+            }
+
+            RemoveStationConsumers(station.Name);
+            RemoveStationProducers(station.Name);
         }
 
         internal async Task SendNotificationAsync(string title, string message, string code, string msgType)

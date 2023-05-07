@@ -9,6 +9,9 @@
         <PackageTags>Memphis, client</PackageTags>
         <LangVersion>11</LangVersion>
         <Nullable>enable</Nullable>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageIcon>Icon.png</PackageIcon>
         <Description>Memphis.Client SDK intended to make easy integration of Memphis into .NET projects</Description>
     </PropertyGroup>
 
@@ -28,4 +31,15 @@
         <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
     
+    <ItemGroup>
+      <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="Icon.png" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 </Project>

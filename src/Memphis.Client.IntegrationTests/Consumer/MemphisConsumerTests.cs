@@ -97,4 +97,42 @@ public class MemphisConsumerTests
         Assert.NotNull(consumer);
     }
 
+    [Theory]
+    [InlineData("test-station", "test-consumer", default, true, "test-producer", "Hello, World!")]
+    public async Task GivenConsumerOptions_WhenFetch_ThenMessageIsRetrieved(
+            string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix, string producerName, string message)
+    {
+        using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
+        await client.CreateStation(stationName);
+
+        var producerOptions = new MemphisProducerOptions
+        {
+            StationName = stationName,
+            ProducerName = producerName,
+            GenerateUniqueSuffix = generateUniqueSuffix
+        };
+
+        await client.ProduceAsync(producerOptions, message, _fixture.CommonHeaders);
+
+        var consumerOptions = new MemphisConsumerOptions
+        {
+            StationName = stationName,
+            ConsumerName = consumerName,
+            ConsumerGroup = consumerGroup,
+            GenerateUniqueSuffix = generateUniqueSuffix
+        };
+        var consumer = await client.CreateConsumer(consumerOptions);
+        var messages = consumer.Fetch(10, false);
+        var firstMessage = messages.First();
+        var decodedMessage = Encoding.UTF8.GetString(firstMessage.GetData());
+        
+        Assert.Equal(message, decodedMessage);
+
+        await consumer.ConsumeAsync();
+        await Task.Delay((int)TimeSpan.FromSeconds(30).TotalMicroseconds);
+        await consumer.DestroyAsync();
+
+        Assert.NotNull(consumer);
+    }
+
 }
