@@ -13,6 +13,7 @@
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageIcon>Icon.png</PackageIcon>
         <Description>Memphis.Client SDK intended to make easy integration of Memphis into .NET projects</Description>
+        <EnablePackageValidation>true</EnablePackageValidation>
     </PropertyGroup>
 
     <ItemGroup>
