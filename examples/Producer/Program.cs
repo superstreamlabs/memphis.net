@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.Text;
 using System.Threading.Tasks;
 using Memphis.Client;
+using Memphis.Client.Producer;
 
 namespace Producer
 {
@@ -18,10 +19,12 @@ namespace Producer
                 options.ConnectionToken = "<broker-token>";
                 var client = await MemphisClientFactory.CreateClient(options);
 
-                var producer = await client.CreateProducer(
-                    stationName: "<memphis-station-name>",
-                    producerName: "<memphis-producer-name>",
-                    generateRandomSuffix:true);
+                var producer = await client.CreateProducer(new MemphisProducerOptions
+                {
+                    StationName = "<memphis-station-name>",
+                    ProducerName = "<memphis-producer-name>",
+                    GenerateUniqueSuffix = true
+                });
 
                 var commonHeaders = new NameValueCollection();
                 commonHeaders.Add("key-1", "value-1");

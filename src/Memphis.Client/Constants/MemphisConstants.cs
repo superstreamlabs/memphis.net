@@ -14,6 +14,8 @@ namespace Memphis.Client.Constants
         
         public const string MEMPHIS_NOTIFICATIONS = "$memphis_notifications";
 
+        
+        public const string MEMPHIS_STATION_DESTRUCTION = "$memphis_station_destructions";
     }
 
     internal class MemphisHeaders

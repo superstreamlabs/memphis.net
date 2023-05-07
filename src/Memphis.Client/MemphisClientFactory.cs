@@ -1,5 +1,6 @@
 using System;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Memphis.Client.Exception;
@@ -29,8 +30,8 @@ namespace Memphis.Client
         /// <param name="opts">Client Options used to customize behavior of client used to connect Memphis</param>
         /// <param name="isAccountIdIgnored">If true, account id will be ignored. This param is added for backward compatibility.</param>
         /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
-        public static async Task<MemphisClient> CreateClient(ClientOptions opts, 
-            bool isAccountIdIgnored = false, 
+        public static async Task<MemphisClient> CreateClient(ClientOptions opts,
+            bool isAccountIdIgnored = false,
             CancellationToken cancellationToken = default)
         {
             if (XNOR(string.IsNullOrWhiteSpace(opts.ConnectionToken),
@@ -92,15 +93,15 @@ namespace Memphis.Client
                 MemphisClient client = new(
                     brokerConnOptions, brokerConnection,
                     jetStreamContext, connectionId);
-                await client.ConfigureTenantName(opts.AccountId, cancellationToken);
                 await client.ListenForSdkClientUpdate();
+                // await client.ConfigureTenantName(opts.AccountId, cancellationToken);
                 return client;
             }
             catch (System.Exception e)
             {
-                if(!isAccountIdIgnored)
+                if (!isAccountIdIgnored)
                 {
-                   return await CreateClient(opts, true, cancellationToken);
+                    return await CreateClient(opts, true, cancellationToken);
                 }
                 throw new MemphisConnectionException("error occurred, when connecting memphis", e);
             }
@@ -123,14 +124,9 @@ namespace Memphis.Client
         /// </remark>
         /// <param name="host">Host</param>
         /// <returns>Normalized host</returns>
-        private static string NormalizeHost(string host)
+        internal static string NormalizeHost(string host)
         {
-            if (host.StartsWith("http://"))
-            {
-                return host.Replace("http://", string.Empty);
-            }
-
-            return host.StartsWith("https://") ? host.Replace("https://", string.Empty) : host;
+            return Regex.Replace(host, "^http(s?)://", string.Empty);
         }
     }
 }
