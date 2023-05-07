@@ -118,7 +118,7 @@ namespace Memphis.Client.UnitTests
             _graphqlValidatorMock.Verify(
                 mock => mock.ValidateAsync(It.IsAny<byte[]>(), It.IsAny<string>()), Times.Once);
             _connectionMock.Verify(
-                mock => mock.RequestAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Once);
+                mock => mock.Publish(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Once);
         }
 
 
