@@ -1,4 +1,3 @@
-using System.Collections.Specialized;
 using System.Text;
 using Memphis.Client.Producer;
 
@@ -14,7 +13,7 @@ public class MemphisClientTests
     }
 
     [Theory]
-    [InlineData("station_name_c_produce", "producer_name_a","#1 Hello World!", true)]
+    [InlineData("client_tst_station_name_c_produce", "client_tst_producer_name_a","#1 Hello World!", true)]
     public async Task GivenHostAndCredential_WhenProduce_ThenMessageIsProduced(
         string stationName,
         string producerName,

@@ -12,7 +12,7 @@ public class MemphisProducerTests
     }
 
     [Theory]
-    [InlineData("test-station", "test-producer", true)]
+    [InlineData("producer_tst_station_a", "producer_tst_producer_a", true)]
     public async Task GivenProducerOptions_WhenCreateProducer_ThenProducerIsCreated(
         string stationName, string producerName, bool generateUniqueSuffix)
     {
@@ -30,7 +30,7 @@ public class MemphisProducerTests
     }
 
     [Theory]
-    [InlineData("test-station", "test-producer", true, "Hello, World!")]
+    [InlineData("producer_tst_station_b", "producer_tst_producer_b", true, "Hello, World!")]
     public async Task GivenProducerOptions_WhenProduceAsync_ThenMessageIsProduced(
         string stationName, string producerName, bool generateUniqueSuffix, string message)
     {
@@ -52,7 +52,7 @@ public class MemphisProducerTests
     }
 
     [Theory]
-    [InlineData("test-station-destroy", "test-producer-destroy", true)]
+    [InlineData("producer_tst_station_destroy_c", "producer_tst_producer_destroy_c", true)]
     public async Task GivenProducerOptions_WhenDestroyAsync_ThenProducerIsDestroyed(
         string stationName, string producerName, bool generateUniqueSuffix)
     {

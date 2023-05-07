@@ -1,5 +1,3 @@
-using Memphis.Client.IntegrationTests.Fixtures;
-
 namespace Memphis.Client.IntegrationTests;
 
 [Collection(CollectionFixtures.MemphisClient)]

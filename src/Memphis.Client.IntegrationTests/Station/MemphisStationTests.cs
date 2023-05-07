@@ -10,8 +10,8 @@ public class MemphisStationTests
     }
 
     [Theory]
-    [InlineData("station_name_a")]
-    [InlineData("station_name_b")]
+    [InlineData("station_tst_station_name_a")]
+    [InlineData("station_tst_station_name_b")]
     public async Task GivenStationOptions_WhenCreateStation_ThenStationIsCreated(string stationName)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
@@ -24,8 +24,8 @@ public class MemphisStationTests
     }
 
     [Theory]
-    [InlineData("station_name_x")]
-    [InlineData("station_name_y")]
+    [InlineData("station_tst_station_name_x")]
+    [InlineData("station_tst_station_name_y")]
     public async Task GivenStationName_WhenCreateStation_ThenStationIsCreated(string stationName)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);

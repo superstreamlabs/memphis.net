@@ -15,7 +15,7 @@ public class MemphisConsumerTests
     }
 
     [Theory]
-    [InlineData("test-station", "test-consumer", default, true)]
+    [InlineData("consumer_tst_station_a", "consumer_tst_consumer_a", default, true)]
     public async Task GivenConsumerOptions_WhenCreateConsumer_ThenConsumerIsCreated(
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix)
     {
@@ -36,7 +36,7 @@ public class MemphisConsumerTests
     }
 
     [Theory]
-    [InlineData("test-station", "test-consumer", default, true, "test-producer", "Hello, World!")]
+    [InlineData("consumer_tst_station_b", "consumer_tst_consumer_b", default, true, "consumer_tst_producer_b", "Hello, World!")]
     public async Task GivenConsumerOptions_WhenConsumeAsync_ThenMessageIsConsumed(
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix, string producerName, string message)
     {
@@ -76,7 +76,7 @@ public class MemphisConsumerTests
     }
 
     [Theory]
-    [InlineData("test-station", "test-consumer", default, true)]
+    [InlineData("consumer_tst_station_c", "consumer_tst_consumer_c", default, true)]
     public async Task GivenConsumerOptions_WhenDestroyAsync_ThenConsumerIsDestroyed(
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix)
     {
@@ -98,7 +98,7 @@ public class MemphisConsumerTests
     }
 
     [Theory]
-    [InlineData("test-station", "test-consumer", default, true, "test-producer", "Hello, World!")]
+    [InlineData("consumer_tst_station_d", "consumer_tst_consumer_d", default, true, "consumer_tst_producer_d", "Hello, World!")]
     public async Task GivenConsumerOptions_WhenFetch_ThenMessageIsRetrieved(
             string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix, string producerName, string message)
     {
