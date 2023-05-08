@@ -20,7 +20,7 @@ public class MemphisConsumerTests
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        await client.CreateStation(stationName);
+        var station = await client.CreateStation(stationName);
 
         var consumerOptions = new MemphisConsumerOptions
         {
@@ -30,9 +30,13 @@ public class MemphisConsumerTests
             GenerateUniqueSuffix = generateUniqueSuffix
         };
 
-        var result = await client.CreateConsumer(consumerOptions);
+        var consumer = await client.CreateConsumer(consumerOptions);
+        
+        await consumer.DestroyAsync();
+        await station.DestroyAsync();
 
-        Assert.NotNull(result);
+        Assert.NotNull(station);
+        Assert.NotNull(consumer);
     }
 
     [Theory]
@@ -41,7 +45,7 @@ public class MemphisConsumerTests
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix, string producerName, string message)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        await client.CreateStation(stationName);
+        var station = await client.CreateStation(stationName);
 
         var producerOptions = new MemphisProducerOptions
         {
@@ -68,10 +72,11 @@ public class MemphisConsumerTests
             firstMessage.Ack();
         };
 
-        await consumer.ConsumeAsync();
-        await Task.Delay((int)TimeSpan.FromSeconds(30).TotalMicroseconds);
+        consumer.ConsumeAsync();
+        await Task.Delay((int)TimeSpan.FromSeconds(10).TotalMilliseconds);
+        
         await consumer.DestroyAsync();
-
+        await station.DestroyAsync();
         Assert.NotNull(consumer);
     }
 
@@ -81,7 +86,7 @@ public class MemphisConsumerTests
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        await client.CreateStation(stationName);
+        var station = await client.CreateStation(stationName);
 
         var consumerOptions = new MemphisConsumerOptions
         {
@@ -93,6 +98,7 @@ public class MemphisConsumerTests
         var consumer = await client.CreateConsumer(consumerOptions);
 
         await consumer.DestroyAsync();
+        await station.DestroyAsync();
 
         Assert.NotNull(consumer);
     }
@@ -103,7 +109,7 @@ public class MemphisConsumerTests
             string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix, string producerName, string message)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        await client.CreateStation(stationName);
+        var station = await client.CreateStation(stationName);
 
         var producerOptions = new MemphisProducerOptions
         {
@@ -128,10 +134,8 @@ public class MemphisConsumerTests
         
         Assert.Equal(message, decodedMessage);
 
-        await consumer.ConsumeAsync();
-        await Task.Delay((int)TimeSpan.FromSeconds(30).TotalMicroseconds);
         await consumer.DestroyAsync();
-
+        await station.DestroyAsync();
         Assert.NotNull(consumer);
     }
 

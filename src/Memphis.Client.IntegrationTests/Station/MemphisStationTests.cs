@@ -15,11 +15,12 @@ public class MemphisStationTests
     public async Task GivenStationOptions_WhenCreateStation_ThenStationIsCreated(string stationName)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var stationOptions = _fixture.DefaultStationOptions; 
+        var stationOptions = _fixture.DefaultStationOptions;
         stationOptions.Name = stationName;
 
         var result = await client.CreateStation(stationOptions);
-        
+
+        await result.DestroyAsync();
         Assert.NotNull(result);
     }
 
@@ -31,7 +32,8 @@ public class MemphisStationTests
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
 
         var result = await client.CreateStation(stationName);
-        
+
+        await result.DestroyAsync();
         Assert.NotNull(result);
     }
 }

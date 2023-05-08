@@ -94,7 +94,7 @@ namespace Memphis.Client
         public async Task<MemphisProducer> CreateProducer(MemphisProducerOptions producerOptions)
         {
             string stationName = producerOptions.StationName;
-            string producerName = producerOptions.ProducerName;
+            string producerName = producerOptions.ProducerName.ToLower();
             bool generateRandomSuffix = producerOptions.GenerateUniqueSuffix;
 
             if (_brokerConnection.IsClosed())
@@ -140,7 +140,6 @@ namespace Memphis.Client
                 _clusterConfigurations.AddOrUpdate(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, respAsObject.SendNotification, (_, _) => respAsObject.SendNotification);
 
                 await ListenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
-                //await ListenForSdkClientUpdate();
 
                 return new MemphisProducer(this, producerName, stationName, producerName.ToLower());
             }
@@ -588,7 +587,8 @@ namespace Memphis.Client
                 Username = _userName
             };
 
-            if (_subscriptionPerSchema.TryGetValue(station.InternalName, out ISyncSubscription subscription))
+            if (_subscriptionPerSchema.TryGetValue(station.InternalName, out ISyncSubscription subscription) && 
+                subscription.IsValid)
             {
                 subscription.Unsubscribe();
             }
@@ -802,6 +802,8 @@ namespace Memphis.Client
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
                         var updateMsg = subscription.NextMessage();
+                        if(updateMsg is null) 
+                            continue;
                         string respAsJson = Encoding.UTF8.GetString(updateMsg.Data);
                         var sdkClientUpdate =
                             (SdkClientsUpdate)JsonSerDes.PrepareObjectFromString<SdkClientsUpdate>(respAsJson);
@@ -873,24 +875,35 @@ namespace Memphis.Client
         /// <returns>Tenant name</returns>
         private async Task<string?> GetTenantName(int accountId, CancellationToken cancellationToken = default)
         {
-            var encodedRequest = JsonConvert.SerializeObject(new GetTenantNameRequest { TenantId = accountId });
-            var tenantNameResponse = await _brokerConnection.RequestAsync(
-                MemphisSubjects.GET_TENANT_NAME,
-                Encoding.UTF8.GetBytes(encodedRequest));
-
-            string responseData = Encoding.UTF8.GetString(tenantNameResponse.Data);
-            var responseDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseData);
-            if (responseDict is null)
-                throw new MemphisException("Unable to retrieve tenant name");
-            if (responseDict.TryGetValue("error", out object error) &&
-                !string.IsNullOrWhiteSpace(error.ToString()))
+            try
             {
-                if (TryGetPropertyValue(error, "code", out string? code) && code == "503")
-                    return MemphisGlobalVariables.GLOBAL_ACCOUNT_NAME;
-                throw new MemphisException(error.ToString());
-            }
-            return responseDict.TryGetValue("tenant_name", out object tenantName) ? tenantName.ToString() : null;
+                var encodedRequest = JsonConvert.SerializeObject(new GetTenantNameRequest { TenantId = accountId });
+                var tenantNameResponse = await _brokerConnection.RequestAsync(
+                    MemphisSubjects.GET_TENANT_NAME,
+                    Encoding.UTF8.GetBytes(encodedRequest));
 
+                string responseData = Encoding.UTF8.GetString(tenantNameResponse.Data);
+                var responseDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseData);
+                if (responseDict is null)
+                    throw new MemphisException("Unable to retrieve tenant name");
+                if (responseDict.TryGetValue("error", out object error) &&
+                    !string.IsNullOrWhiteSpace(error.ToString()))
+                {
+                    if (TryGetPropertyValue(error, "code", out string? code) && code == "503")
+                        return MemphisGlobalVariables.GLOBAL_ACCOUNT_NAME;
+                    throw new MemphisException(error.ToString());
+                }
+                return responseDict.TryGetValue("tenant_name", out object tenantName) ? tenantName.ToString() : null;
+            }
+            catch (NATSNoRespondersException)
+            {
+                return MemphisGlobalVariables.GLOBAL_ACCOUNT_NAME;
+            }
+            catch (System.Exception exception)
+            {
+                throw;
+            }
+            
             bool TryGetPropertyValue(object obj, string propertyName, out string? value)
             {
                 value = default;
