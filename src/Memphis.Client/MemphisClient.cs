@@ -94,7 +94,7 @@ namespace Memphis.Client
         public async Task<MemphisProducer> CreateProducer(MemphisProducerOptions producerOptions)
         {
             string stationName = producerOptions.StationName;
-            string producerName = producerOptions.ProducerName;
+            string producerName = producerOptions.ProducerName.ToLower();
             bool generateRandomSuffix = producerOptions.GenerateUniqueSuffix;
 
             if (_brokerConnection.IsClosed())
@@ -140,7 +140,6 @@ namespace Memphis.Client
                 _clusterConfigurations.AddOrUpdate(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, respAsObject.SendNotification, (_, _) => respAsObject.SendNotification);
 
                 await ListenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
-                //await ListenForSdkClientUpdate();
 
                 return new MemphisProducer(this, producerName, stationName, producerName.ToLower());
             }
