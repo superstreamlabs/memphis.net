@@ -875,24 +875,35 @@ namespace Memphis.Client
         /// <returns>Tenant name</returns>
         private async Task<string?> GetTenantName(int accountId, CancellationToken cancellationToken = default)
         {
-            var encodedRequest = JsonConvert.SerializeObject(new GetTenantNameRequest { TenantId = accountId });
-            var tenantNameResponse = await _brokerConnection.RequestAsync(
-                MemphisSubjects.GET_TENANT_NAME,
-                Encoding.UTF8.GetBytes(encodedRequest));
-
-            string responseData = Encoding.UTF8.GetString(tenantNameResponse.Data);
-            var responseDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseData);
-            if (responseDict is null)
-                throw new MemphisException("Unable to retrieve tenant name");
-            if (responseDict.TryGetValue("error", out object error) &&
-                !string.IsNullOrWhiteSpace(error.ToString()))
+            try
             {
-                if (TryGetPropertyValue(error, "code", out string? code) && code == "503")
-                    return MemphisGlobalVariables.GLOBAL_ACCOUNT_NAME;
-                throw new MemphisException(error.ToString());
-            }
-            return responseDict.TryGetValue("tenant_name", out object tenantName) ? tenantName.ToString() : null;
+                var encodedRequest = JsonConvert.SerializeObject(new GetTenantNameRequest { TenantId = accountId });
+                var tenantNameResponse = await _brokerConnection.RequestAsync(
+                    MemphisSubjects.GET_TENANT_NAME,
+                    Encoding.UTF8.GetBytes(encodedRequest));
 
+                string responseData = Encoding.UTF8.GetString(tenantNameResponse.Data);
+                var responseDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseData);
+                if (responseDict is null)
+                    throw new MemphisException("Unable to retrieve tenant name");
+                if (responseDict.TryGetValue("error", out object error) &&
+                    !string.IsNullOrWhiteSpace(error.ToString()))
+                {
+                    if (TryGetPropertyValue(error, "code", out string? code) && code == "503")
+                        return MemphisGlobalVariables.GLOBAL_ACCOUNT_NAME;
+                    throw new MemphisException(error.ToString());
+                }
+                return responseDict.TryGetValue("tenant_name", out object tenantName) ? tenantName.ToString() : null;
+            }
+            catch (NATSNoRespondersException)
+            {
+                return MemphisGlobalVariables.GLOBAL_ACCOUNT_NAME;
+            }
+            catch (System.Exception exception)
+            {
+                throw;
+            }
+            
             bool TryGetPropertyValue(object obj, string propertyName, out string? value)
             {
                 value = default;
