@@ -588,7 +588,8 @@ namespace Memphis.Client
                 Username = _userName
             };
 
-            if (_subscriptionPerSchema.TryGetValue(station.InternalName, out ISyncSubscription subscription))
+            if (_subscriptionPerSchema.TryGetValue(station.InternalName, out ISyncSubscription subscription) && 
+                subscription.IsValid)
             {
                 subscription.Unsubscribe();
             }
@@ -802,6 +803,8 @@ namespace Memphis.Client
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
                         var updateMsg = subscription.NextMessage();
+                        if(updateMsg is null) 
+                            continue;
                         string respAsJson = Encoding.UTF8.GetString(updateMsg.Data);
                         var sdkClientUpdate =
                             (SdkClientsUpdate)JsonSerDes.PrepareObjectFromString<SdkClientsUpdate>(respAsJson);

@@ -71,12 +71,12 @@ namespace Memphis.Client.Consumer
         {
             try
             {
-                if (_dlsSubscription.IsValid)
+                if (_dlsSubscription is { IsValid: true })
                 {
                     await _dlsSubscription.DrainAsync();
                 }
 
-                if (_pullSubscription.IsValid)
+                if (_pullSubscription is { IsValid: true })
                 {
                     await _pullSubscription.DrainAsync();
                 }

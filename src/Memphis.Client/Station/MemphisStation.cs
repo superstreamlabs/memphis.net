@@ -31,7 +31,7 @@ namespace Memphis.Client.Station
             get { return _internalName; }
         }
 
-        public async Task Destroy()
+        public async Task DestroyAsync()
         {
             await _memphisClient.RemoveStation(this);
         }

@@ -17,6 +17,7 @@ public class MemphisProducerTests
         string stationName, string producerName, bool generateUniqueSuffix)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
+        var station = await client.CreateStation(stationName);
         var producerOptions = new MemphisProducerOptions
         {
             StationName = stationName,
@@ -24,9 +25,13 @@ public class MemphisProducerTests
             GenerateUniqueSuffix = generateUniqueSuffix
         };
 
-        var result = await client.CreateProducer(producerOptions);
+        var producer = await client.CreateProducer(producerOptions);
 
-        Assert.NotNull(result);
+        await producer.DestroyAsync();
+        await station.DestroyAsync();
+
+        Assert.NotNull(station);
+        Assert.NotNull(producer);
     }
 
     [Theory]
@@ -35,7 +40,7 @@ public class MemphisProducerTests
         string stationName, string producerName, bool generateUniqueSuffix, string message)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        await client.CreateStation(stationName);
+        var station = await client.CreateStation(stationName);
 
         var producerOptions = new MemphisProducerOptions
         {
@@ -46,8 +51,11 @@ public class MemphisProducerTests
         var producer = await client.CreateProducer(producerOptions);
 
         await producer.ProduceAsync(message, _fixture.CommonHeaders);
+        
         await producer.DestroyAsync();
-
+        await station.DestroyAsync();
+        
+        Assert.NotNull(station);
         Assert.NotNull(producer);
     }
 
@@ -57,7 +65,7 @@ public class MemphisProducerTests
         string stationName, string producerName, bool generateUniqueSuffix)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        await client.CreateStation(stationName);
+        var station = await client.CreateStation(stationName);
 
         var producerOptions = new MemphisProducerOptions
         {
@@ -68,7 +76,9 @@ public class MemphisProducerTests
         var producer = await client.CreateProducer(producerOptions);
 
         await producer.DestroyAsync();
+        await station.DestroyAsync();
 
+        Assert.NotNull(station);
         Assert.NotNull(producer);
     }
 

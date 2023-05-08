@@ -21,7 +21,8 @@ public class MemphisClientTests
         bool generateUniqueSuffix)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        
+
+        var station = await client.CreateStation(stationName);        
 
         var producerOptions = new MemphisProducerOptions 
         {
@@ -35,6 +36,7 @@ public class MemphisClientTests
             message: Encoding.UTF8.GetBytes(message), 
             headers: _fixture.CommonHeaders);
 
+        await station.DestroyAsync();
         Assert.True(true);
     }
 }

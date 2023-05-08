@@ -14,7 +14,7 @@ public class MemphisClientFixture
         MemphisClientOptions = MemphisClientFactory.GetDefaultOptions();
         MemphisClientOptions.Username = "root";
         MemphisClientOptions.Host = "localhost";
-        MemphisClientOptions.ConnectionToken = "memphis";
+        MemphisClientOptions.Password = "memphis";
         
         DefaultStationOptions = new StationOptions
         {
