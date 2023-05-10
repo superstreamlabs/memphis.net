@@ -5,9 +5,10 @@ def repoUrlPrefix = "memphisos"
 node ("small-ec2-fleet") {
   git credentialsId: 'main-github', url: gitURL, branch: gitBranch
   if (env.BRANCH_NAME ==~ /(master)/) { 
-  def versionTag = readFile "./version-beta.conf"
+    def versionTag = readFile "./version-beta.conf"
+  }
   else {
-  def versionTag = readFile "./version.conf"
+    def versionTag = readFile "./version.conf"
   }
 
   try{
