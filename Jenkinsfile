@@ -23,20 +23,20 @@ node ("small-ec2-fleet") {
     
     stage('Build project'){
       sh """
-        dotnet build -c Release src/Memphis.Client.sln
+        /home/ec2-user/.dotnet/dotnet build -c Release src/Memphis.Client.sln
       """
     }
   
     stage('Package the project'){
       sh """
-        dotnet pack -v normal -c Release --no-restore --include-source -p:PackageVersion=$versionTag src/Memphis.Client/Memphis.Client.csproj
+        /home/ec2-user/.dotnet/dotnet pack -v normal -c Release --no-restore --include-source -p:PackageVersion=$versionTag src/Memphis.Client/Memphis.Client.csproj
       """
     }
 
     stage('Publish to NuGet'){
       withCredentials([string(credentialsId: 'NUGET_KEY', variable: 'NUGET_KEY')]) {
         sh """
-          echo "dotnet nuget push ./src/Memphis.Client/bin/Release/Memphis.Client.$versionTag.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_KEY"
+          echo "/home/ec2-user/.dotnet/dotnet nuget push ./src/Memphis.Client/bin/Release/Memphis.Client.$versionTag.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_KEY"
         """
       }
     }
