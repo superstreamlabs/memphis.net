@@ -9,7 +9,7 @@
         <PackageTags>Memphis, client</PackageTags>
         <LangVersion>11</LangVersion>
         <Nullable>enable</Nullable>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReadmeFile>NUGET-README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageIcon>Icon.png</PackageIcon>
         <Description>Memphis.Client SDK intended to make easy integration of Memphis into .NET projects</Description>
@@ -38,6 +38,10 @@
     
     <ItemGroup>
       <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\..\NUGET-README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
     <ItemGroup>
