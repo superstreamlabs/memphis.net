@@ -35,7 +35,7 @@ node ("small-ec2-fleet") {
     stage('Publish to NuGet'){
       withCredentials([string(credentialsId: 'NUGET_KEY', variable: 'NUGET_KEY')]) {
         sh """
-          dotnet nuget push ./src/Memphis.Client/bin/Release/Memphis.Client.$versionTag.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_KEY
+          echo "dotnet nuget push ./src/Memphis.Client/bin/Release/Memphis.Client.$versionTag.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_KEY"
         """
       }
     }
