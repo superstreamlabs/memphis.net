@@ -37,10 +37,6 @@
     </ItemGroup>
     
     <ItemGroup>
-      <None Include="..\..\README.md" Pack="true" PackagePath="\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Include="..\..\NUGET-README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
