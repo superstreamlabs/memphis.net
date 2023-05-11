@@ -5,10 +5,10 @@ def repoUrlPrefix = "memphisos"
 node ("small-ec2-fleet") {
   git credentialsId: 'main-github', url: gitURL, branch: gitBranch
   if (env.BRANCH_NAME ==~ /(master)/) { 
-    def versionTag = readFile "./version-beta.conf"
+    versionTag = readFile "./version-beta.conf"
   }
   else {
-    def versionTag = readFile "./version.conf"
+    versionTag = readFile "./version.conf"
   }
 
   try{
@@ -36,7 +36,7 @@ node ("small-ec2-fleet") {
     stage('Publish to NuGet'){
       withCredentials([string(credentialsId: 'NUGET_KEY', variable: 'NUGET_KEY')]) {
         sh """
-          /home/ec2-user/.dotnet/dotnet nuget push ./src/Memphis.Client/bin/Release/Memphis.Client.$versionTag.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_KEY
+          /home/ec2-user/.dotnet/dotnet nuget push ./src/Memphis.Client/bin/Release/Memphis.Client.${versionTag}.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_KEY
         """
       }
     }
