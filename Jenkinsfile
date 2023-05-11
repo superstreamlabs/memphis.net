@@ -29,7 +29,7 @@ node ("small-ec2-fleet") {
   
     stage('Package the project'){
       sh """
-        /home/ec2-user/.dotnet/dotnet pack -v normal -c Release --no-restore --include-source -p:PackageVersion=$versionTag src/Memphis.Client/Memphis.Client.csproj
+        /home/ec2-user/.dotnet/dotnet pack -v normal -c Release --no-restore --include-source /p:ContinuousIntegrationBuild=true -p:PackageVersion=$versionTag src/Memphis.Client/Memphis.Client.csproj
       """
     }
 
