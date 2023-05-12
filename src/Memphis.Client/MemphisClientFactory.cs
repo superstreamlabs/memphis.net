@@ -87,6 +87,9 @@ namespace Memphis.Client
 
             try
             {
+
+                SuppressDefaultEventHandlerLogs(brokerConnOptions);
+
                 IConnection brokerConnection = new ConnectionFactory()
                     .CreateConnection(brokerConnOptions);
                 IJetStream jetStreamContext = brokerConnection.CreateJetStreamContext();
@@ -104,6 +107,20 @@ namespace Memphis.Client
                     return await CreateClient(opts, true, cancellationToken);
                 }
                 throw new MemphisConnectionException("error occurred, when connecting memphis", e);
+            }
+
+
+            void SuppressDefaultEventHandlerLogs(Options options)
+            {
+                options.ClosedEventHandler += (_, _) => { };
+                options.ServerDiscoveredEventHandler += (_, _) => { };
+                options.DisconnectedEventHandler += (_, _) => { };
+                options.ReconnectedEventHandler += (_, _) => { };
+                options.LameDuckModeEventHandler += (_, _) => { };
+                options.AsyncErrorEventHandler += (_, _) => { };
+                options.HeartbeatAlarmEventHandler += (_, _) => { };
+                options.UnhandledStatusEventHandler += (_, _) => { };
+                options.FlowControlProcessedEventHandler += (_, _) => { };
             }
         }
 
