@@ -4,7 +4,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <PackageId>Memphis.Client</PackageId>
         <Version>0.1.0</Version>
-        <Authors>Elchin Gasimov</Authors>
+        <Authors>Memphis.dev team</Authors>
         <Company>Memphis.dev</Company>
         <PackageTags>Memphis, client</PackageTags>
         <LangVersion>11</LangVersion>

@@ -1,8 +1,7 @@
-**[Memphis](https://memphis.dev)** is a next-generation alternative to traditional message brokers.
-A simple, robust, and durable cloud-native message broker wrapped with
-an entire ecosystem that enables cost-effective, fast, and reliable development of modern queue-based use cases.
-Memphis enables the building of modern queue-based applications that require
-large volumes of streamed and enriched data, modern protocols, zero ops, rapid development,
+**[Memphis](https://memphis.dev)** is a simple, robust, and durable cloud-native message broker wrapped with<br>
+an entire ecosystem that enables cost-effective, fast, and reliable development of modern queue-based use cases.<br>
+Memphis enables the building of modern queue-based applications that require<br>
+large volumes of streamed and enriched data, modern protocols, zero ops, rapid development,<br>
 extreme cost reduction, and a significantly lower amount of dev time for data-oriented developers and data engineers.
 
 ## Installation
