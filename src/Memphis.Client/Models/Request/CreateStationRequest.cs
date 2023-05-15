@@ -9,22 +9,22 @@ namespace Memphis.Client.Models.Request
     {
         [DataMember(Name = "name")]
         public string StationName { get; set; }
-        
+
         [DataMember(Name = "retention_type")]
         public string RetentionType { get; set; }
-        
+
         [DataMember(Name = "retention_value")]
         public int RetentionValue { get; set; }
-        
+
         [DataMember(Name = "storage_type")]
         public string StorageType { get; set; }
-        
+
         [DataMember(Name = "replicas")]
         public int Replicas { get; set; }
 
         [DataMember(Name = "idempotency_windows_in_ms")]
         public int IdempotencyWindowsInMs { get; set; }
-        
+
         [DataMember(Name = "schema_name")]
         public string SchemaName { get; set; }
 
@@ -36,6 +36,9 @@ namespace Memphis.Client.Models.Request
 
         [DataMember(Name = "tiered_storage_enabled")]
         public bool TieredStorageEnabled { get; set; }
+
+        [DataMember(Name = "tenant_name")]
+        public string TenantName { get; set; }
     }
 
     [DataContract]
@@ -43,7 +46,7 @@ namespace Memphis.Client.Models.Request
     {
         [DataMember(Name = "poison")]
         public bool Poison { get; set; }
-        
+
         [DataMember(Name = "SchemaVerse")]
         public bool SchemaVerse { get; set; }
     }

@@ -116,7 +116,8 @@ namespace Memphis.Client
                     ConnectionId = _connectionId,
                     ProducerType = "application",
                     RequestVersion = 1,
-                    UserName = _userName
+                    UserName = _userName,
+                    TenantName = TenantName
                 };
 
                 var createProducerModelJson = JsonSerDes.PrepareJsonString<CreateProducerRequest>(createProducerModel);
@@ -284,7 +285,8 @@ namespace Memphis.Client
                     MaxMsgCountForDelivery = consumerOptions.MaxMsgDeliveries,
                     UserName = _userName,
                     StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
-                    LastMessages = consumerOptions.LastMessages
+                    LastMessages = consumerOptions.LastMessages,
+                    TenantName = TenantName
                 };
 
                 var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
@@ -339,7 +341,8 @@ namespace Memphis.Client
                         SchemaVerse = stationOptions.SendSchemaFailedMessageToDls,
                     },
                     UserName = _userName,
-                    TieredStorageEnabled = stationOptions.TieredStorageEnabled
+                    TieredStorageEnabled = stationOptions.TieredStorageEnabled,
+                    TenantName = TenantName
                 };
 
                 var createStationModelJson = JsonSerDes.PrepareJsonString<CreateStationRequest>(createStationModel);
@@ -403,7 +406,8 @@ namespace Memphis.Client
                 {
                     SchemaName = schemaName,
                     StationName = stationName,
-                    UserName = _userName
+                    UserName = _userName,
+                    TenantName = TenantName
                 };
 
                 var attachSchemaModelJson = JsonSerDes.PrepareJsonString<AttachSchemaRequest>(attachSchemaRequestModel);
@@ -443,7 +447,8 @@ namespace Memphis.Client
                 var detachSchemaRequestModel = new DetachSchemaRequest()
                 {
                     StationName = stationName,
-                    UserName = _userName
+                    UserName = _userName,
+                    TenantName = TenantName
                 };
 
                 var detachSchemaModelJson = JsonSerDes.PrepareJsonString<DetachSchemaRequest>(detachSchemaRequestModel);
@@ -584,7 +589,8 @@ namespace Memphis.Client
             var request = new RemoveStationRequest
             {
                 StationName = station.Name,
-                Username = _userName
+                Username = _userName,
+                TenantName = TenantName
             };
 
             if (_subscriptionPerSchema.TryGetValue(station.InternalName, out ISyncSubscription subscription) && 

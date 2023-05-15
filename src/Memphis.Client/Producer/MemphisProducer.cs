@@ -110,10 +110,11 @@ namespace Memphis.Client.Producer
         {
             try
             {
-                var removeProducerModel = new RemoveProducerRequest()
+                var removeProducerModel = new RemoveProducerRequest
                 {
                     ProducerName = _producerName,
                     StationName = _stationName,
+                    TenantName = _memphisClient.TenantName
                 };
 
                 var removeProducerModelJson = JsonSerDes.PrepareJsonString<RemoveProducerRequest>(removeProducerModel);

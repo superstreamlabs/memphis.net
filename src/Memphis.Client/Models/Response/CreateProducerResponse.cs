@@ -13,8 +13,11 @@ namespace Memphis.Client.Models.Response
 
         [DataMember(Name = "send_notification")]
         public bool SendNotification { get; set; }
-        
+
         [DataMember(Name = "schemaverse_to_dls")]
         public bool SchemaVerseToDls { get; set; }
+
+        [DataMember(Name = "tenant_name")]
+        public string TenantName { get; set; }
     }
 }

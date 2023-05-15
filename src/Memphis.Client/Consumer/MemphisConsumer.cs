@@ -87,6 +87,7 @@ namespace Memphis.Client.Consumer
                 {
                     ConsumerName = _consumerOptions.ConsumerName,
                     StationName = _consumerOptions.StationName,
+                    TenantName = _memphisClient.TenantName
                 };
 
                 var removeConsumerModelJson = JsonSerDes.PrepareJsonString<RemoveConsumerRequest>(removeConsumerModel);
