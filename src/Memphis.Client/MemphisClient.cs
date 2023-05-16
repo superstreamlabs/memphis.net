@@ -179,7 +179,7 @@ namespace Memphis.Client
         /// <param name="options">options for producing a message</param>
         /// <param name="message">message to be produced</param>
         /// <param name="headers">headers of the message</param>
-        /// <param name="messageId">id of the message</param>
+        /// <param name="messageId">Message ID - for idempotent message production</param>
         /// <param name="cancellationToken">cancellation token</param>
         /// <returns></returns>
         public async Task ProduceAsync(

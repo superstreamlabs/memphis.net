@@ -41,7 +41,7 @@ namespace Memphis.Client.Producer
         /// <param name="message">the event handler for messages consumed from station in which MemphisConsumer created for</param>
         /// <param name="headers">headers used to send data in the form of key and value</param>
         /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
-        /// <param name="messageId">ID of the message</param>
+        /// <param name="messageId">Message ID - for idempotent message production</param>
         /// <returns></returns>
         public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
             string? messageId = default)
@@ -90,7 +90,7 @@ namespace Memphis.Client.Producer
         /// <param name="message">the event handler for messages consumed from station in which MemphisConsumer created for</param>
         /// <param name="headers">headers used to send data in the form of key and value</param>
         /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
-        /// <param name="messageId">ID of the message</param>
+        /// <param name="messageId">Message ID - for idempotent message production</param>
         /// <returns></returns>
         public async Task ProduceAsync<T>(T message, NameValueCollection headers, int ackWaitMs = 15_000,
             string? messageId = default)
