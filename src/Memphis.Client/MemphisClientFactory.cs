@@ -28,10 +28,8 @@ namespace Memphis.Client
         /// Create Memphis Client
         /// </summary>
         /// <param name="opts">Client Options used to customize behavior of client used to connect Memphis</param>
-        /// <param name="isAccountIdIgnored">If true, account id will be ignored. This param is added for backward compatibility.</param>
         /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
         public static async Task<MemphisClient> CreateClient(ClientOptions opts,
-            bool isAccountIdIgnored = false,
             CancellationToken cancellationToken = default)
         {
             if (XNOR(string.IsNullOrWhiteSpace(opts.ConnectionToken),
@@ -54,7 +52,7 @@ namespace Memphis.Client
             }
             else
             {
-                brokerConnOptions.User = isAccountIdIgnored ? opts.Username : $"{opts.Username}${opts.AccountId}";
+                brokerConnOptions.User = $"{opts.Username}${opts.AccountId}";
                 brokerConnOptions.Password = opts.Password;
             }
 
@@ -90,8 +88,7 @@ namespace Memphis.Client
 
                 SuppressDefaultEventHandlerLogs(brokerConnOptions);
 
-                IConnection brokerConnection = new ConnectionFactory()
-                    .CreateConnection(brokerConnOptions);
+                IConnection brokerConnection = EstablishBrokerManagerConnection(brokerConnOptions);
                 IJetStream jetStreamContext = brokerConnection.CreateJetStreamContext();
                 MemphisClient client = new(
                     brokerConnOptions, brokerConnection,
@@ -102,10 +99,6 @@ namespace Memphis.Client
             }
             catch (System.Exception e)
             {
-                if (!isAccountIdIgnored)
-                {
-                    return await CreateClient(opts, true, cancellationToken);
-                }
                 throw new MemphisConnectionException("error occurred, when connecting memphis", e);
             }
 
@@ -121,6 +114,36 @@ namespace Memphis.Client
                 options.HeartbeatAlarmEventHandler += (_, _) => { };
                 options.UnhandledStatusEventHandler += (_, _) => { };
                 options.FlowControlProcessedEventHandler += (_, _) => { };
+            }
+        }
+
+        /// <summary>
+        /// This method is used to connect to Memphis Broker. 
+        /// It attempts to establish connection using accountId, and if it fails, it tries to connect using username(with out accountId).
+        /// </summary>
+        /// <param name="brokerOptions">Broker Options used to customize behavior of client used to connect Memphis</param>
+        /// <returns>An <see cref="IConnection"/> object connected to the Memphis server.</returns>
+        private static IConnection EstablishBrokerManagerConnection(Options brokerOptions)
+        {
+            if (string.IsNullOrWhiteSpace(brokerOptions.User))
+                return new ConnectionFactory()
+                    .CreateConnection(brokerOptions);
+
+            try
+            {
+                return new ConnectionFactory()
+                    .CreateConnection(brokerOptions);
+            }
+            catch
+            {
+                var pattern = @"(?<username>[^$]*)(?<separator>\$)(?<accountId>.+)";
+                if (Regex.Match(brokerOptions.User, pattern) is { Success: true } match)
+                {
+                    brokerOptions.User = match.Groups["username"].Value;
+                    return new ConnectionFactory()
+                        .CreateConnection(brokerOptions);
+                }
+                throw;
             }
         }
 
