@@ -19,7 +19,7 @@ namespace Memphis.Client
                 Reconnect = true,
                 MaxReconnect = 10,
                 MaxReconnectIntervalMs = 1_500,
-                TimeoutMs = 15_000,
+                TimeoutMs = (int)TimeSpan.FromSeconds(2).TotalMilliseconds,
                 AccountId = 1
             };
         }
