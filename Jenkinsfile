@@ -11,7 +11,7 @@ node ("small-ec2-fleet") {
     versionTag = readFile "./version.conf"
   }
 
-  try{
+  try{ 
     
     stage('Install .NET SDK') {
       sh """
