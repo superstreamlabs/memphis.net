@@ -72,15 +72,25 @@ namespace Memphis.Client.Producer
                 msg.Header.Add(headerKey, headers[headerKey]);
             }
 
-
-            var publishAck = await _memphisClient.JetStreamConnection.PublishAsync(
-                msg, PublishOptions.Builder()
-                    .WithTimeout(Duration.OfMillis(ackWaitMs))
-                    .Build());
-
-            if (publishAck.HasError)
+            try
             {
-                throw new MemphisException(publishAck.ErrorDescription);
+                var publishAck = await _memphisClient.JetStreamConnection.PublishAsync(
+                                msg, PublishOptions.Builder()
+                                    .WithTimeout(Duration.OfMillis(ackWaitMs))
+                                    .Build());
+
+                if (publishAck.HasError)
+                {
+                    throw new MemphisException(publishAck.ErrorDescription);
+                }
+            }
+            catch (MemphisException)
+            {
+                throw;
+            }
+            catch (System.Exception ex)
+            {
+                throw new MemphisException(ex.Message);
             }
         }
 
