@@ -28,6 +28,7 @@ namespace Memphis.Client
         private readonly Options _brokerConnOptions;
         private readonly IConnection _brokerConnection;
         private readonly IJetStream _jetStreamContext;
+        private readonly IJetStreamManagement _jetStreamManagement;
         private readonly string _connectionId;
         private readonly string _userName;
         private CancellationTokenSource _cancellationTokenSource;
@@ -71,6 +72,8 @@ namespace Memphis.Client
             RegisterSchemaValidators();
 
             PrefetchedMessages = new();
+
+            _jetStreamManagement = brokerConnection.CreateJetStreamManagementContext();
         }
 
         /// <summary>
@@ -284,7 +287,7 @@ namespace Memphis.Client
                     MaxMsgCountForDelivery = consumerOptions.MaxMsgDeliveries,
                     UserName = _userName,
                     StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
-                    LastMessages = consumerOptions.LastMessages
+                    LastMessages = consumerOptions.LastMessages,
                 };
 
                 var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
@@ -587,7 +590,7 @@ namespace Memphis.Client
                 Username = _userName
             };
 
-            if (_subscriptionPerSchema.TryGetValue(station.InternalName, out ISyncSubscription subscription) && 
+            if (_subscriptionPerSchema.TryGetValue(station.InternalName, out ISyncSubscription subscription) &&
                 subscription.IsValid)
             {
                 subscription.Unsubscribe();
@@ -638,7 +641,12 @@ namespace Memphis.Client
 
         internal IJetStream JetStreamConnection
         {
-            get { return _jetStreamContext; }
+            get => _jetStreamContext;
+        }
+
+        internal IJetStreamManagement JetStreamManagement
+        {
+            get => _jetStreamManagement;
         }
 
         internal string ConnectionId
@@ -802,7 +810,7 @@ namespace Memphis.Client
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
                         var updateMsg = subscription.NextMessage();
-                        if(updateMsg is null) 
+                        if (updateMsg is null)
                             continue;
                         string respAsJson = Encoding.UTF8.GetString(updateMsg.Data);
                         var sdkClientUpdate =
