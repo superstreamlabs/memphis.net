@@ -31,6 +31,9 @@ namespace Memphis.Client.Consumer
 
         private readonly CancellationTokenSource _cancellationTokenSource;
 
+        private static bool _subscriptionActive;
+        private readonly int _pingConsumerIntervalMs;
+
         public MemphisConsumer(MemphisClient memphisClient, MemphisConsumerOptions options)
         {
             if (options.StartConsumeFromSequence < 0)
@@ -46,6 +49,13 @@ namespace Memphis.Client.Consumer
             _dlsMessages = new();
 
             _cancellationTokenSource = new();
+
+
+            _subscriptionActive = true;
+            _pingConsumerIntervalMs = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
+#pragma warning disable 4014
+            PingConsumer(_cancellationTokenSource.Token);
+#pragma warning restore 4014
         }
 
         /// <summary>
@@ -138,7 +148,7 @@ namespace Memphis.Client.Consumer
                     return messages;
                 }
 
-                if(TryGetAndRemovePrefetchedMessages(batchSize, out IEnumerable<MemphisMessage> prefetchedMessages))
+                if (TryGetAndRemovePrefetchedMessages(batchSize, out IEnumerable<MemphisMessage> prefetchedMessages))
                 {
                     messages = prefetchedMessages;
                 }
@@ -148,7 +158,7 @@ namespace Memphis.Client.Consumer
                     Task.Run(() => Prefetch(), _cancellationTokenSource.Token);
                 }
 
-                if(messages.Any())
+                if (messages.Any())
                 {
                     return messages;
                 }
@@ -173,7 +183,7 @@ namespace Memphis.Client.Consumer
             if (!_memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup].Any())
                 return false;
             var prefetchedMessages = _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup];
-            if(prefetchedMessages.Count <= batchSize)
+            if (prefetchedMessages.Count <= batchSize)
             {
                 messages = prefetchedMessages;
                 _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup] = new();
@@ -200,6 +210,46 @@ namespace Memphis.Client.Consumer
             }
             var messages = FetchSubscriptionWithTimeOut(_consumerOptions.BatchSize);
             _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup].AddRange(messages);
+        }
+
+        /// <summary>
+        /// Pings Memphis every 30 seconds to check if the consumer is still alive.
+        /// If Memphis does not respond, the consumer is stopped.
+        /// </summary>
+        /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
+        /// <returns></returns>
+        internal async Task PingConsumer(CancellationToken cancellationToken = default)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
+                    if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
+                    {
+                        durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
+                    }
+                    var result = _memphisClient.JetStreamManagement.GetConsumerInfo(InternalStationName, durableName);
+                    await Task.Delay(_pingConsumerIntervalMs, cancellationToken);
+                }
+                catch (System.Exception ex)
+                {
+                    MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
+                        new List<MemphisMessage>(),
+                        _pullSubscription?.Context,
+                        new MemphisException("Station unreachable")));
+                    StopConsume();
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Stop consuming messages
+        /// </summary>
+        internal void StopConsume()
+        {
+            _subscriptionActive = false;
         }
 
         private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(int batchSize)
@@ -241,6 +291,11 @@ namespace Memphis.Client.Consumer
                 if (!IsSubscriptionActive(_pullSubscription))
                     continue;
 
+                if (!_subscriptionActive)
+                {
+                    break;
+                }
+
                 try
                 {
                     var msgList = _pullSubscription.Fetch(_consumerOptions.BatchSize,
@@ -274,35 +329,41 @@ namespace Memphis.Client.Consumer
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (IsSubscriptionActive(_dlsSubscription))
+                if (!IsSubscriptionActive(_dlsSubscription))
+                    continue;
+
+                if (!_subscriptionActive)
                 {
-                    try
-                    {
-                        var msg = _dlsSubscription.NextMessage();
-                        if (msg is null)
-                        {
-                            continue;
-                        }
-
-                        var memphisMsg = new MemphisMessage(msg, _memphisClient, _consumerOptions.ConsumerGroup,
-                                _consumerOptions.MaxAckTimeMs);
-                        if (DlsMessageReceived is null)
-                        {
-                            EnqueueDlsMessage(memphisMsg);
-                            continue;
-                        }
-
-                        var memphisMessageList = new List<MemphisMessage> { memphisMsg };
-
-                        DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, _pullSubscription?.Context, null));
-
-                        await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
-                    }
-                    catch (System.Exception e)
-                    {
-                        DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), _pullSubscription?.Context, e));
-                    }
+                    break;
                 }
+
+                try
+                {
+                    var msg = _dlsSubscription.NextMessage();
+                    if (msg is null)
+                    {
+                        continue;
+                    }
+
+                    var memphisMsg = new MemphisMessage(msg, _memphisClient, _consumerOptions.ConsumerGroup,
+                            _consumerOptions.MaxAckTimeMs);
+                    if (DlsMessageReceived is null)
+                    {
+                        EnqueueDlsMessage(memphisMsg);
+                        continue;
+                    }
+
+                    var memphisMessageList = new List<MemphisMessage> { memphisMsg };
+
+                    DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, _pullSubscription?.Context, null));
+
+                    await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
+                }
+                catch (System.Exception e)
+                {
+                    DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), _pullSubscription?.Context, e));
+                }
+
             }
         }
 
