@@ -20,7 +20,7 @@ namespace Memphis.Client.UnitTests
         private readonly Mock<IJetStream> _jetStreamMock;
 
         private readonly ConcurrentDictionary<ValidatorType, ISchemaValidator> _schemaValidators;
-        private readonly Mock<ConcurrentDictionary<ValidatorType, ISchemaValidator>> _schemaValidatorsMock;
+        
         private readonly Mock<ISchemaValidator> _graphqlValidatorMock;
         private readonly Mock<ISchemaValidator> _jsonValidatorMock;
         private readonly Mock<ISchemaValidator> _protobufValidatorMock;
@@ -29,7 +29,7 @@ namespace Memphis.Client.UnitTests
 
         private readonly MemphisClient _sut;
 
-
+        #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         public MemphisClientTest(ITestOutputHelper testOutputHelper)
         {
             _testOutputHelper = testOutputHelper;

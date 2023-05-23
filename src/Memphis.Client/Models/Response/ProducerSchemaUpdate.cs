@@ -1,13 +1,17 @@
 ﻿using System.Runtime.Serialization;
 
+#nullable disable
+
 namespace Memphis.Client.Models.Response
 {
     [DataContract]
     internal sealed class ProducerSchemaUpdate
     {
-        [DataMember(Name = "UpdateType")] public string UpdateType { get; set; }
+        [DataMember(Name = "UpdateType")] 
+        public string UpdateType { get; set; }
 
-        [DataMember(Name = "init")] public ProducerSchemaUpdateInit Init { get; set; }
+        [DataMember(Name = "init")] 
+        public ProducerSchemaUpdateInit Init { get; set; }
     }
 
     internal static class ProducerSchemaUpdateType

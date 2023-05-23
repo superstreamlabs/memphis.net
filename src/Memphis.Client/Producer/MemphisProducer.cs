@@ -13,6 +13,8 @@ using NATS.Client.Internals;
 using NATS.Client.JetStream;
 using Newtonsoft.Json;
 
+#pragma warning disable CS8602 // Possible null reference argument.
+
 namespace Memphis.Client.Producer
 {
     public sealed class MemphisProducer
