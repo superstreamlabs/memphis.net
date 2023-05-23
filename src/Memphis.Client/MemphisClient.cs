@@ -151,6 +151,10 @@ namespace Memphis.Client
 
                 return new MemphisProducer(this, producerName, stationName, producerName.ToLower());
             }
+            catch(MemphisException)
+            {
+                throw;
+            }
             catch (System.Exception e)
             {
                 throw new MemphisException("Failed to create memphis producer", e);
@@ -310,6 +314,10 @@ namespace Memphis.Client
 
                 return new MemphisConsumer(this, consumerOptions);
             }
+            catch(MemphisException)
+            {
+                throw;
+            }
             catch (System.Exception e)
             {
                 throw new MemphisException("Failed to create memphis producer", e);
@@ -370,6 +378,10 @@ namespace Memphis.Client
 
                 return new MemphisStation(this, stationOptions.Name);
             }
+            catch(MemphisException)
+            {
+                throw;
+            }
             catch (System.Exception e)
             {
                 throw new MemphisException("Failed to create memphis station", e);
@@ -427,6 +439,10 @@ namespace Memphis.Client
                     throw new MemphisException(errResp);
                 }
             }
+            catch(MemphisException)
+            {
+                throw;
+            }
             catch (System.Exception e)
             {
                 throw new MemphisException("Failed to attach schema to station", e);
@@ -466,6 +482,10 @@ namespace Memphis.Client
                 {
                     throw new MemphisException(errResp);
                 }
+            }
+            catch(MemphisException)
+            {
+                throw;
             }
             catch (System.Exception e)
             {
