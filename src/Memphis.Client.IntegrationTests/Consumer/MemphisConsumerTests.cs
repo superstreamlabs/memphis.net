@@ -72,7 +72,9 @@ public class MemphisConsumerTests
             firstMessage.Ack();
         };
 
+        #pragma warning disable 4014
         consumer.ConsumeAsync();
+        #pragma warning restore 4014
         await Task.Delay((int)TimeSpan.FromSeconds(10).TotalMilliseconds);
         
         await consumer.DestroyAsync();

@@ -37,7 +37,5 @@ namespace Memphis.Client.Models.Request
 
         [DataMember(Name = "validation_error")]
         public string ValidationError { get; set; }
-        [DataMember(Name = "tenant_name")]
-        public string TenantName { get; set; }
     }
 }

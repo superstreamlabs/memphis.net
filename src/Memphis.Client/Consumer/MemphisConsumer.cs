@@ -34,6 +34,7 @@ namespace Memphis.Client.Consumer
         private static bool _subscriptionActive;
         private readonly int _pingConsumerIntervalMs;
 
+        #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         public MemphisConsumer(MemphisClient memphisClient, MemphisConsumerOptions options)
         {
             if (options.StartConsumeFromSequence < 0)
@@ -232,7 +233,7 @@ namespace Memphis.Client.Consumer
                     var result = _memphisClient.JetStreamManagement.GetConsumerInfo(InternalStationName, durableName);
                     await Task.Delay(_pingConsumerIntervalMs, cancellationToken);
                 }
-                catch (System.Exception ex)
+                catch
                 {
                     MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
                         new List<MemphisMessage>(),
@@ -288,6 +289,7 @@ namespace Memphis.Client.Consumer
 
             while (!cancellationToken.IsCancellationRequested)
             {
+                #pragma warning disable CS8604 // Possible null reference argument.
                 if (!IsSubscriptionActive(_pullSubscription))
                     continue;
 

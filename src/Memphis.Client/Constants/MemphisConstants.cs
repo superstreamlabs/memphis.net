@@ -36,7 +36,6 @@ namespace Memphis.Client.Constants
         public const string MEMPHIS_SCHEMA_UPDATE = "$memphis_schema_updates_";
         public const string SDK_CLIENTS_UPDATE = "$memphis_sdk_clients_updates";
         public const string MEMPHIS_SCHEMA_VERSE_DLS = "$memphis_schemaverse_dls";
-        public const string GET_TENANT_NAME = "$memphis_get_tenant_name";
     }
 
     public static class MemphisSchemaTypes

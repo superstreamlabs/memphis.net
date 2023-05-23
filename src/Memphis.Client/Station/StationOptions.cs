@@ -1,4 +1,5 @@
-﻿
+﻿#nullable disable
+
 namespace Memphis.Client.Station
 {
     public sealed class StationOptions

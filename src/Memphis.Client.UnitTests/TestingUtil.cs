@@ -8,6 +8,7 @@ namespace Memphis.Client.UnitTests
         {
             var prop = validatorObj.GetType().GetField(fieldName, BindingFlags.NonPublic
                                                                   | BindingFlags.Instance);
+            #pragma warning disable CS8602 // Possible null reference argument.
             prop.SetValue(validatorObj, val);
         }
     }
