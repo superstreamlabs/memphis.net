@@ -201,7 +201,6 @@ namespace Memphis.Client.Producer
                     Headers = headersForDls,
                 },
                 ValidationError = validationError.Message,
-                TenantName = _memphisClient.TenantName,
             };
 
             var dlsMessageJson = JsonConvert.SerializeObject(dlsMessage);

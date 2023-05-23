@@ -94,7 +94,6 @@ namespace Memphis.Client
                     brokerConnOptions, brokerConnection,
                     jetStreamContext, connectionId);
                 await client.ListenForSdkClientUpdate();
-                await client.ConfigureTenantName(opts.AccountId, cancellationToken);
                 return client;
             }
             catch (System.Exception e)

@@ -24,7 +24,6 @@ namespace Memphis.Client
     public sealed class MemphisClient : IDisposable
     {
         private bool _desposed;
-        private string _tenantName;
         private readonly Options _brokerConnOptions;
         private readonly IConnection _brokerConnection;
         private readonly IJetStream _jetStreamContext;
@@ -654,27 +653,11 @@ namespace Memphis.Client
             get { return _connectionId; }
         }
 
-        internal string TenantName
-        {
-            get { return _tenantName; }
-        }
-
         internal bool IsSchemaVerseToDlsEnabled(string stationName)
             => _stationSchemaVerseToDlsMap.TryGetValue(stationName, out bool schemaVerseToDls) && schemaVerseToDls;
 
         internal bool IsSendingNotificationEnabled
            => _clusterConfigurations.TryGetValue(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, out bool sendNotification) && sendNotification;
-
-        /// <summary>
-        /// Sets the tenant name for the connection
-        /// </summary>
-        /// <param name="accountId">Tenant account id</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        internal async Task ConfigureTenantName(int accountId, CancellationToken cancellationToken)
-        {
-            _tenantName = await GetTenantName(accountId, cancellationToken);
-        }
 
         private async Task ProcessAndStoreSchemaUpdate(string internalStationName, Msg message)
         {
@@ -873,53 +856,6 @@ namespace Memphis.Client
                 {
                     _producerCache.TryRemove(entry.Key, out MemphisProducer _);
                 }
-            }
-        }
-
-        /// <summary>
-        ///   This method is used to retrieve tenant name
-        /// </summary>
-        /// <param name="accountId"></param>
-        /// <returns>Tenant name</returns>
-        private async Task<string?> GetTenantName(int accountId, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var encodedRequest = JsonConvert.SerializeObject(new GetTenantNameRequest { TenantId = accountId });
-                var tenantNameResponse = await _brokerConnection.RequestAsync(
-                    MemphisSubjects.GET_TENANT_NAME,
-                    Encoding.UTF8.GetBytes(encodedRequest));
-
-                string responseData = Encoding.UTF8.GetString(tenantNameResponse.Data);
-                var responseDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseData);
-                if (responseDict is null)
-                    throw new MemphisException("Unable to retrieve tenant name");
-                if (responseDict.TryGetValue("error", out object error) &&
-                    !string.IsNullOrWhiteSpace(error.ToString()))
-                {
-                    if (TryGetPropertyValue(error, "code", out string? code) && code == "503")
-                        return MemphisGlobalVariables.GLOBAL_ACCOUNT_NAME;
-                    throw new MemphisException(error.ToString());
-                }
-                return responseDict.TryGetValue("tenant_name", out object tenantName) ? tenantName.ToString() : null;
-            }
-            catch (NATSNoRespondersException)
-            {
-                return MemphisGlobalVariables.GLOBAL_ACCOUNT_NAME;
-            }
-            catch (System.Exception exception)
-            {
-                throw;
-            }
-            
-            bool TryGetPropertyValue(object obj, string propertyName, out string? value)
-            {
-                value = default;
-                var property = obj.GetType().GetProperty(propertyName);
-                if (property is null)
-                    return false;
-                value = property?.GetValue(obj, null)?.ToString();
-                return true;
             }
         }
 
