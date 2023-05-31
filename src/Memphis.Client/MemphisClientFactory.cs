@@ -88,7 +88,7 @@ namespace Memphis.Client
 
                 SuppressDefaultEventHandlerLogs(brokerConnOptions);
 
-                IConnection brokerConnection = EstablishBrokerManagerConnection(brokerConnOptions);
+                IConnection brokerConnection = await EstablishBrokerManagerConnection(brokerConnOptions, cancellationToken);
                 IJetStream jetStreamContext = brokerConnection.CreateJetStreamContext();
                 MemphisClient client = new(
                     brokerConnOptions, brokerConnection,
@@ -122,11 +122,14 @@ namespace Memphis.Client
         /// </summary>
         /// <param name="brokerOptions">Broker Options used to customize behavior of client used to connect Memphis</param>
         /// <returns>An <see cref="IConnection"/> object connected to the Memphis server.</returns>
-        private static IConnection EstablishBrokerManagerConnection(Options brokerOptions)
+        private static async Task<IConnection> EstablishBrokerManagerConnection(Options brokerOptions, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(brokerOptions.User))
+            {
+                await DelayLocalConnection(brokerOptions.Servers);
                 return new ConnectionFactory()
                     .CreateConnection(brokerOptions);
+            }
 
             try
             {
@@ -138,12 +141,36 @@ namespace Memphis.Client
                 var pattern = @"(?<username>[^$]*)(?<separator>\$)(?<accountId>.+)";
                 if (Regex.Match(brokerOptions.User, pattern) is { Success: true } match)
                 {
+                    await DelayLocalConnection(brokerOptions.Servers);
                     brokerOptions.User = match.Groups["username"].Value;
                     return new ConnectionFactory()
                         .CreateConnection(brokerOptions);
                 }
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Delay local connection for handling bad quality networks like port fwd
+        /// </summary>
+        /// <param name="servers">List of servers</param>
+        /// <returns>Task</returns>
+        private static async Task DelayLocalConnection(string[] servers)
+        {
+            if (servers is { Length: > 0 } && IsLocalConnection(servers[0]))
+                await Task.Delay((int)TimeSpan.FromSeconds(1000).TotalMilliseconds);
+        }
+
+        /// <summary>
+        /// Check if connection is local
+        /// </summary>
+        /// <param name="host">Host</param>
+        /// <returns>True if connection is local, otherwise false</returns>
+        private static bool IsLocalConnection(string host)
+        {
+            return
+                !string.IsNullOrWhiteSpace(host) &&
+                host.Contains("localhost");
         }
 
         /// <summary>
