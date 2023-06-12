@@ -1,4 +1,4 @@
-name: Build ProtoEval
+name: ProtoEval Build
 env:
   PACKAGE_ID: ProtoEval
 on:
@@ -37,10 +37,10 @@ jobs:
       with:
         dotnet-version: 7.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore src/ProtoEval.sln
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore src/ProtoEval.sln
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --verbosity normal src/ProtoEval.sln
     - name: Pack Nuget Package
       run: dotnet pack -v normal -c Release -p:PackageId=$PACKAGE_ID -o nupkg src/ProtoEval/ProtoEval.csproj
