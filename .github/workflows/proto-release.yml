@@ -1,0 +1,50 @@
+name: Release ProtoEval
+env:
+  PACKAGE_ID: ProtoEval
+on:
+  workflow_dispatch:
+    inputs:
+        PKG_VERSION:
+            type: string
+            default: 'v1.0.0'
+            description: 'Nuget package version'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+    
+    - name: Prepare Tools
+      uses: goreleaser/goreleaser-action@v3
+      with:
+        distribution: goreleaser
+        version: latest
+        args: -f .goreleaser.yaml --snapshot --clean
+        workdir: src/protoeval-cli
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: GoRelease After Hook
+      run: ./src/hook.sh
+      shell: bash
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.0.x
+    - name: Restore dependencies
+      run: dotnet restore src/ProtoEval.sln
+    - name: Build
+      run: dotnet build --no-restore src/ProtoEval.sln
+    - name: Test
+      run: dotnet test --no-build --verbosity normal src/ProtoEval.sln
+    - name: Pack Nuget Package
+      run: dotnet pack -v normal -c Release -p:PackageVersion=${{ inputs.PKG_VERSION }} -p:PackageId=$PACKAGE_ID -o nupkg src/ProtoEval/ProtoEval.csproj
+    - name: Publish NuGet packages
+      run : dotnet nuget push nupkg/*.nupkg --api-key ${{ secrets.NUGET_ACCESS_TOKEN }} --source https://api.nuget.org/v3/index.json
