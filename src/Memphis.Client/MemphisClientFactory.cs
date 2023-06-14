@@ -158,7 +158,7 @@ namespace Memphis.Client
         private static async Task DelayLocalConnection(string[] servers)
         {
             if (servers is { Length: > 0 } && IsLocalConnection(servers[0]))
-                await Task.Delay((int)TimeSpan.FromSeconds(1000).TotalMilliseconds);
+                await Task.Delay((int)TimeSpan.FromSeconds(1).TotalMilliseconds);
         }
 
         /// <summary>
