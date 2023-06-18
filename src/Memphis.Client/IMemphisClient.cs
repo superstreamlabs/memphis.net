@@ -91,7 +91,7 @@ public interface IMemphisClient : IDisposable
     /// <param name="stationName">station name</param>
     /// <param name="schemaName">schema name</param>
     /// <returns></returns>
-    Task EnforceSchema(string stationName, string schemaName);
+    Task EnforceSchema(string stationName, string schemaName, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Attach schema to an existing station
@@ -108,6 +108,15 @@ public interface IMemphisClient : IDisposable
     /// <param name="stationName">station name</param>
     /// <returns></returns>
     Task DetachSchema(string stationName);
+
+    /// <summary>
+    /// Creates schema from the specified schema file path.
+    /// </summary>
+    /// <param name="schemaName">Name of the schema</param>
+    /// <param name="schemaType">Type of the schema(such as JSON, GraphQL, ProtoBuf)</param>
+    /// <param name="schemaFilePath">Schema file path</param>
+    /// <returns></returns>
+    Task CreateSchema(string schemaName, string schemaType, string schemaFilePath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Create a new consumer

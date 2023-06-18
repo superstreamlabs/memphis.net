@@ -402,7 +402,7 @@ public sealed class MemphisClient : IMemphisClient
     /// <param name="stationName">station name</param>
     /// <param name="schemaName">schema name</param>
     /// <returns></returns>
-    public async Task EnforceSchema(string stationName, string schemaName)
+    public async Task EnforceSchema(string stationName, string schemaName, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(stationName))
         {
@@ -500,6 +500,20 @@ public sealed class MemphisClient : IMemphisClient
         {
             throw new MemphisException("Failed to attach schema to station", e);
         }
+    }
+
+    /// <summary>
+    /// Creates schema from the specified file path.
+    /// </summary>
+    /// <param name="schemaName">Name of the schema</param>
+    /// <param name="schemaType">Type of schema(Eg. JSON, GraphQL, ProtoBuf)</param>
+    /// <param name="schemaFilePath">Path of the schema file</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public Task CreateSchema(string schemaName, string schemaType, string schemaFilePath, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 
     internal async Task ValidateMessageAsync(byte[] message, string internalStationName, string producerName)
