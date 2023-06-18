@@ -1,12 +1,12 @@
-name: Release ProtoEval
+name: Release ProtoBufEval
 env:
-  PACKAGE_ID: ProtoEval
+  PACKAGE_ID: ProtoBufEval
 on:
   workflow_dispatch:
     inputs:
         PKG_VERSION:
             type: string
-            default: 'v1.0.0'
+            default: '1.0.0'
             description: 'Nuget package version'
 
 jobs:
