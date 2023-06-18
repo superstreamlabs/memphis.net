@@ -397,12 +397,12 @@ public sealed class MemphisClient : IMemphisClient
     }
 
     /// <summary>
-    /// Attach Schema to an existing station
+    /// Applies schema to an existing station
     /// </summary>
     /// <param name="stationName">station name</param>
     /// <param name="schemaName">schema name</param>
     /// <returns></returns>
-    public async Task AttachSchema(string stationName, string schemaName)
+    public async Task EnforceSchema(string stationName, string schemaName)
     {
         if (string.IsNullOrEmpty(stationName))
         {
@@ -445,6 +445,18 @@ public sealed class MemphisClient : IMemphisClient
             throw new MemphisException("Failed to attach schema to station", e);
         }
 
+    }
+    
+    /// <summary>
+    /// Attach schema to an existing station
+    /// </summary>
+    /// <param name="stationName">station name</param>
+    /// <param name="schemaName">schema name</param>
+    /// <returns></returns>
+    [Obsolete("This method is depricated. call EnforceSchema instead.")]
+    public async Task AttachSchema(string stationName, string schemaName)
+    {
+        await EnforceSchema(stationName, schemaName);
     }
 
     /// <summary>

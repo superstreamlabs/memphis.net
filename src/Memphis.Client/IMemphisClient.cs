@@ -86,11 +86,20 @@ public interface IMemphisClient : IDisposable
     Task<MemphisStation> CreateStation(string stationName, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Attach Schema to an existing station
+    /// Applies schema to an existing station
     /// </summary>
     /// <param name="stationName">station name</param>
     /// <param name="schemaName">schema name</param>
     /// <returns></returns>
+    Task EnforceSchema(string stationName, string schemaName);
+
+    /// <summary>
+    /// Attach schema to an existing station
+    /// </summary>
+    /// <param name="stationName">station name</param>
+    /// <param name="schemaName">schema name</param>
+    /// <returns></returns>
+    [Obsolete("This method is depricated, use EnforceSchema instead.")]
     Task AttachSchema(string stationName, string schemaName);
 
     /// <summary>

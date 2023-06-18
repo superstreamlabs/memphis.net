@@ -191,7 +191,12 @@ Destroying a station will remove all its resources (including producers and cons
 station.DestroyAsync()
 ```
 
-### Attaching a Schema to an Existing Station
+### Enforcing a Schema on an Existing Station
+```c#
+await client.EnforceSchema(stationName: "<station-name>", schemaName: "<schema-name>");
+```
+### Deprecated - Attaching Schema
+The `AttachSchema` method is depricated, use `EnforceSchema` instead.
 ```c#
 await client.AttachSchema(stationName: "<station-name>", schemaName: "<schema-name>");
 ```
