@@ -528,7 +528,7 @@ public sealed class MemphisClient : IMemphisClient
             MessageStructName = string.Empty
         };
 
-        var requestJson = JsonSerDes.PrepareJsonString<RemoveStationRequest>(createSchemaRequest);
+        var requestJson = JsonSerDes.PrepareJsonString<CreateSchemaRequest>(createSchemaRequest);
         var result = await _brokerConnection.RequestAsync(
            MemphisSubjects.SCHEMA_CREATION,
            Encoding.UTF8.GetBytes(requestJson),
