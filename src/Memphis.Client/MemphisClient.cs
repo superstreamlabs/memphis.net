@@ -2,7 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Data;
+using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Memphis.Client.Constants;
@@ -446,7 +449,7 @@ public sealed class MemphisClient : IMemphisClient
         }
 
     }
-    
+
     /// <summary>
     /// Attach schema to an existing station
     /// </summary>
@@ -510,10 +513,81 @@ public sealed class MemphisClient : IMemphisClient
     /// <param name="schemaFilePath">Path of the schema file</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    public Task CreateSchema(string schemaName, string schemaType, string schemaFilePath, CancellationToken cancellationToken = default)
+    public async Task CreateSchema(string schemaName, string schemaType, string schemaFilePath, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        EnsureSchemaNameIsValid(schemaName);
+        EnsureSchemaTypeIsValid(schemaType);
+        EnsureSchemaFileExists(schemaFilePath);
+
+        var createSchemaRequest = new CreateSchemaRequest
+        {
+            Name = schemaName,
+            Type = schemaType,
+            SchemaContent = File.ReadAllText(schemaFilePath),
+            CreatedByUsername = _userName,
+            MessageStructName = string.Empty
+        };
+
+        var requestJson = JsonSerDes.PrepareJsonString<RemoveStationRequest>(createSchemaRequest);
+        var result = await _brokerConnection.RequestAsync(
+           MemphisSubjects.SCHEMA_CREATION,
+           Encoding.UTF8.GetBytes(requestJson),
+           (int)TimeSpan.FromSeconds(5).TotalMilliseconds,
+           cancellationToken);
+
+        HandleSchemaCreationErrorResponse(result.Data);
+
+        static void EnsureSchemaNameIsValid(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new MemphisException("Schema name can not be empty");
+            if (name.Length > 128)
+                throw new MemphisException("Schema name should be under 128 characters");
+            string validNameRegex = "^[a-z0-9_.-]*$";
+            if (Regex.Match(name, validNameRegex) is { Success: false })
+                throw new MemphisException("Only alphanumeric and the '_', '-', '.' characters are allowed in schema name");
+            if (!char.IsLetterOrDigit(name[0]) || !char.IsLetterOrDigit(name[name.Length - 1]))
+                throw new MemphisException("Schema name can not start or end with non alphanumeric character");
+        }
+
+        static void EnsureSchemaTypeIsValid(string type)
+        {
+            if (string.IsNullOrWhiteSpace(type))
+                throw new MemphisException("Schema type can not be empty");
+            switch (type)
+            {
+                case MemphisSchemaTypes.JSON:
+                case MemphisSchemaTypes.PROTO_BUF:
+                case MemphisSchemaTypes.GRAPH_QL:
+                    return;
+                case MemphisSchemaTypes.AVRO:
+                    throw new MemphisException("Avro schema type is not supported at this time");
+                default:
+                    throw new MemphisException("Unsupported schema type");
+            }
+        }
+
+        static void EnsureSchemaFileExists(string path)
+        {
+            if (!File.Exists(path))
+                throw new MemphisException("Schema file does not exist", new FileNotFoundException(path));
+        }
+
+        static void HandleSchemaCreationErrorResponse(byte[] responseBytes)
+        {
+            string responseStr = Encoding.UTF8.GetString(responseBytes);
+            try
+            {
+                var response = (CreateSchemaResponse)JsonSerDes.PrepareObjectFromString<CreateSchemaResponse>(responseStr);
+                if (!string.IsNullOrWhiteSpace(response.Error))
+                    throw new MemphisException(response.Error);
+            }
+            catch
+            {
+                if (!string.IsNullOrWhiteSpace(responseStr))
+                    throw new MemphisException(responseStr);
+            }
+        }
     }
 
     internal async Task ValidateMessageAsync(byte[] message, string internalStationName, string producerName)

@@ -2,33 +2,32 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using System.Text;
 
-namespace Memphis.Client.Helper
-{
-    internal class JsonSerDes
-    {
-        internal static string PrepareJsonString<T>(object objectToBeParsed)
-        {
-            DataContractJsonSerializer dataContractSerializer = new DataContractJsonSerializer(typeof(T));
-            string json = string.Empty;
-            using (var ms = new MemoryStream())
-            {
-                dataContractSerializer.WriteObject(ms, (T) objectToBeParsed);
-                ms.Position = 0;
-                StreamReader sr = new StreamReader(ms);
-                json = sr.ReadToEnd();
-            }
+namespace Memphis.Client.Helper;
 
-            return json;
+internal class JsonSerDes
+{
+    internal static string PrepareJsonString<T>(object objectToBeParsed)
+    {
+        DataContractJsonSerializer dataContractSerializer = new DataContractJsonSerializer(typeof(T));
+        string json = string.Empty;
+        using (var ms = new MemoryStream())
+        {
+            dataContractSerializer.WriteObject(ms, (T)objectToBeParsed);
+            ms.Position = 0;
+            StreamReader sr = new StreamReader(ms);
+            json = sr.ReadToEnd();
         }
 
-        internal static object PrepareObjectFromString<T>(string json)
+        return json;
+    }
+
+    internal static object PrepareObjectFromString<T>(string json)
+    {
+        DataContractJsonSerializer dataContractSerializer = new DataContractJsonSerializer(typeof(T));
+        using (var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(json)))
         {
-            DataContractJsonSerializer dataContractSerializer = new DataContractJsonSerializer(typeof(T));
-            using (var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(json)))
-            {
-                var deSerializedUser = dataContractSerializer.ReadObject(memoryStream);
-                return deSerializedUser;
-            }
+            var deSerializedUser = dataContractSerializer.ReadObject(memoryStream);
+            return deSerializedUser;
         }
     }
 }
