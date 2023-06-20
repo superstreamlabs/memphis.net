@@ -10,7 +10,7 @@ public class MemphisSchemaTests
     }
 
     [Theory]
-    [InlineData("test_schema_a", "json", "TestFiles/Schema/JSON/person.json")]
+    [InlineData("test_schema_person", "json", "TestFiles/Schema/JSON/person.json")]
     public async Task GivenSchemaOptions_WhenCreateSchema_ThenSchemaIsCreated(
         string schemaName, string schemaType, string schemaFilePath)
     {

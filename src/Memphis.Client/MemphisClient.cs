@@ -582,7 +582,7 @@ public sealed class MemphisClient : IMemphisClient
                 if (!string.IsNullOrWhiteSpace(response.Error))
                     throw new MemphisException(response.Error);
             }
-            catch
+            catch(System.Exception e) when (e is not MemphisException)
             {
                 if (!string.IsNullOrWhiteSpace(responseStr))
                     throw new MemphisException(responseStr);
