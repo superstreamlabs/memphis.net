@@ -26,4 +26,10 @@
     <ProjectReference Include="..\Memphis.Client\Memphis.Client.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="TestFiles\**" Pack="true" PackagePath="runtimes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

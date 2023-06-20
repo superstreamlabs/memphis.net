@@ -2,7 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Data;
+using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Memphis.Client.Constants;
@@ -397,12 +400,12 @@ public sealed class MemphisClient : IMemphisClient
     }
 
     /// <summary>
-    /// Attach Schema to an existing station
+    /// Applies schema to an existing station
     /// </summary>
     /// <param name="stationName">station name</param>
     /// <param name="schemaName">schema name</param>
     /// <returns></returns>
-    public async Task AttachSchema(string stationName, string schemaName)
+    public async Task EnforceSchema(string stationName, string schemaName, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(stationName))
         {
@@ -448,6 +451,18 @@ public sealed class MemphisClient : IMemphisClient
     }
 
     /// <summary>
+    /// Attach schema to an existing station
+    /// </summary>
+    /// <param name="stationName">station name</param>
+    /// <param name="schemaName">schema name</param>
+    /// <returns></returns>
+    [Obsolete("This method is depricated. call EnforceSchema instead.")]
+    public async Task AttachSchema(string stationName, string schemaName)
+    {
+        await EnforceSchema(stationName, schemaName);
+    }
+
+    /// <summary>
     /// DetachSchema Schema from station
     /// </summary>
     /// <param name="stationName">station name</param>
@@ -487,6 +502,91 @@ public sealed class MemphisClient : IMemphisClient
         catch (System.Exception e)
         {
             throw new MemphisException("Failed to attach schema to station", e);
+        }
+    }
+
+    /// <summary>
+    /// Creates schema from the specified file path.
+    /// </summary>
+    /// <param name="schemaName">Name of the schema</param>
+    /// <param name="schemaType">Type of schema(Eg. JSON, GraphQL, ProtoBuf)</param>
+    /// <param name="schemaFilePath">Path of the schema file</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public async Task CreateSchema(string schemaName, string schemaType, string schemaFilePath, CancellationToken cancellationToken = default)
+    {
+        EnsureSchemaNameIsValid(schemaName);
+        EnsureSchemaTypeIsValid(schemaType);
+        EnsureSchemaFileExists(schemaFilePath);
+
+        var createSchemaRequest = new CreateSchemaRequest
+        {
+            Name = schemaName,
+            Type = schemaType,
+            SchemaContent = File.ReadAllText(schemaFilePath),
+            CreatedByUsername = _userName,
+            MessageStructName = string.Empty
+        };
+
+        var requestJson = JsonSerDes.PrepareJsonString<CreateSchemaRequest>(createSchemaRequest);
+        var result = await _brokerConnection.RequestAsync(
+           MemphisSubjects.SCHEMA_CREATION,
+           Encoding.UTF8.GetBytes(requestJson),
+           (int)TimeSpan.FromSeconds(5).TotalMilliseconds,
+           cancellationToken);
+
+        HandleSchemaCreationErrorResponse(result.Data);
+
+        static void EnsureSchemaNameIsValid(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new MemphisException("Schema name can not be empty");
+            if (name.Length > 128)
+                throw new MemphisException("Schema name should be under 128 characters");
+            string validNameRegex = "^[a-z0-9_.-]*$";
+            if (Regex.Match(name, validNameRegex) is { Success: false })
+                throw new MemphisException("Only alphanumeric and the '_', '-', '.' characters are allowed in schema name");
+            if (!char.IsLetterOrDigit(name[0]) || !char.IsLetterOrDigit(name[name.Length - 1]))
+                throw new MemphisException("Schema name can not start or end with non alphanumeric character");
+        }
+
+        static void EnsureSchemaTypeIsValid(string type)
+        {
+            if (string.IsNullOrWhiteSpace(type))
+                throw new MemphisException("Schema type can not be empty");
+            switch (type)
+            {
+                case MemphisSchemaTypes.JSON:
+                case MemphisSchemaTypes.PROTO_BUF:
+                case MemphisSchemaTypes.GRAPH_QL:
+                    return;
+                case MemphisSchemaTypes.AVRO:
+                    throw new MemphisException("Avro schema type is not supported at this time");
+                default:
+                    throw new MemphisException("Unsupported schema type");
+            }
+        }
+
+        static void EnsureSchemaFileExists(string path)
+        {
+            if (!File.Exists(path))
+                throw new MemphisException("Schema file does not exist", new FileNotFoundException(path));
+        }
+
+        static void HandleSchemaCreationErrorResponse(byte[] responseBytes)
+        {
+            string responseStr = Encoding.UTF8.GetString(responseBytes);
+            try
+            {
+                var response = (CreateSchemaResponse)JsonSerDes.PrepareObjectFromString<CreateSchemaResponse>(responseStr);
+                if (!string.IsNullOrWhiteSpace(response.Error))
+                    throw new MemphisException(response.Error);
+            }
+            catch(System.Exception e) when (e is not MemphisException)
+            {
+                if (!string.IsNullOrWhiteSpace(responseStr))
+                    throw new MemphisException(responseStr);
+            }
         }
     }
 
