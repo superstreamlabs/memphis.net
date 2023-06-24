@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>ProtoBufEval</PackageId>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <LangVersion>11</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,25 +13,33 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="runtimes\osx.zip" Pack="true" PackagePath="runtimes">
+    <Content Include="build/ProtoBufEval.targets" PackagePath="build/ProtoBufEval.targets" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="tools\protoeval\osx.zip" Pack="true" PackagePath="tools\protoeval">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
     </None>
-    <None Include="runtimes\linux-arm.zip" Pack="true" PackagePath="runtimes">
+    <None Include="tools\protoeval\linux-arm.zip" Pack="true" PackagePath="tools\protoeval">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
     </None>
-    <None Include="runtimes\linux-x86.zip" Pack="true" PackagePath="runtimes">
+    <None Include="tools\protoeval\linux-x86.zip" Pack="true" PackagePath="tools\protoeval">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
     </None>
-    <None Include="runtimes\win-arm.zip" Pack="true" PackagePath="runtimes">
+    <None Include="tools\protoeval\win-arm.zip" Pack="true" PackagePath="tools\protoeval">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
     </None>
-    <None Include="runtimes\win-x86.zip" Pack="true" PackagePath="runtimes">
+    <None Include="tools\protoeval\win-x86.zip" Pack="true" PackagePath="tools\protoeval">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
     </None>
+  </ItemGroup>
+
+   <ItemGroup>
+    <Folder Include="build\" />
   </ItemGroup>
 </Project>

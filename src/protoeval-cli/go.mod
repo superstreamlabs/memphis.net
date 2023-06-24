@@ -1,4 +1,4 @@
-module github.com/bazen-teklehaymanot/protobuf-eval
+module protoeval
 
 go 1.20
 

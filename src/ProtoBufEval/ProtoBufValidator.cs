@@ -1,14 +1,24 @@
 ﻿using CliWrap;
 using CliWrap.Buffered;
 
-namespace ProtoEval;
+namespace ProtoBufEval;
 
 /// <summary>
 /// Result of a validation
 /// </summary>
 /// <param name="Error"></param>
 /// <param name="HasError"></param>
-public record ProtoBufValidationResult(string? Error, bool HasError);
+public class ProtoBufValidationResult
+{
+    public ProtoBufValidationResult(string? error, bool hasError)
+    {
+        Error = error;
+        HasError = hasError;
+    }
+
+    public string? Error { get; }
+    public bool HasError { get; }
+};
 
 
 public static class ProtoBufValidator

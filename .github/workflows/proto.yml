@@ -1,6 +1,4 @@
-name: ProtoEval Build
-env:
-  PACKAGE_ID: ProtoEval
+name: ProtoBufEval
 on:
     push:
         branches: [ "master" ]
@@ -37,10 +35,10 @@ jobs:
       with:
         dotnet-version: 7.0.x
     - name: Restore dependencies
-      run: dotnet restore src/ProtoEval.sln
+      run: dotnet restore src/ProtoBufEval.sln
     - name: Build
-      run: dotnet build --no-restore src/ProtoEval.sln
+      run: dotnet build --no-restore src/ProtoBufEval.sln
     - name: Test
-      run: dotnet test --no-build --verbosity normal src/ProtoEval.sln
+      run: dotnet test --no-build --verbosity normal src/ProtoBufEval.sln
     - name: Pack Nuget Package
-      run: dotnet pack -v normal -c Release -p:PackageId=$PACKAGE_ID -o nupkg src/ProtoEval/ProtoEval.csproj
+      run: dotnet pack -v normal -c Release -o nupkg src/ProtoBufEval/ProtoBufEval.csproj

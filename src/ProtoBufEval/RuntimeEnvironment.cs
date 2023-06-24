@@ -1,7 +1,8 @@
 using System.IO.Compression;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace ProtoEval;
+namespace ProtoBufEval;
 
 internal enum OperatingSystem
 {
@@ -35,14 +36,24 @@ internal class RuntimeEnvironment
         get
         {
             var binaryDir = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                ? $"./runtimes/{OS}"
-                : $"./runtimes/{OS}-{Arch}";
+                ? Path.Combine(NativeBinariesDir, OS)
+                : Path.Combine(NativeBinariesDir, $"{OS}-{Arch}");
             Directory.CreateDirectory(binaryDir);
             var compressedBinary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                ? $"./runtimes/{OS}.zip"
-                : $"./runtimes/{OS}-{Arch}.zip";
-            ZipFile.ExtractToDirectory(compressedBinary, binaryDir, true);
+                ? Path.Combine(NativeBinariesDir, $"{OS}.zip")
+                : Path.Combine(NativeBinariesDir, $"{OS}-{Arch}.zip");
+            ZipFile.ExtractToDirectory(compressedBinary, binaryDir);
             return Path.Combine(binaryDir, BinaryName);
+        }
+    }
+
+    private static string NativeBinariesDir
+    {
+        get
+        {
+            var assemblyDir = Path.GetDirectoryName(typeof(RuntimeEnvironment).Assembly.Location);
+            Console.WriteLine($"Assembly Directory: {assemblyDir}");
+            return Path.Combine(assemblyDir, "tools", "protoeval");
         }
     }
 

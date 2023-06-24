@@ -225,4 +225,6 @@ AppPackages/
 # End of core ignore list, below put you custom 'per project' settings (patterns or path)
 #####
 
-src/ProtoEval/runtimes/
+src/ProtoBufEval/runtimes/
+src/ProtoBufEval/tools/
+nupkg/

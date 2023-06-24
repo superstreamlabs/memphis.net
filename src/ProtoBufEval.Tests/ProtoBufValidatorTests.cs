@@ -1,4 +1,4 @@
-namespace ProtoEval.Tests;
+namespace ProtoBufEval.Tests;
 
 public class ProtoBufValidatorTests
 {
