@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Memphis.Client.Exception;
-using Newtonsoft.Json;
 
 namespace Memphis.Client.Validators;
 
@@ -28,8 +27,13 @@ internal class ProtoBufValidator : SchemaValidator<ProtoBufSchema>, ISchemaValid
 
         try
         {
-            //TODO: call validate method from ProtoBufEval 
-            
+            var result = await ProtoBufEval.ProtoBufValidator.Validate(
+                base64Data: Convert.ToBase64String(messageToValidate), 
+                activeSchemaVersion: protoBufSchema.ActiveSchemaVersion, 
+                schemaName: protoBufSchema.SchemaName);
+            if(result.HasError)
+                throw new MemphisSchemaValidationException($"Schema validation has failed: \n {result.Error}");
+
         }
         catch (System.Exception ex)
         {
