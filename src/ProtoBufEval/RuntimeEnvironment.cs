@@ -42,8 +42,11 @@ internal class RuntimeEnvironment
             var compressedBinary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                 ? Path.Combine(NativeBinariesDir, $"{OS}.zip")
                 : Path.Combine(NativeBinariesDir, $"{OS}-{Arch}.zip");
+            var binaryFilePath = Path.Combine(binaryDir, BinaryName);
+            if (File.Exists(binaryFilePath))
+                File.Delete(binaryFilePath);
             ZipFile.ExtractToDirectory(compressedBinary, binaryDir);
-            return Path.Combine(binaryDir, BinaryName);
+            return binaryFilePath;
         }
     }
 
