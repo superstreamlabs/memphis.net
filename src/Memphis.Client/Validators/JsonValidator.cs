@@ -8,7 +8,7 @@ namespace Memphis.Client.Validators
 {
     internal class JsonValidator : SchemaValidator<JsonSchema>, ISchemaValidator
     {
-        protected override JsonSchema Parse(string schemaData)
+        protected override JsonSchema Parse(string schemaData, string _)
         {
             return JsonSchema.FromJsonAsync(schemaData).GetAwaiter().GetResult();
         }

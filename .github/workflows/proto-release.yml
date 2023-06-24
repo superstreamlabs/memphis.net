@@ -1,6 +1,4 @@
 name: Release ProtoBufEval
-env:
-  PACKAGE_ID: ProtoBufEval
 on:
   workflow_dispatch:
     inputs:
@@ -39,12 +37,12 @@ jobs:
       with:
         dotnet-version: 7.0.x
     - name: Restore dependencies
-      run: dotnet restore src/ProtoEval.sln
+      run: dotnet restore src/ProtoBufEval.sln
     - name: Build
-      run: dotnet build --no-restore src/ProtoEval.sln
+      run: dotnet build --no-restore src/ProtoBufEval.sln
     - name: Test
-      run: dotnet test --no-build --verbosity normal src/ProtoEval.sln
+      run: dotnet test --no-build --verbosity normal src/ProtoBufEval.sln
     - name: Pack Nuget Package
-      run: dotnet pack -v normal -c Release -p:PackageVersion=${{ inputs.PKG_VERSION }} -p:PackageId=$PACKAGE_ID -o nupkg src/ProtoEval/ProtoEval.csproj
+      run: dotnet pack -v normal -c Release -p:PackageVersion=${{ inputs.PKG_VERSION }} -o nupkg src/ProtoBufEval/ProtoBufEval.csproj
     - name: Publish NuGet packages
       run : dotnet nuget push nupkg/*.nupkg --api-key ${{ secrets.NUGET_ACCESS_TOKEN }} --source https://api.nuget.org/v3/index.json

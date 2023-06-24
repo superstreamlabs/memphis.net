@@ -1,11 +1,7 @@
-/*
-Copyright © 2023 Bazen T.
-*/
-
 package main
 
 import (
-	"github.com/bazen-teklehaymanot/protobuf-eval/cmd"
+	"protoeval/cmd"
 )
 
 func main() {

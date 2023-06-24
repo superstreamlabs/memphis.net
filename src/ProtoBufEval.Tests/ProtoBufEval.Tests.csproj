@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ProtoEval\ProtoEval.csproj" />
+    <ProjectReference Include="..\ProtoBufEval\ProtoBufEval.csproj" />
   </ItemGroup>
 
 </Project>

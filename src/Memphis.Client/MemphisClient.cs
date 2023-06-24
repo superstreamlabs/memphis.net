@@ -20,6 +20,7 @@ using Memphis.Client.Station;
 using Memphis.Client.Validators;
 using NATS.Client;
 using NATS.Client.JetStream;
+using Newtonsoft.Json;
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -622,7 +623,12 @@ public sealed class MemphisClient : IMemphisClient
                     }
                 case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
                     {
-                        throw new NotImplementedException();
+                        if (_schemaValidators.TryGetValue(ValidatorType.PROTOBUF, out ISchemaValidator schemaValidator))
+                        {
+                            await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
+                        }
+
+                        break;
                     }
                 default:
                     throw new NotImplementedException($"Schema of type: {schemaUpdateInit.SchemaType} not implemented");
@@ -821,7 +827,7 @@ public sealed class MemphisClient : IMemphisClient
                             //TODO raise notification regarding unable to parse schema pushed by Memphis
                             throw new InvalidOperationException($"Unable to parse and store " +
                                                                 $"schema: {schemaUpdate?.SchemaName}, type: {schemaUpdate?.SchemaType}" +
-                                                                $" in local cache");
+                                                                $"in local cache");
                         }
                     }
 
@@ -840,7 +846,7 @@ public sealed class MemphisClient : IMemphisClient
                             //TODO raise notification regarding unable to parse schema pushed by Memphis
                             throw new InvalidOperationException($"Unable to parse and store " +
                                                                 $"schema: {schemaUpdate?.SchemaName}, type: {schemaUpdate?.SchemaType}" +
-                                                                $" in local cache");
+                                                                $"in local cache");
                         }
                     }
 
@@ -848,7 +854,22 @@ public sealed class MemphisClient : IMemphisClient
                 }
             case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
                 {
-                    throw new NotImplementedException();
+                    if (_schemaValidators.TryGetValue(ValidatorType.PROTOBUF, out ISchemaValidator schemaValidator))
+                    {
+                        bool isDone = schemaValidator.ParseAndStore(
+                            schemaUpdate.SchemaName,
+                            JsonConvert.SerializeObject(schemaUpdate.ActiveVersion));
+
+                        if (!isDone)
+                        {
+                            //TODO raise notification regarding unable to parse schema pushed by Memphis
+                            throw new InvalidOperationException($"Unable to parse and store " +
+                                                                $"schema: {schemaUpdate?.SchemaName}, type: {schemaUpdate?.SchemaType}" +
+                                                                $"in local cache");
+                        }
+                    }
+
+                    break;
                 }
         }
     }
@@ -863,6 +884,11 @@ public sealed class MemphisClient : IMemphisClient
         if (!_schemaValidators.TryAdd(ValidatorType.JSON, new JsonValidator()))
         {
             throw new InvalidOperationException($"Unable to register schema validator: {nameof(JsonValidator)}");
+        }
+
+        if (!_schemaValidators.TryAdd(ValidatorType.PROTOBUF, new ProtoBufValidator()))
+        {
+            throw new InvalidOperationException($"Unable to register schema validator: {nameof(ProtoBufValidator)}");
         }
     }
 

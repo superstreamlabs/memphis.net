@@ -21,8 +21,11 @@ copy_file(){
 }
 
 dist="./src/protoeval-cli/dist"
-runtimes_dir="./src/ProtoEval/runtimes"
+tools_dir="./src/ProtoBufEval/tools"
+runtimes_dir="$tools_dir/protoeval"
 create_dir $runtimes_dir
+create_dir $tools_dir
+
 
 src_linux_x86="$dist/protoeval_linux_386.zip"
 dest_linux_x86="$runtimes_dir/linux-x86.zip"

@@ -26,7 +26,7 @@ namespace Memphis.Client.Validators
 
             try
             {
-                var newSchema = Parse(schemaData);
+                var newSchema = Parse(schemaData, schemeName);
                 _schemaCache.AddOrUpdate(schemeName, newSchema, (key, oldVal) => newSchema);
 
                 return true;
@@ -39,9 +39,9 @@ namespace Memphis.Client.Validators
 
         public void RemoveSchema(string schemaName)
         {
-            _schemaCache.TryRemove(schemaName, out TSchema schemaObj);
+            _schemaCache.TryRemove(schemaName, out TSchema _);
         }
 
-        protected abstract TSchema Parse(string schemaData);
+        protected abstract TSchema Parse(string schemaData, string schemaName);
     }
 }

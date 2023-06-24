@@ -30,7 +30,7 @@ func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func memphisError(err error) error {
+func protoevalError(err error) error {
 	if err == nil {
 		return nil
 	}
