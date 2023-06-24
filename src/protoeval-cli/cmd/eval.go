@@ -76,7 +76,7 @@ func unmarshalSchemaVersion(data string) (SchemaVersion, error) {
 	var schemaVersion SchemaVersion
 	err := json.Unmarshal([]byte(data), &schemaVersion)
 	if err != nil {
-		return schemaVersion, memphisError(err)
+		return schemaVersion, protoevalError(err)
 	}
 	return schemaVersion, nil
 }
@@ -87,18 +87,18 @@ func compileDescriptor(activeVersion SchemaVersion, schemaName string) (protoref
 	fmt.Println([]byte(activeVersion.Descriptor))
 	err := proto.Unmarshal([]byte(activeVersion.Descriptor), &descriptorSet)
 	if err != nil {
-		return nil, memphisError(err)
+		return nil, protoevalError(err)
 	}
 
 	localRegistry, err := protodesc.NewFiles(&descriptorSet)
 	if err != nil {
-		return nil, memphisError(err)
+		return nil, protoevalError(err)
 	}
 
 	filePath := fmt.Sprintf("%v_%v.proto", schemaName, activeVersion.VersionNumber)
 	fileDesc, err := localRegistry.FindFileByPath(filePath)
 	if err != nil {
-		return nil, memphisError(err)
+		return nil, protoevalError(err)
 	}
 
 	msgsDesc := fileDesc.Messages()
@@ -116,7 +116,7 @@ func validateProtoBufMessage(msg any, msgDescriptor protoreflect.MessageDescript
 	case protoreflect.ProtoMessage:
 		msgBytes, err = proto.Marshal(msg.(protoreflect.ProtoMessage))
 		if err != nil {
-			return nil, memphisError(err)
+			return nil, protoevalError(err)
 		}
 	case []byte:
 		msgBytes = msg.([]byte)
@@ -128,14 +128,14 @@ func validateProtoBufMessage(msg any, msgDescriptor protoreflect.MessageDescript
 		pMsg := dynamicpb.NewMessage(msgDescriptor)
 		err = protojson.Unmarshal(bytes, pMsg)
 		if err != nil {
-			return nil, memphisError(err)
+			return nil, protoevalError(err)
 		}
 		msgBytes, err = proto.Marshal(pMsg)
 		if err != nil {
-			return nil, memphisError(err)
+			return nil, protoevalError(err)
 		}
 	default:
-		return nil, memphisError(errors.New("unsupported message type"))
+		return nil, protoevalError(errors.New("unsupported message type"))
 	}
 
 	protoMsg := dynamicpb.NewMessage(msgDescriptor)
@@ -144,7 +144,7 @@ func validateProtoBufMessage(msg any, msgDescriptor protoreflect.MessageDescript
 		if strings.Contains(err.Error(), "cannot parse invalid wire-format data") {
 			err = errors.New("invalid message format, expecting protobuf")
 		}
-		return msgBytes, memphisError(err)
+		return msgBytes, protoevalError(err)
 	}
 
 	return msgBytes, nil
