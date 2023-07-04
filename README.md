@@ -1,7 +1,7 @@
-<div align="center">
+<div align="center">  
   
-  ![github memphis banner](https://user-images.githubusercontent.com/70286779/229371212-8531c1e1-1a9d-4bbe-9285-b4dbb8601bfa.jpeg)
-  
+  ![Banner- Memphis dev streaming  (1)](https://github.com/memphisdev/memphis.net/assets/107035359/3ac8b249-bc52-4e02-ad79-7001810f9b04)
+
 </div>
 
 <div align="center">
