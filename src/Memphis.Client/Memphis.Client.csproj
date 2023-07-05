@@ -48,4 +48,12 @@
     <ItemGroup>
         <None Include="Icon.png" Pack="true" PackagePath="\" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="build/Memphis.Client.targets" PackagePath="build/Memphis.Client.targets" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="build\" />
+    </ItemGroup>
 </Project>
