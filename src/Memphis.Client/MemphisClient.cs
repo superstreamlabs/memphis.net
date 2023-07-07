@@ -765,6 +765,11 @@ public sealed class MemphisClient : IMemphisClient
         get { return _brokerConnection; }
     }
 
+    internal string Username
+    {
+        get { return _userName; }
+    }
+
     internal ConcurrentDictionary<string, Dictionary<string, List<MemphisMessage>>> PrefetchedMessages { get; set; }
 
     internal IJetStream JetStreamConnection

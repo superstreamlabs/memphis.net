@@ -12,5 +12,11 @@ namespace Memphis.Client.Models.Request
         
         [DataMember(Name = "station_name")]
         public string StationName { get; set; }
+        
+        [DataMember(Name = "connection_id")]
+        public string ConnectionId { get; set; }
+        
+        [DataMember(Name = "username")]
+        public string Username { get; set; }
     }
 }

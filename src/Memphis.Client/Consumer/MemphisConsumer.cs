@@ -98,6 +98,8 @@ public sealed class MemphisConsumer : IMemphisConsumer
             {
                 ConsumerName = _consumerOptions.ConsumerName,
                 StationName = _consumerOptions.StationName,
+                ConnectionId = _memphisClient.ConnectionId,
+                Username = _memphisClient.Username,
             };
 
             var removeConsumerModelJson = JsonSerDes.PrepareJsonString<RemoveConsumerRequest>(removeConsumerModel);

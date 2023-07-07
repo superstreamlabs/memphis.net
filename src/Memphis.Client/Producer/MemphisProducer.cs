@@ -131,6 +131,8 @@ public sealed class MemphisProducer : IMemphisProducer
             {
                 ProducerName = _producerName,
                 StationName = _stationName,
+                ConnectionId = _memphisClient.ConnectionId,
+                Username = _memphisClient.Username
             };
 
             var removeProducerModelJson = JsonSerDes.PrepareJsonString<RemoveProducerRequest>(removeProducerModel);
