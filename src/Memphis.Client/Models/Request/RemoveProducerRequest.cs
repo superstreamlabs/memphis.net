@@ -9,8 +9,14 @@ namespace Memphis.Client.Models.Request
     {
         [DataMember(Name = "name")]
         public string ProducerName { get; set; }
-        
+
         [DataMember(Name = "station_name")]
         public string StationName { get; set; }
+
+        [DataMember(Name = "connection_id")]
+        public string ConnectionId { get; set; }
+
+        [DataMember(Name = "username")]
+        public string Username { get; set; }
     }
 }
