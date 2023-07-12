@@ -26,7 +26,7 @@ internal class MemphisHeaders
 
 internal class MemphisSubscriptions
 {
-    public const string DLS_PREFIX = "$memphis_dlq_";
+    public const string DLS_PREFIX = "$memphis_dls_";
 }
 
 internal class MemphisSubjects
