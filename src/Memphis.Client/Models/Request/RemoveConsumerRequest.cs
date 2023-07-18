@@ -18,5 +18,8 @@ namespace Memphis.Client.Models.Request
         
         [DataMember(Name = "username")]
         public string Username { get; set; }
+
+        [DataMember(Name = "req_version")]
+        public int RequestVersion { get; set; }
     }
 }
