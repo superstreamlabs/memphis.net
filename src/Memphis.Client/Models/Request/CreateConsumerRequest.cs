@@ -36,5 +36,8 @@ namespace Memphis.Client.Models.Request
         
         [DataMember(Name = "last_messages")]
         public int LastMessages { get; set; }
+
+        [DataMember(Name = "req_version")]
+        public int RequestVersion { get; set; }
     }
 }
