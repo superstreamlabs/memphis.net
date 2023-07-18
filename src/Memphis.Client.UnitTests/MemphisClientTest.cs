@@ -35,6 +35,7 @@ namespace Memphis.Client.UnitTests
             _testOutputHelper = testOutputHelper;
 
             this._brokerOptions = ConnectionFactory.GetDefaultOptions();
+            this._brokerOptions.User = "root";
             this._connectionId = Guid.NewGuid().ToString();
             this._connectionMock = new Mock<IConnection>();
             this._jetStreamMock = new Mock<IJetStream>();
