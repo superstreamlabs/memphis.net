@@ -298,6 +298,7 @@ public sealed class MemphisClient : IMemphisClient
                 UserName = _userName,
                 StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
                 LastMessages = consumerOptions.LastMessages,
+                RequestVersion = 1,
             };
 
             var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
