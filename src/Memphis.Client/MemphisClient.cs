@@ -64,6 +64,11 @@ public sealed class MemphisClient : IMemphisClient
         _jetStreamContext = jetStreamContext ?? throw new ArgumentNullException(nameof(jetStreamContext));
         _connectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
         _userName = brokerConnOptions.User;
+        int usernameSeparatorIndex = _userName.LastIndexOf('$');
+        if (usernameSeparatorIndex >= 0)
+        {
+            _userName = _userName.Substring(0, usernameSeparatorIndex);
+        }
 
         _cancellationTokenSource = new();
 
