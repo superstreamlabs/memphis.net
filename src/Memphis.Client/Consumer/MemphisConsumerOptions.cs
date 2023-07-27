@@ -13,7 +13,7 @@ namespace Memphis.Client.Consumer
         public int MaxAckTimeMs { get; set; } = 30_000;
         public int MaxMsgDeliveries { get; set; } = 10;
         public bool GenerateUniqueSuffix { get; set; } = false;
-        public int StartConsumeFromSequence { get; set; } = 0;
+        public int StartConsumeFromSequence { get; set; } = 1;
         public int LastMessages { get; set; } = -1;
         
         internal string RealName { get; set; }
