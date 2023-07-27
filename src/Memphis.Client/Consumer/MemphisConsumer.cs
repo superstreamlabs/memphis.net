@@ -37,8 +37,8 @@ public sealed class MemphisConsumer : IMemphisConsumer
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
     public MemphisConsumer(MemphisClient memphisClient, MemphisConsumerOptions options)
     {
-        if (options.StartConsumeFromSequence < 0)
-            throw new MemphisException($"Value of {nameof(options.StartConsumeFromSequence)} must be positive");
+        if (options.StartConsumeFromSequence <= 0)
+            throw new MemphisException($"Value of {nameof(options.StartConsumeFromSequence)} must be greater than 0");
         if (options.LastMessages < -1)
             throw new MemphisException($"Value of {nameof(options.LastMessages)} can not be less than -1");
         if (options is { StartConsumeFromSequence: > 1, LastMessages: > -1 })
