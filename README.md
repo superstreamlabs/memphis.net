@@ -182,7 +182,7 @@ The above means that messages persist on disk.
 ```c#
 StorageTypes.MEMORY
 ```
-The above means that messages persist on the main memory.
+The above means that messages persist in the main memory.
 
 ### Destroying a Station
 
@@ -222,7 +222,7 @@ The most common client operations are `produce` to send messages and `consume` t
 receive messages.
 
 Messages are published to a station and consumed from it by creating a consumer.
-Consumers are pull based and consume all the messages in a station unless you are using a consumers group, in this case messages are spread across all members in this group.
+Consumers are pull-based and consume all the messages in a station unless you are using a consumers group, in this case, messages are spread across all members in this group.
 
 Memphis messages are payload agnostic. Payloads are `byte[]`.
 
