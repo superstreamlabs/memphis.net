@@ -159,13 +159,19 @@ RetentionTypes.BYTES
 ```
 The above means that after maximum number of saved bytes (set in retention value) has been reached, the oldest messages will be deleted.
 
+```c#
+RetentionTypes.ACK_BASED
+```
+The above means that after a message is getting acked by all interested consumer groups it will be deleted from the Station. This retention type is for cloud users only.
+
+
 ### Retention Values
 
 The `retention values` are directly related to the `retention types` mentioned above,<br> where the values vary according to the type of retention chosen.
 
 All retention values are of type `int` but with different representations as follows:
 
-`RetentionTypes.MAX_MESSAGE_AGE_SECONDS` is represented **in seconds**, `RetentionTypes.MESSAGES` in a **number of messages** <br> and finally `RetentionTypes.BYTES` in a **number of bytes**.
+`RetentionTypes.MAX_MESSAGE_AGE_SECONDS` is represented **in seconds**, `RetentionTypes.MESSAGES` in a **number of messages**, `RetentionTypes.BYTES` in a **number of bytes**, and finally `RetentionTypes.ACK_BASED` is not using the retention value. 
 
 After these limits are reached oldest messages will be deleted.
 
