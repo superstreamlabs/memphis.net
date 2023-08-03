@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Data;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -55,6 +54,10 @@ public sealed class MemphisClient : IMemphisClient
     private readonly ConcurrentDictionary<string, MemphisConsumer> _consumerCache;
     private readonly ConcurrentDictionary<string, bool> _stationSchemaVerseToDlsMap;
     private readonly ConcurrentDictionary<string, bool> _clusterConfigurations;
+
+
+    private readonly SemaphoreSlim _schemaUpdateSemaphore = new(1, 1);
+    private readonly SemaphoreSlim _sdkClientUpdateSemaphore = new(1, 1);
 
     public MemphisClient(Options brokerConnOptions, IConnection brokerConnection,
         IJetStream jetStreamContext, string connectionId)
@@ -155,7 +158,10 @@ public sealed class MemphisClient : IMemphisClient
 
             await ListenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
 
-            return new MemphisProducer(this, producerName, stationName, producerName.ToLower());
+            var producer = new MemphisProducer(this, producerName, stationName, producerName.ToLower());
+            var producerKey = $"{internalStationName}_{producerName.ToLower()}";
+            _producerCache.AddOrUpdate(producerKey, producer, (_, _) => producer);
+            return producer;
         }
         catch (MemphisException)
         {
@@ -220,12 +226,27 @@ public sealed class MemphisClient : IMemphisClient
             producer = cacheProducer;
         }
 
-        if (producer is null)
-        {
-            producer = await CreateProducer(options);
-        }
+        producer ??= await CreateProducer(options);
 
-        await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId);
+        await producer.ProduceToBrokerAsync(message, headers, options.MaxAckTimeMs, messageId);
+    }
+
+    internal async Task ProduceAsync(
+        MemphisProducer producer,
+        byte[] message,
+        NameValueCollection headers,
+        int ackWaitMs,
+        string? messageId = default)
+    {
+        MemphisProducerOptions options = new()
+        {
+            StationName = producer.StationName,
+            ProducerName = producer.ProducerName,
+            GenerateUniqueSuffix = false,
+            MaxAckTimeMs = ackWaitMs
+        };
+
+        await ProduceAsync(options, message, headers, messageId);
     }
 
     /// <summary>
@@ -589,7 +610,7 @@ public sealed class MemphisClient : IMemphisClient
                 if (!string.IsNullOrWhiteSpace(response.Error))
                     throw new MemphisException(response.Error);
             }
-            catch(System.Exception e) when (e is not MemphisException)
+            catch (System.Exception e) when (e is not MemphisException)
             {
                 if (!string.IsNullOrWhiteSpace(responseStr))
                     throw new MemphisException(responseStr);
@@ -905,39 +926,67 @@ public sealed class MemphisClient : IMemphisClient
 
     private async Task ListenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
     {
-        var schemaUpdateSubject = MemphisSubjects.MEMPHIS_SCHEMA_UPDATE + internalStationName;
-
-        if (!string.IsNullOrEmpty(schemaUpdateInit.SchemaName))
+        try
         {
-            _schemaUpdateDictionary.TryAdd(internalStationName, schemaUpdateInit);
-        }
+            await _schemaUpdateSemaphore.WaitAsync();
 
 
-        if (_subscriptionPerSchema.TryGetValue(internalStationName, out ISyncSubscription schemaSub))
-        {
-            _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
-            return;
-        }
+            var schemaUpdateSubject = MemphisSubjects.MEMPHIS_SCHEMA_UPDATE + internalStationName;
 
-        var subscription = _brokerConnection.SubscribeSync(schemaUpdateSubject);
-
-        if (!_subscriptionPerSchema.TryAdd(internalStationName, subscription))
-        {
-            throw new MemphisException("Unable to add subscription of schema updates for station");
-        }
-
-        await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateInit);
-
-        Task.Run(async () =>
-        {
-            while (!_cancellationTokenSource.IsCancellationRequested)
+            if (!string.IsNullOrEmpty(schemaUpdateInit.SchemaName))
             {
-                var schemaUpdateMsg = subscription.NextMessage();
-                await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
+                _schemaUpdateDictionary.TryAdd(internalStationName, schemaUpdateInit);
             }
-        }, _cancellationTokenSource.Token);
 
-        _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+
+            if (_subscriptionPerSchema.TryGetValue(internalStationName, out ISyncSubscription schemaSub))
+            {
+                _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+                return;
+            }
+
+            var subscription = _brokerConnection.SubscribeSync(schemaUpdateSubject);
+
+            if (!_subscriptionPerSchema.TryAdd(internalStationName, subscription))
+            {
+                throw new MemphisException("Unable to add subscription of schema updates for station");
+            }
+
+            await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateInit);
+
+            Task.Run(async () =>
+            {
+                while (!_cancellationTokenSource.IsCancellationRequested)
+                {
+                    var schemaUpdateMsg = subscription.NextMessage();
+                    await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
+                }
+            }, _cancellationTokenSource.Token);
+
+            _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+        }
+        finally
+        {
+            _schemaUpdateSemaphore.Release();
+        }
+    }
+
+
+    private async Task RemoveSchemaUpdateListener(string stationName)
+    {
+        try
+        {
+            await _schemaUpdateSemaphore.WaitAsync();
+            var internalStationName = MemphisUtil.GetInternalName(stationName);
+            if (_subscriptionPerSchema.TryRemove(internalStationName, out ISyncSubscription subscription))
+            {
+                subscription.Unsubscribe();
+            }
+        }
+        finally
+        {
+            _schemaUpdateSemaphore.Release();
+        }
     }
 
     internal Task ListenForSdkClientUpdate()
@@ -956,23 +1005,41 @@ public sealed class MemphisClient : IMemphisClient
                     if (updateMsg is null)
                         continue;
                     string respAsJson = Encoding.UTF8.GetString(updateMsg.Data);
-                    var sdkClientUpdate =
-                        (SdkClientsUpdate)JsonSerDes.PrepareObjectFromString<SdkClientsUpdate>(respAsJson);
 
-                    switch (sdkClientUpdate.Type)
+                    SdkClientsUpdate sdkClientUpdate = default;
+                    try
                     {
-                        case MemphisSdkClientUpdateTypes.SEND_NOTIFICATION:
-                            _clusterConfigurations.AddOrUpdate(sdkClientUpdate.Type, sdkClientUpdate.Update, (key, _) => sdkClientUpdate.Update);
-                            break;
-                        case MemphisSdkClientUpdateTypes.SCHEMA_VERSE_TO_DLS:
-                            _stationSchemaVerseToDlsMap.AddOrUpdate(sdkClientUpdate.StationName, sdkClientUpdate.Update, (key, _) => sdkClientUpdate.Update);
-                            break;
-                        case MemphisSdkClientUpdateTypes.REMOVE_STATION:
-                            RemoveStationProducers(sdkClientUpdate.StationName);
-                            RemoveStationConsumers(sdkClientUpdate.StationName);
-                            break;
-                        default:
-                            break;
+                        sdkClientUpdate = JsonConvert.DeserializeObject<SdkClientsUpdate>(respAsJson);
+                    }
+                    catch (System.Exception exc)
+                    {
+                        throw new MemphisException($"Unable to deserialize sdk client update: {respAsJson}", exc);
+                    }
+
+                    try
+                    {
+                        _sdkClientUpdateSemaphore.WaitAsync();
+                        bool sdkClientShouldUpdate = sdkClientUpdate.Update ?? false;
+                        switch (sdkClientUpdate.Type)
+                        {
+                            case MemphisSdkClientUpdateTypes.SEND_NOTIFICATION:
+                                _clusterConfigurations.AddOrUpdate(sdkClientUpdate.Type, sdkClientShouldUpdate, (key, _) => sdkClientShouldUpdate);
+                                break;
+                            case MemphisSdkClientUpdateTypes.SCHEMA_VERSE_TO_DLS:
+                                _stationSchemaVerseToDlsMap.AddOrUpdate(sdkClientUpdate.StationName, sdkClientShouldUpdate, (key, _) => sdkClientShouldUpdate);
+                                break;
+                            case MemphisSdkClientUpdateTypes.REMOVE_STATION:
+                                RemoveStationProducers(sdkClientUpdate.StationName);
+                                RemoveStationConsumers(sdkClientUpdate.StationName);
+                                RemoveSchemaUpdateListener(sdkClientUpdate.StationName);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    finally
+                    {
+                        _sdkClientUpdateSemaphore.Release();
                     }
                 }
             }
