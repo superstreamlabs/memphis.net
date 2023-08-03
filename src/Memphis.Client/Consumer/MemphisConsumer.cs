@@ -236,7 +236,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 var result = _memphisClient.JetStreamManagement.GetConsumerInfo(InternalStationName, durableName);
                 await Task.Delay(_pingConsumerIntervalMs, cancellationToken);
             }
-            catch
+            catch(System.Exception exception)
             {
                 MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
                     new List<MemphisMessage>(),
