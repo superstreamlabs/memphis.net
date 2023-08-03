@@ -236,14 +236,12 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 var result = _memphisClient.JetStreamManagement.GetConsumerInfo(InternalStationName, durableName);
                 await Task.Delay(_pingConsumerIntervalMs, cancellationToken);
             }
-            catch(System.Exception exception)
+            catch
             {
                 MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
                     new List<MemphisMessage>(),
                     _pullSubscription?.Context,
                     new MemphisException("Station unreachable")));
-                StopConsume();
-                break;
             }
         }
     }
