@@ -15,6 +15,6 @@ namespace Memphis.Client.Models.Response
         public string Type { get; set; }
 
         [DataMember(Name = "update")]
-        public bool Update { get; set; }
+        public bool? Update { get; set; }
     }
 }

@@ -17,16 +17,21 @@ using Newtonsoft.Json;
 
 namespace Memphis.Client.Producer;
 
-public sealed class MemphisProducer : IMemphisProducer 
+public sealed class MemphisProducer : IMemphisProducer
 {
     internal string Key => $"{_internalStationName}_{_realName}";
     internal string InternalStationName { get => _internalStationName; }
+
+    internal string StationName { get => _stationName; }
+    internal string ProducerName { get => _producerName; }
+
 
     private readonly string _realName;
     private readonly string _producerName;
     private readonly string _stationName;
     private readonly string _internalStationName;
     private readonly MemphisClient _memphisClient;
+
 
     public MemphisProducer(MemphisClient memphisClient, string producerName, string stationName, string realName)
     {
@@ -46,6 +51,21 @@ public sealed class MemphisProducer : IMemphisProducer
     /// <param name="messageId">Message ID - for idempotent message production</param>
     /// <returns></returns>
     public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
+        string? messageId = default)
+    {
+        await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, messageId);
+    }
+
+
+    /// <summary>
+    /// Produce messages into station
+    /// </summary>
+    /// <param name="message">message to produce</param>
+    /// <param name="headers">headers used to send data in the form of key and value</param>
+    /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
+    /// <param name="messageId">Message ID - for idempotent message production</param>
+    /// <returns></returns>
+    internal async Task ProduceToBrokerAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
         string? messageId = default)
     {
         await EnsureMessageIsValid(message, headers);
@@ -86,6 +106,14 @@ public sealed class MemphisProducer : IMemphisProducer
                 throw new MemphisException(publishAck.ErrorDescription);
             }
         }
+        catch (NATS.Client.NATSNoRespondersException)
+        {
+            /// <summary>
+            /// This exception is thrown when there are no station available to produce the message.
+            /// The ReInitializeProducerAndRetry method will try to recreate the producer (which will also create the station) and retry to produce the message.
+            /// </summary>
+            await ReInitializeProducerAndRetry(message, headers, ackWaitMs, messageId);
+        }
         catch (MemphisException)
         {
             throw;
@@ -94,7 +122,14 @@ public sealed class MemphisProducer : IMemphisProducer
         {
             throw new MemphisException(ex.Message);
         }
+
+        async Task ReInitializeProducerAndRetry(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
+          string? messageId = default)
+        {
+            await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, messageId);
+        }
     }
+
 
     /// <summary>
     /// Produce messages into station
