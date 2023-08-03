@@ -89,7 +89,11 @@ public sealed class MemphisClient : IMemphisClient
 
         PrefetchedMessages = new();
 
-        _jetStreamManagement = brokerConnection.CreateJetStreamManagementContext();
+        JetStreamOptions options = JetStreamOptions.Builder()
+            .WithRequestTimeout((int)TimeSpan.FromSeconds(15).TotalMilliseconds)
+            .Build();
+
+        _jetStreamManagement = brokerConnection.CreateJetStreamManagementContext(options);
     }
 
     /// <summary>
