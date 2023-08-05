@@ -60,14 +60,14 @@ using Memphis.Client;
 
 ### Connecting to Memphis
 
-First, we need to create or use default `ClientOptions` and then connect to Memphis by using `MemphisClientFactory.CreateClient(ClientOptions opst)`.
+First, we need to create or use default `ClientOptions` and then connect to Memphis by using `MemphisClientFactory.CreateClient(ClientOptions opts)`.
 
 ```c#
 try
 {
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<broker-address>";
-    options.Username = "<application-type-username>";
+    options.Username = "<username>";
     options.ConnectionToken = "<broker-token>"; // you will get it on broker creation
     var memphisClient = await MemphisClientFactory.CreateClient(options);
     ...
@@ -86,8 +86,8 @@ try
 {
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<broker-address>";
-    options.Username = "<application-type-username>";
-    options.Password = "<application-type-password>"; // you will get it on application type user creation
+    options.Username = "<username>";
+    options.Password = "<password>"; // you will get it on client type user creation
     var memphisClient = await MemphisClientFactory.CreateClient(options);
     ...
 }
@@ -115,8 +115,8 @@ try
     // First: creating Memphis client
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<memphis-host>";
-    options.Username = "<application-type-username>";
-    options.Password = "<application-type-password>";
+    options.Username = "<username>";
+    options.Password = "<password>";
     options.AccountId = <account-id> // You can find it on the profile page in the Memphis UI. This field should be sent only on the cloud version of Memphis, otherwise it will be ignored
     var client = await MemphisClientFactory.CreateClient(options);
     
@@ -243,8 +243,8 @@ try
    // First: creating Memphis client
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<memphis-host>";
-    options.Username = "<application type username>";
-    options.Password = "<application-type-password>";
+    options.Username = "<username>";
+    options.Password = "<password>";
     var client = await MemphisClientFactory.CreateClient(options);
 
     // Second: creating the Memphis producer 
@@ -300,8 +300,8 @@ try
     // First: creating Memphis client
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<memphis-host>";
-    options.Username = "<application type username>";
-    options.Password = "<application-type-password>";
+    options.Username = "<username>";
+    options.Password = "<password>";
     var client = await MemphisClientFactory.CreateClient(options);
     
     // Second: creaing Memphis consumer
