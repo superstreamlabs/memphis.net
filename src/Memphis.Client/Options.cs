@@ -34,6 +34,10 @@ namespace Memphis.Client
         public int MaxReconnectIntervalMs { get; set; }
         public int TimeoutMs { get; set; }
         public TlsOptions Tls { get; set; }
+
+        /// <summary>
+        /// The AccountId field should be set only on the cloud version of Memphis, otherwise it will be ignored.
+        /// </summary>
         public int AccountId { get; set; }
     }
 }

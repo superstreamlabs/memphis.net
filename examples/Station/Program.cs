@@ -13,8 +13,10 @@ namespace Station
             {
                 var options = MemphisClientFactory.GetDefaultOptions();
                 options.Host = "<memphis-host>";
-                options.Username = "<application type username>";
-                options.ConnectionToken = "<broker-token>";
+                options.Username = "<username>";
+                options.Password = "<password>";
+                // options.AccountId = <account-id>;
+                // The AccountId field should be sent only on the cloud version of Memphis, otherwise it will be ignored.
                 var client = await MemphisClientFactory.CreateClient(options);
 
                 var station = await client.CreateStation(
