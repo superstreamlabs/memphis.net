@@ -69,6 +69,7 @@ try
     options.Host = "<broker-address>";
     options.Username = "<username>";
     options.ConnectionToken = "<broker-token>"; // you will get it on broker creation
+    options.AccountId = <account-id>; // You can find it on the profile page in the Memphis UI. This field should be set only on the cloud version of Memphis, otherwise it will be ignored
     var memphisClient = await MemphisClientFactory.CreateClient(options);
     ...
 }
@@ -88,6 +89,7 @@ try
     options.Host = "<broker-address>";
     options.Username = "<username>";
     options.Password = "<password>"; // you will get it on client type user creation
+    options.AccountId = <account-id>; // You can find it on the profile page in the Memphis UI. This field should be set only on the cloud version of Memphis, otherwise it will be ignored
     var memphisClient = await MemphisClientFactory.CreateClient(options);
     ...
 }
@@ -117,7 +119,7 @@ try
     options.Host = "<memphis-host>";
     options.Username = "<username>";
     options.Password = "<password>";
-    options.AccountId = <account-id> // You can find it on the profile page in the Memphis UI. This field should be sent only on the cloud version of Memphis, otherwise it will be ignored
+    options.AccountId = <account-id>; // You can find it on the profile page in the Memphis UI. This field should be set only on the cloud version of Memphis, otherwise it will be ignored
     var client = await MemphisClientFactory.CreateClient(options);
     
     // Second: creaing Memphis station
