@@ -115,8 +115,9 @@ try
     // First: creating Memphis client
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<memphis-host>";
-    options.Username = "<application type username>";
+    options.Username = "<application-type-username>";
     options.Password = "<application-type-password>";
+    options.AccountId = <account-id> // You can find it on the profile page in the Memphis UI. This field should be sent only on the cloud version of Memphis, otherwise it will be ignored
     var client = await MemphisClientFactory.CreateClient(options);
     
     // Second: creaing Memphis station

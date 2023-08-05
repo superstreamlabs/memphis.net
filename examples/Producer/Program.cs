@@ -15,8 +15,10 @@ namespace Producer
             {
                 var options = MemphisClientFactory.GetDefaultOptions();
                 options.Host = "<memphis-host>";
-                options.Username = "<application type username>";
-                options.ConnectionToken = "<broker-token>";
+                options.Username = "<application-type-username>";
+                options.Password = "<application-type-password>";
+                // options.AccountId = <account-id>;
+                // The AccountId field should be sent only on the cloud version of Memphis, otherwise it will be ignored.
                 var client = await MemphisClientFactory.CreateClient(options);
 
                 var producer = await client.CreateProducer(new MemphisProducerOptions
