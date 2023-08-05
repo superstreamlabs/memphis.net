@@ -142,15 +142,27 @@ public sealed class MemphisProducer : IMemphisProducer
     public async Task ProduceAsync<T>(T message, NameValueCollection headers, int ackWaitMs = 15_000,
         string? messageId = default)
     {
-        string encodedMessage = IsPrimitiveType(message) ?
-            message.ToString() :
-            JsonConvert.SerializeObject(message);
 
         await ProduceAsync(
-            Encoding.UTF8.GetBytes(encodedMessage),
+            SerializeMessage(message),
             headers,
             ackWaitMs,
             messageId);
+
+        byte[] SerializeMessage(T message)
+        {
+            if(IsPrimitiveType(message))
+                return Encoding.UTF8.GetBytes(message.ToString());
+            var schemaType = _memphisClient.GetStationSchemaType(_internalStationName);
+            return schemaType switch
+            {
+                MemphisSchemaTypes.JSON or
+                MemphisSchemaTypes.GRAPH_QL or
+                MemphisSchemaTypes.PROTO_BUF or
+                MemphisSchemaTypes.AVRO => MemphisSerializer.Serialize<object>(message!, schemaType),
+                _ => Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(message)),
+            };
+        }
     }
 
     /// <summary>

@@ -591,9 +591,8 @@ public sealed class MemphisClient : IMemphisClient
                 case MemphisSchemaTypes.JSON:
                 case MemphisSchemaTypes.PROTO_BUF:
                 case MemphisSchemaTypes.GRAPH_QL:
-                    return;
                 case MemphisSchemaTypes.AVRO:
-                    throw new MemphisException("Avro schema type is not supported at this time");
+                    return;
                 default:
                     throw new MemphisException("Unsupported schema type");
             }
@@ -621,6 +620,18 @@ public sealed class MemphisClient : IMemphisClient
             }
         }
     }
+
+    internal string GetStationSchemaType(string internalStationName)
+    {
+        if (_schemaUpdateDictionary.TryGetValue(internalStationName,
+            out ProducerSchemaUpdateInit schemaUpdateInit))
+        {
+            return schemaUpdateInit.SchemaType;
+        }
+
+        return string.Empty;
+    }
+
 
     internal async Task ValidateMessageAsync(byte[] message, string internalStationName, string producerName)
     {
@@ -926,6 +937,11 @@ public sealed class MemphisClient : IMemphisClient
         {
             throw new InvalidOperationException($"Unable to register schema validator: {nameof(ProtoBufValidator)}");
         }
+
+        if (!_schemaValidators.TryAdd(ValidatorType.AVRO, new AvroValidator()))
+        {
+            throw new InvalidOperationException($"Unable to register schema validator: {nameof(AvroValidator)}");
+        }
     }
 
     private async Task ListenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
@@ -1023,8 +1039,8 @@ public sealed class MemphisClient : IMemphisClient
                     try
                     {
                         _sdkClientUpdateSemaphore.WaitAsync();
-                        bool sdkClientShouldUpdate = sdkClientUpdate.Update ?? false;
-                        switch (sdkClientUpdate.Type)
+                        bool sdkClientShouldUpdate = sdkClientUpdate!.Update ?? false;
+                        switch (sdkClientUpdate!.Type)
                         {
                             case MemphisSdkClientUpdateTypes.SEND_NOTIFICATION:
                                 _clusterConfigurations.AddOrUpdate(sdkClientUpdate.Type, sdkClientShouldUpdate, (key, _) => sdkClientShouldUpdate);
