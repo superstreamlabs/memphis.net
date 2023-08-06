@@ -159,7 +159,7 @@ public sealed class MemphisProducer : IMemphisProducer
                 MemphisSchemaTypes.JSON or
                 MemphisSchemaTypes.GRAPH_QL or
                 MemphisSchemaTypes.PROTO_BUF or
-                MemphisSchemaTypes.AVRO => MemphisSerializer.Serialize<object>(message!, schemaType),
+                MemphisSchemaTypes.AVRO => MessageSerializer.Serialize<object>(message!, schemaType),
                 _ => Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(message)),
             };
         }
