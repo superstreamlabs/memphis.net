@@ -9,6 +9,7 @@ using Memphis.Client.Producer;
 using Memphis.Client.Station;
 
 namespace Memphis.Client;
+#pragma warning disable CS8625
 
 public interface IMemphisClient : IDisposable
 {
@@ -127,3 +128,5 @@ public interface IMemphisClient : IDisposable
 
     
 }
+
+#pragma warning restore CS8625

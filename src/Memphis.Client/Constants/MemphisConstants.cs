@@ -47,8 +47,6 @@ public static class MemphisSchemaTypes
     public const string JSON = "json";
     public const string GRAPH_QL = "graphql";
     public const string PROTO_BUF = "protobuf";
-
-    // currently unsupported
     internal const string AVRO = "avro";
 }
 
