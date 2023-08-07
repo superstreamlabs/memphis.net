@@ -46,7 +46,8 @@ func init() {
 type any interface{}
 
 type SchemaVersion struct {
-	VersionNumber     int    `json:"version_number"`
+	VersionNumber int `json:"version_number"`
+	// Descriptor is a base64 encoded FileDescriptorSet
 	Descriptor        string `json:"descriptor"`
 	Content           string `json:"schema_content"`
 	MessageStructName string `json:"message_struct_name"`
@@ -72,9 +73,13 @@ func handleProtoBufEval(context context.Context) {
 	}
 }
 
-func unmarshalSchemaVersion(data string) (SchemaVersion, error) {
+func unmarshalSchemaVersion(base64SchemaVersion string) (SchemaVersion, error) {
 	var schemaVersion SchemaVersion
-	err := json.Unmarshal([]byte(data), &schemaVersion)
+	bytes, err := base64.StdEncoding.DecodeString(base64SchemaVersion)
+	if err != nil {
+		return schemaVersion, protoevalError(err)
+	}
+	err = json.Unmarshal(bytes, &schemaVersion)
 	if err != nil {
 		return schemaVersion, protoevalError(err)
 	}
@@ -83,9 +88,11 @@ func unmarshalSchemaVersion(data string) (SchemaVersion, error) {
 
 func compileDescriptor(activeVersion SchemaVersion, schemaName string) (protoreflect.MessageDescriptor, error) {
 	descriptorSet := descriptorpb.FileDescriptorSet{}
-	fmt.Println(activeVersion.Descriptor)
-	fmt.Println([]byte(activeVersion.Descriptor))
-	err := proto.Unmarshal([]byte(activeVersion.Descriptor), &descriptorSet)
+	descriptorBytes, err := base64.StdEncoding.DecodeString(activeVersion.Descriptor)
+	if err != nil {
+		return nil, protoevalError(err)
+	}
+	err = proto.Unmarshal(descriptorBytes, &descriptorSet)
 	if err != nil {
 		return nil, protoevalError(err)
 	}

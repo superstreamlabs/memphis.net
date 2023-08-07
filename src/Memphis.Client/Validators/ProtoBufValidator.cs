@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Threading.Tasks;
 using Memphis.Client.Exception;
 
@@ -29,7 +30,7 @@ internal class ProtoBufValidator : SchemaValidator<ProtoBufSchema>, ISchemaValid
         {
             var result = await ProtoBufEval.ProtoBufValidator.Validate(
                 base64Data: Convert.ToBase64String(messageToValidate), 
-                activeSchemaVersion: protoBufSchema.ActiveSchemaVersion, 
+                activeSchemaVersion: Convert.ToBase64String(Encoding.UTF8.GetBytes(protoBufSchema.ActiveSchemaVersion)), 
                 schemaName: protoBufSchema.SchemaName);
             if(result.HasError)
                 throw new MemphisSchemaValidationException($"Schema validation has failed: \n {result.Error}");

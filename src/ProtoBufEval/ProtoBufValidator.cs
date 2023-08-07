@@ -33,16 +33,16 @@ public static class ProtoBufValidator
     /// Validate a base64 encoded protobuf payload against a schema
     /// </summary>
     /// <param name="base64Data"></param>
-    /// <param name="activeSchemaVersion"></param>
+    /// <param name="activeSchemaVersionBase64"></param>
     /// <param name="schemaName"></param>
     /// <returns></returns>
-    public static async Task<ProtoBufValidationResult> Validate(string base64Data, string activeSchemaVersion, string schemaName)
+    public static async Task<ProtoBufValidationResult> Validate(string base64Data, string activeSchemaVersionBase64, string schemaName)
     {
         var result = await Cli.Wrap(_nativeBinary)
             .WithArguments(new[] {
                 "eval",
                 "--payload",base64Data,
-                "--schema", activeSchemaVersion,
+                "--schema", activeSchemaVersionBase64,
                 "--schema-name", schemaName
             })
             .WithValidation(CommandResultValidation.None)
