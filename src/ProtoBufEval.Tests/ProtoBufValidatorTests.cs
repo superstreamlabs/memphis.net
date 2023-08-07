@@ -1,48 +1,102 @@
+using ProtoBuf;
+using System.Text;
+
 namespace ProtoBufEval.Tests;
+
+
+
+[ProtoContract]
+public class Test
+{
+
+    [ProtoMember(1, Name = @"field1")]
+    [global::System.ComponentModel.DefaultValue("")]
+    public string Field1 { get; set; } = "";
+
+    [ProtoMember(2, Name = @"field2")]
+    [System.ComponentModel.DefaultValue("")]
+    public string Field2 { get; set; } = "";
+
+    [ProtoMember(3, Name = @"field3")]
+    public int Field3 { get; set; }
+
+}
+
+
+[ProtoContract]
+public class InvalidTestModel
+{
+
+    [ProtoMember(1, Name = @"field1")]
+    [global::System.ComponentModel.DefaultValue("")]
+    public string Field1 { get; set; } = "";
+
+    [ProtoMember(3, Name = @"field3")]
+    public int Field3 { get; set; }
+
+}
 
 public class ProtoBufValidatorTests
 {
-    // [Theory]
-    // [InlineData(
-    //     "c3lzdGVtID0gInByb3RvMyI7CgpkYXRhYmFzZSBleGFtcGxlOwpfbWFpbk1lc3NhZ2UgUGVyc29uIHsKICBuYW1lID0gMTsKICBpbnQzMiBhZ2UgPSAyOwoKICBzdHJpbmcgZW1haWwgPSAzOwp9Cg==",
-    //     """
-    //     {
-    //         "version_number": 1,
-    //         "descriptor": "\nf\n\u000cprt2_1.proto\"N\n\u0004Test\u0012\u0016\n\u0006field1\u0018\u0001 \u0001(\tR\u0006field1\u0012\u0016\n\u0006field2\u0018\u0002 \u0001(\tR\u0006field2\u0012\u0016\n\u0006field3\u0018\u0003 \u0001(\u0005R\u0006field3b\u0006proto3",
-    //         "schema_content": "syntax = \"proto3\";\nmessage Test {\n    string field1 = 1;\n    string  field2 = 2;\n    int32  field3 = 3;\n}",
-    //         "message_struct_name": "Test"
-    //     }
-    //     """,
-    //     "prt2"
-    // )]
-    // public async Task GivenValidPayload_WhenValidate_ThenNoError(string base64Data, string activeSchemaVersion, string schemaName)
-    // {
-    //     var result = await ProtoBufValidator.Validate(base64Data, activeSchemaVersion, schemaName);
-
-
-    //     Assert.False(result.HasError);
-    //     Assert.Null(result.Error);
-    // }
-
     [Theory]
     [InlineData(
-        "c3lzdGVtID0gInByb3RvMyI7CgpkYXRhYmFzZSBleGFtcGxlOwpfbWFpbk1lc3NhZ2UgUGVyc29uIHsKICBuYW1lID0gMTsKICBpbnQzMiBhZ2UgPSAyOwoKICBzdHJpbmcgZW1haWwgPSAzOwp9Cg==",
         """
         {
-            "version_number": 1,
-            "descriptor": "\nf\n\u000cprt2_1.proto\"N\n\u0004Test\u0012\u0016\n\u0006field1\u0018\u0001 \u0001(\tR\u0006field1\u0012\u0016\n\u0006field2\u0018\u0002 \u0001(\tR\u0006field2\u0012\u0016\n\u0006field3\u0018\u0003 \u0001(\u0005R\u0006field3b\u0006proto3",
-            "schema_content": "syntax = \"proto3\";\nmessage Test {\n    string field1 = 1;\n    string  field2 = 2;\n    int32  field3 = 3;\n}",
+            "version_number": 1, 
+            "descriptor": "CmsKEXNhbXBsZXBiZl8xLnByb3RvIk4KBFRlc3QSFgoGZmllbGQxGAEgASgJUgZmaWVsZDESFgoGZmllbGQyGAIgASgJUgZmaWVsZDISFgoGZmllbGQzGAMgASgFUgZmaWVsZDNiBnByb3RvMw==", 
+            "schema_content": "syntax = \"proto3\";\nmessage Test {\n    string field1 = 1;\n    string  field2 = 2;\n    int32  field3 = 3;\n}", 
             "message_struct_name": "Test"
         }
         """,
-        "prt2"
+        "samplepbf"
     )]
-    public async Task GivenInvalidPayload_WhenValidate_ThenHasError(string base64Data, string activeSchemaVersion, string schemaName)
+    public async Task GivenValidPayload_WhenValidate_ThenNoError(string activeSchemaVersion, string schemaName)
     {
-        var result  = await ProtoBufValidator.Validate(base64Data, activeSchemaVersion, schemaName);
+        var validData = new Test
+        {
+            Field1 = "AwesomeFirst",
+            Field2 = "SecondField",
+            Field3 = 333,
+        };
+        var base64ValidData = ConvertProtoBufToBase64(validData);
+        var activeSchemaVersionBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(activeSchemaVersion));
+
+        var result = await ProtoBufValidator.Validate(base64ValidData, activeSchemaVersionBase64, schemaName);
+
+        Assert.False(result.HasError);
+        Assert.Null(result.Error);
+    }
+
+    [Theory]
+    [InlineData(
+        """
+        {
+            "version_number": 1, 
+            "descriptor": "CmsKEXNhbXBsZXBiZl8xLnByb3RvIk4KBFRlc3QSFgoGZmllbGQxGAEgASgJUgZmaWVsZDESFgoGZmllbGQyGAIgASgJUgZmaWVsZDISFgoGZmllbGQzGAMgASgFUgZmaWVsZDNiBnByb3RvMw==", 
+            "schema_content": "syntax = \"proto3\";\nmessage Test {\n    string field1 = 1;\n    string  field2 = 2;\n    int32  field3 = 3;\n}", 
+            "message_struct_name": "Test"
+        }
+        """,
+        "samplepbf"
+    )]
+    public async Task GivenInvalidPayload_WhenValidate_ThenHasError(string activeSchemaVersion, string schemaName)
+    {
+        var base64InvalidData = Convert.ToBase64String(Encoding.UTF8.GetBytes("CgJmb3JtYWwxCgRmZWlsZDIKCAk="));
+        var activeSchemaVersionBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(activeSchemaVersion));
+
+        var result = await ProtoBufValidator.Validate(base64InvalidData, activeSchemaVersionBase64, schemaName);
 
 
         Assert.True(result.HasError);
         Assert.NotNull(result.Error);
+    }
+
+
+
+    private static string ConvertProtoBufToBase64<TData>(TData obj) where TData : class
+    {
+        using var stream = new MemoryStream();
+        ProtoBuf.Serializer.Serialize(stream, obj);
+        return Convert.ToBase64String(stream.ToArray());
     }
 }
