@@ -27,7 +27,7 @@ public class MemphisConsumerTests
             StationName = stationName,
             ConsumerName = consumerName,
             ConsumerGroup = consumerGroup,
-            GenerateUniqueSuffix = false
+            GenerateUniqueSuffix = generateUniqueSuffix
         };
 
         var consumer = await client.CreateConsumer(consumerOptions);

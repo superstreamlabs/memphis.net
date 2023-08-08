@@ -151,24 +151,27 @@ public sealed class MemphisClient : IMemphisClient
             Msg createProducerResp = await _brokerConnection.RequestAsync(
                 MemphisStations.MEMPHIS_PRODUCER_CREATIONS, createProducerReqBytes);
             string respAsJson = Encoding.UTF8.GetString(createProducerResp.Data);
-            var respAsObject = JsonConvert.DeserializeObject<CreateProducerResponse>(respAsJson)!;
+            var createProducerResponse = JsonConvert.DeserializeObject<CreateProducerResponse>(respAsJson)!;
 
-            if (!string.IsNullOrEmpty(respAsObject.Error))
+            if (!string.IsNullOrEmpty(createProducerResponse.Error))
             {
-                throw new MemphisException(respAsObject.Error);
+                throw new MemphisException(createProducerResponse.Error);
             }
 
             string internalStationName = MemphisUtil.GetInternalName(stationName);
 
-            _stationSchemaVerseToDlsMap.AddOrUpdate(internalStationName, respAsObject.SchemaVerseToDls, (_, _) => respAsObject.SchemaVerseToDls);
-            _clusterConfigurations.AddOrUpdate(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, respAsObject.SendNotification, (_, _) => respAsObject.SendNotification);
+            _stationSchemaVerseToDlsMap.AddOrUpdate(internalStationName, createProducerResponse.SchemaVerseToDls, (_, _) => createProducerResponse.SchemaVerseToDls);
+            _clusterConfigurations.AddOrUpdate(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, createProducerResponse.SendNotification, (_, _) => createProducerResponse.SendNotification);
 
-            await ListenForSchemaUpdate(internalStationName, respAsObject.SchemaUpdate);
+            await ListenForSchemaUpdate(internalStationName, createProducerResponse.SchemaUpdate);
 
-            _stationPartitions.AddOrUpdate(internalStationName, respAsObject.PartitionsUpdate, (_, _) => respAsObject.PartitionsUpdate);
+            if(createProducerResponse.PartitionsUpdate is not null)
+            {
+                _stationPartitions.AddOrUpdate(internalStationName, createProducerResponse.PartitionsUpdate, (_, _) => createProducerResponse.PartitionsUpdate);
+            }
 
             var producer = new MemphisProducer(this, producerName, stationName, producerName.ToLower());
-            if(_stationPartitions.TryGetValue(internalStationName, out PartitionsUpdate partitionsUpdate))
+            if (_stationPartitions.TryGetValue(internalStationName, out PartitionsUpdate partitionsUpdate))
             {
                 producer.PartitionResolver = new(partitionsUpdate.PartitionsList);
             }
@@ -347,7 +350,21 @@ public sealed class MemphisClient : IMemphisClient
             Msg createConsumerResp = await _brokerConnection.RequestAsync(
                 MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes);
             var responseStr = Encoding.UTF8.GetString(createConsumerResp.Data);
-            var createConsumerResponse = JsonConvert.DeserializeObject<CreateConsumerResponse>(responseStr)!;
+            var createConsumerResponse = JsonConvert.DeserializeObject<CreateConsumerResponse>(responseStr);
+
+            if (createConsumerResponse is null)
+            {
+                if (!string.IsNullOrEmpty(responseStr))
+                {
+                    throw new MemphisException(responseStr);
+                }
+
+                var oldconsumer = new MemphisConsumer(this, consumerOptions);
+                _consumerCache.AddOrUpdate(oldconsumer.Key, oldconsumer, (_, _) => oldconsumer);
+
+                return oldconsumer;
+            }
+
 
             if (!string.IsNullOrEmpty(createConsumerResponse.Error))
             {
@@ -355,7 +372,10 @@ public sealed class MemphisClient : IMemphisClient
             }
 
             var consumer = new MemphisConsumer(this, consumerOptions, createConsumerResponse.Partitions);
+            _consumerCache.AddOrUpdate(consumer.Key, consumer, (_, _) => consumer);
+
             return consumer;
+
         }
         catch (MemphisException)
         {
@@ -1103,7 +1123,7 @@ public sealed class MemphisClient : IMemphisClient
         _producerCache.TryRemove(producer.Key, out MemphisProducer _);
     }
 
-    private void RemoveConsumer(MemphisConsumer consumer)
+    internal void RemoveConsumer(MemphisConsumer consumer)
     {
         _consumerCache.TryRemove(consumer.Key, out MemphisConsumer _);
     }

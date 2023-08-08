@@ -27,7 +27,6 @@ public sealed class MemphisConsumer : IMemphisConsumer
     private ISyncSubscription _dlsSubscription;
     private readonly MemphisClient _memphisClient;
     private readonly MemphisConsumerOptions _consumerOptions;
-    private IJetStreamPullSubscription _pullSubscription;
     private IJetStreamPullSubscription[] _subscriptions;
 
     private ConcurrentQueue<MemphisMessage> _dlsMessages;
@@ -77,33 +76,31 @@ public sealed class MemphisConsumer : IMemphisConsumer
         _subscriptionActive = true;
         _pingConsumerIntervalMs = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
 
-        if (partitions != null)
-            Partitions = partitions;
+        Partitions = partitions ?? (new int[0]);
 
         InitSubscription();
 
 #pragma warning disable 4014
-        // PingConsumer(_cancellationTokenSource.Token);
-        PingConsumer2(_cancellationTokenSource.Token);
+        PingConsumer(_cancellationTokenSource.Token);
 #pragma warning restore 4014
+
     }
 
 
     private void InitSubscription()
     {
         var internalSubjectName = MemphisUtil.GetInternalName(_consumerOptions.StationName);
-        var consumerGroup = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
 
         if (Partitions.Length == 0)
         {
             var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
                 .WithMaxExpires(_consumerOptions.BatchMaxTimeToWaitMs)
-                .WithMaxDeliver(_consumerOptions.BatchSize)
+                .WithMaxDeliver(_consumerOptions.MaxMsgDeliveries)
                 .WithDurable(internalSubjectName)
                 .WithAckPolicy(AckPolicy.Explicit)
                 .BuildPullSubscribeOptions();
 
-            var subscription = _memphisClient.JetStreamConnection.PullSubscribe(internalSubjectName + ".final",options);
+            var subscription = _memphisClient.JetStreamConnection.PullSubscribe(internalSubjectName + ".final", options);
             _subscriptions = new IJetStreamPullSubscription[] { subscription };
             return;
         }
@@ -114,12 +111,12 @@ public sealed class MemphisConsumer : IMemphisConsumer
             var streamName = $"{internalSubjectName}${Partitions[i]}.final";
             var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
                 .WithMaxExpires(_consumerOptions.BatchMaxTimeToWaitMs)
-                .WithMaxDeliver(_consumerOptions.BatchSize)
+                .WithMaxDeliver(_consumerOptions.MaxMsgDeliveries)
                 .WithDurable(internalSubjectName)
                 .WithAckPolicy(AckPolicy.Explicit)
                 .BuildPullSubscribeOptions();
 
-            var subscription = _memphisClient.JetStreamConnection.PullSubscribe(streamName,options);
+            var subscription = _memphisClient.JetStreamConnection.PullSubscribe(streamName, options);
             _subscriptions[i] = subscription;
         }
     }
@@ -152,10 +149,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 await _dlsSubscription.DrainAsync();
             }
 
-            if (_pullSubscription is { IsValid: true })
-            {
-                await _pullSubscription.DrainAsync();
-            }
+            StopConsume();
 
             _cancellationTokenSource?.Cancel();
 
@@ -165,7 +159,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 StationName = _consumerOptions.StationName,
                 ConnectionId = _memphisClient.ConnectionId,
                 Username = _memphisClient.Username,
-                RequestVersion = 1,
+                RequestVersion = MemphisRequestVersions.LastConsumerDestroyRequestVersion,
             };
 
             var removeConsumerModelJson = JsonSerDes.PrepareJsonString<RemoveConsumerRequest>(removeConsumerModel);
@@ -291,30 +285,6 @@ public sealed class MemphisConsumer : IMemphisConsumer
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            try
-            {
-                var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
-                if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
-                {
-                    durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
-                }
-                var result = _memphisClient.JetStreamManagement.GetConsumerInfo(InternalStationName, durableName);
-                await Task.Delay(_pingConsumerIntervalMs, cancellationToken);
-            }
-            catch
-            {
-                MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
-                    new List<MemphisMessage>(),
-                    _pullSubscription?.Context,
-                    new MemphisException("Station unreachable")));
-            }
-        }
-    }
-
-    internal async Task PingConsumer2(CancellationToken cancellationToken = default)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
             foreach (var subscription in _subscriptions)
             {
                 try
@@ -325,7 +295,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 {
                     MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
                         new List<MemphisMessage>(),
-                        _pullSubscription?.Context,
+                        subscription?.Context,
                         new MemphisException("Station unreachable")));
                 }
             }
@@ -375,19 +345,10 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 break;
             }
 
-            try
-            {
-                FetchFromPartition(cancellationToken);
-                await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
-            }
-            catch (System.Exception e)
-            {
-                MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), _pullSubscription?.Context, e));
-            }
+            FetchFromPartition(cancellationToken);
+            await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
         }
     }
-
-
 
     private void FetchFromPartition(CancellationToken cancellationToken)
     {
@@ -406,7 +367,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         }
         catch (System.Exception e)
         {
-            MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), _pullSubscription?.Context, e));
+            MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), subscription?.Context, e));
         }
     }
 
@@ -450,13 +411,16 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
                 var memphisMessageList = new List<MemphisMessage> { memphisMsg };
 
-                DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, _pullSubscription?.Context, null));
+                var subscription = Partitions.Length == 0 ? _subscriptions[0] : _subscriptions[PartitionResolver.Resolve()];
+
+                DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, subscription.Context, null));
 
                 await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
             }
             catch (System.Exception e)
             {
-                DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), _pullSubscription?.Context, e));
+                var subscription = Partitions.Length == 0 ? _subscriptions[0] : _subscriptions[PartitionResolver.Resolve()];
+                DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), subscription?.Context, e));
             }
 
         }
@@ -496,14 +460,13 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
     public async void Dispose()
     {
-        await _pullSubscription.DrainAsync();
+        StopConsume();
         await _dlsSubscription.DrainAsync();
 
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
 
         _memphisClient?.Dispose();
-        _pullSubscription?.Dispose();
         _dlsSubscription?.Dispose();
     }
 }
