@@ -61,3 +61,12 @@ internal static class MemphisGlobalVariables
 {
     public const string GLOBAL_ACCOUNT_NAME = "$memphis";
 }
+
+internal static class MemphisRequestVersions
+{
+    public const int LastProducerCreationRequestVersion = 2;
+    public const int LastProducerDestroyRequestVersion = 1;
+
+    public const int LastConsumerCreationRequestVersion = 2;
+    public const int LastConsumerDestroyRequestVersion = 1;
+}

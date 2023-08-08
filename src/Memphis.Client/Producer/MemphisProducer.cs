@@ -8,6 +8,7 @@ using Memphis.Client.Constants;
 using Memphis.Client.Exception;
 using Memphis.Client.Helper;
 using Memphis.Client.Models.Request;
+using Memphis.Client.Station;
 using NATS.Client;
 using NATS.Client.Internals;
 using NATS.Client.JetStream;
@@ -32,6 +33,7 @@ public sealed class MemphisProducer : IMemphisProducer
     private readonly string _internalStationName;
     private readonly MemphisClient _memphisClient;
 
+    internal StationPartitionResolver PartitionResolver { get; set; }
 
     public MemphisProducer(MemphisClient memphisClient, string producerName, string stationName, string realName)
     {
@@ -40,6 +42,8 @@ public sealed class MemphisProducer : IMemphisProducer
         _producerName = producerName ?? throw new ArgumentNullException(nameof(producerName));
         _stationName = stationName ?? throw new ArgumentNullException(nameof(stationName));
         _internalStationName = MemphisUtil.GetInternalName(stationName);
+
+        PartitionResolver = new(new int[0]);
     }
 
     /// <summary>
@@ -70,9 +74,16 @@ public sealed class MemphisProducer : IMemphisProducer
     {
         await EnsureMessageIsValid(message, headers);
 
+        string streamName = _internalStationName;
+        if(_memphisClient.StationPartitions.TryGetValue(_stationName, out var partitions) && partitions.PartitionsList.Length > 0)
+        {
+            var partition = PartitionResolver.Resolve();
+            streamName = $"{streamName}${partition}";
+        }
+
         var msg = new Msg
         {
-            Subject = $"{this._internalStationName}.final",
+            Subject = $"{streamName}.final",
             Data = message,
             Header = new MsgHeader
                 {
@@ -151,7 +162,7 @@ public sealed class MemphisProducer : IMemphisProducer
 
         byte[] SerializeMessage(T message)
         {
-            if(IsPrimitiveType(message))
+            if (IsPrimitiveType(message))
                 return Encoding.UTF8.GetBytes(message.ToString());
             var schemaType = _memphisClient.GetStationSchemaType(_internalStationName);
             return schemaType switch
@@ -180,7 +191,7 @@ public sealed class MemphisProducer : IMemphisProducer
                 StationName = _stationName,
                 ConnectionId = _memphisClient.ConnectionId,
                 Username = _memphisClient.Username,
-                RequestVersion = 1,
+                RequestVersion = MemphisRequestVersions.LastProducerDestroyRequestVersion,
             };
 
             var removeProducerModelJson = JsonSerDes.PrepareJsonString<RemoveProducerRequest>(removeProducerModel);
