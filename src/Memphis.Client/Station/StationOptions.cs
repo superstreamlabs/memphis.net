@@ -26,6 +26,7 @@ namespace Memphis.Client.Station
         public bool SendPoisonMessageToDls { get; set; } = false;
         public bool SendSchemaFailedMessageToDls { get; set; } = true;
         public bool TieredStorageEnabled { get; set; } = false;
+        public int PartitionsNumber { get; set; } = 1;
     }
 
     public class RetentionTypes

@@ -26,6 +26,7 @@ public class MemphisClientFixture
             IdempotenceWindowMs = 0,
             SendPoisonMessageToDls = true,
             SendSchemaFailedMessageToDls = true,
+            PartitionsNumber = 3
         };
 
         CommonHeaders = new NameValueCollection();

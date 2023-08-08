@@ -36,6 +36,9 @@ namespace Memphis.Client.Models.Request
 
         [DataMember(Name = "tiered_storage_enabled")]
         public bool TieredStorageEnabled { get; set; }
+        
+        [DataMember(Name = "partitions_number")]
+        public int PartitionsNumber { get; set; }
     }
 
     [DataContract]

@@ -134,6 +134,7 @@ try
             IdempotencyWindowMs = 0,
             SendPoisonMessageToDls = true,
             SendSchemaFailedMessageToDls = true,
+            PartitionsNumber = 3 // defaults to 1
         });
 }
 catch (Exception ex)
@@ -276,6 +277,10 @@ await producer.ProduceAsync(
 );
 ```
 
+
+Note:
+When producing to a station with more than one partition, the producer will produce messages in a Round Robin fashion between the different partitions.
+
 ### Message ID
 
 Stations are idempotent by default for 2 minutes (can be configured), Idempotence achieved by adding a message id
@@ -321,6 +326,9 @@ catch (Exception ex)
     Console.Error.WriteLine(ex);
 }
 ```
+
+Note:
+When consuming from a station with more than one partition, the consumer will consume messages in Round Robin fashion from the different partitions.
 
 ### Creating message handler for consuming a message
 

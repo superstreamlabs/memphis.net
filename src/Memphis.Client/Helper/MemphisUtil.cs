@@ -7,8 +7,8 @@ namespace Memphis.Client.Helper
     internal static class MemphisUtil
     {
         internal static string GetInternalName(string name)
-        {
-            return name.Replace(".", "#");
+        { 
+            return name.ToLower().Replace(".", "#");
         }
         
         internal static string GetStationName(string internalStationName)
