@@ -45,7 +45,9 @@ public class MemphisConsumerTests
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix, string producerName, string message)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var station = await client.CreateStation(stationName);
+        var stationOptions = _fixture.DefaultStationOptions;
+        stationOptions.Name = stationName;
+        var station = await client.CreateStation(stationOptions);
 
         var producerOptions = new MemphisProducerOptions
         {
@@ -54,7 +56,9 @@ public class MemphisConsumerTests
             GenerateUniqueSuffix = generateUniqueSuffix
         };
 
-        await client.ProduceAsync(producerOptions, message, _fixture.CommonHeaders);
+        var producer = await client.CreateProducer(producerOptions);
+
+        await producer.ProduceAsync(message, _fixture.CommonHeaders);
 
         var consumerOptions = new MemphisConsumerOptions
         {
@@ -75,7 +79,7 @@ public class MemphisConsumerTests
         #pragma warning disable 4014
         consumer.ConsumeAsync();
         #pragma warning restore 4014
-        await Task.Delay((int)TimeSpan.FromSeconds(10).TotalMilliseconds);
+        await Task.Delay(TimeSpan.FromSeconds(10));
         
         await consumer.DestroyAsync();
         await station.DestroyAsync();

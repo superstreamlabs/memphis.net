@@ -362,7 +362,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 .Select(item => new MemphisMessage(item, _memphisClient, _consumerOptions.ConsumerGroup,
                     _consumerOptions.MaxAckTimeMs))
                 .ToList();
-
+                
             MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, subscription.Context, null));
         }
         catch (System.Exception e)
