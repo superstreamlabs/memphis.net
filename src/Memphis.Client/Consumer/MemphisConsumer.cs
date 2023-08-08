@@ -97,7 +97,6 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 .WithMaxExpires(_consumerOptions.BatchMaxTimeToWaitMs)
                 .WithMaxDeliver(_consumerOptions.MaxMsgDeliveries)
                 .WithDurable(internalSubjectName)
-                .WithAckPolicy(AckPolicy.Explicit)
                 .BuildPullSubscribeOptions();
 
             var subscription = _memphisClient.JetStreamConnection.PullSubscribe(internalSubjectName + ".final", options);
@@ -113,7 +112,6 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 .WithMaxExpires(_consumerOptions.BatchMaxTimeToWaitMs)
                 .WithMaxDeliver(_consumerOptions.MaxMsgDeliveries)
                 .WithDurable(internalSubjectName)
-                .WithAckPolicy(AckPolicy.Explicit)
                 .BuildPullSubscribeOptions();
 
             var subscription = _memphisClient.JetStreamConnection.PullSubscribe(streamName, options);
