@@ -8,8 +8,9 @@ namespace Memphis.Client.Models.Response;
 [DataContract]
 internal sealed class CreateConsumerResponse
 {
-    [DataMember(Name = "partitions")]
-    public int[] Partitions { get; set; }
+    [DataMember(Name = "partitions_update")]
+    public PartitionsUpdate PartitionsUpdate { get; set; }
+
 
     [DataMember(Name = "error")]
     public string Error { get; set; }

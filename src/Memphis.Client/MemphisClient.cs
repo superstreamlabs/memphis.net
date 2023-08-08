@@ -371,7 +371,7 @@ public sealed class MemphisClient : IMemphisClient
                 throw new MemphisException(responseStr);
             }
 
-            var consumer = new MemphisConsumer(this, consumerOptions, createConsumerResponse.Partitions);
+            var consumer = new MemphisConsumer(this, consumerOptions, createConsumerResponse.PartitionsUpdate.PartitionsList);
             _consumerCache.AddOrUpdate(consumer.Key, consumer, (_, _) => consumer);
 
             return consumer;
