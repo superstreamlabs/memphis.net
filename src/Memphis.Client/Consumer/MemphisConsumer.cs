@@ -94,7 +94,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         if (Partitions.Length == 0)
         {
             var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
-                .WithDurable(internalSubjectName)
+                .WithDurable(_consumerOptions.ConsumerGroup)
                 .BuildPullSubscribeOptions();
 
             var subscription = _memphisClient.JetStreamConnection.PullSubscribe(internalSubjectName + ".final", options);
@@ -107,7 +107,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         {
             var streamName = $"{internalSubjectName}${Partitions[i]}.final";
             var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
-                .WithDurable(internalSubjectName)
+                .WithDurable(_consumerOptions.ConsumerGroup)
                 .BuildPullSubscribeOptions();
 
             var subscription = _memphisClient.JetStreamConnection.PullSubscribe(streamName, options);
