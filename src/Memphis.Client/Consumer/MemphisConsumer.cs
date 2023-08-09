@@ -89,14 +89,16 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
     private void InitSubscription()
     {
+        var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
         var internalSubjectName = MemphisUtil.GetInternalName(_consumerOptions.StationName);
+
+        var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
+            .WithDurable(durableName)
+            .WithMaxDeliver(_consumerOptions.MaxMsgDeliveries)
+            .BuildPullSubscribeOptions();
 
         if (Partitions.Length == 0)
         {
-            var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
-                .WithDurable(MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup))
-                .BuildPullSubscribeOptions();
-
             var subscription = _memphisClient.JetStreamConnection.PullSubscribe(internalSubjectName + ".final", options);
             _subscriptions = new IJetStreamPullSubscription[] { subscription };
             return;
@@ -106,10 +108,6 @@ public sealed class MemphisConsumer : IMemphisConsumer
         for (int i = 0; i < Partitions.Length; i++)
         {
             var streamName = $"{internalSubjectName}${Partitions[i]}.final";
-            var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
-                .WithDurable(MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup))
-                .BuildPullSubscribeOptions();
-
             var subscription = _memphisClient.JetStreamConnection.PullSubscribe(streamName, options);
             _subscriptions[i] = subscription;
         }
@@ -356,7 +354,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 .Select(item => new MemphisMessage(item, _memphisClient, _consumerOptions.ConsumerGroup,
                     _consumerOptions.MaxAckTimeMs))
                 .ToList();
-                
+
             MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, subscription.Context, null));
         }
         catch (System.Exception e)
