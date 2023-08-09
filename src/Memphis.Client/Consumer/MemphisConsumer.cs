@@ -94,8 +94,6 @@ public sealed class MemphisConsumer : IMemphisConsumer
         if (Partitions.Length == 0)
         {
             var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
-                .WithMaxExpires(_consumerOptions.BatchMaxTimeToWaitMs)
-                .WithMaxDeliver(_consumerOptions.MaxMsgDeliveries)
                 .WithDurable(internalSubjectName)
                 .BuildPullSubscribeOptions();
 
@@ -109,8 +107,6 @@ public sealed class MemphisConsumer : IMemphisConsumer
         {
             var streamName = $"{internalSubjectName}${Partitions[i]}.final";
             var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
-                .WithMaxExpires(_consumerOptions.BatchMaxTimeToWaitMs)
-                .WithMaxDeliver(_consumerOptions.MaxMsgDeliveries)
                 .WithDurable(internalSubjectName)
                 .BuildPullSubscribeOptions();
 
