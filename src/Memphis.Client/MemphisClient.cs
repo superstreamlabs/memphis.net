@@ -173,7 +173,14 @@ public sealed class MemphisClient : IMemphisClient
             var producer = new MemphisProducer(this, producerName, stationName, producerName.ToLower());
             if (_stationPartitions.TryGetValue(internalStationName, out PartitionsUpdate partitionsUpdate))
             {
-                producer.PartitionResolver = new(partitionsUpdate.PartitionsList);
+                if (partitionsUpdate.PartitionsList == null)
+                {
+                    producer.PartitionResolver = new(1);
+                } 
+                else 
+                {
+                    producer.PartitionResolver = new(partitionsUpdate.PartitionsList);
+                }
             }
             var producerKey = $"{internalStationName}_{producerName.ToLower()}";
             _producerCache.AddOrUpdate(producerKey, producer, (_, _) => producer);
