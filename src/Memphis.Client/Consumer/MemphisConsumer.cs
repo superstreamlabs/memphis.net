@@ -283,15 +283,31 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 {
                     _ = subscription.GetConsumerInformation();
                 }
-                catch
+                catch(System.Exception exception) when (IsConsumerOrStreamNotFound(exception))
                 {
                     MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
                         new List<MemphisMessage>(),
                         subscription?.Context,
                         new MemphisException("Station unreachable")));
+                    
+                    _subscriptionActive = false;
+                }
+                catch(System.Exception exception)
+                {
+
                 }
             }
             await Task.Delay(_pingConsumerIntervalMs, cancellationToken);
+        }
+
+        static bool IsConsumerOrStreamNotFound(System.Exception exception)
+        {
+            if(exception is null || string.IsNullOrWhiteSpace(exception.Message))
+            {
+                return false;
+            }
+            return exception.Message.Contains("consumer not found") ||
+                   exception.Message.Contains("stream not found");
         }
     }
 
