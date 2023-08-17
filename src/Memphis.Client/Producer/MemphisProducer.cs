@@ -75,17 +75,18 @@ public sealed class MemphisProducer : IMemphisProducer
         await EnsureMessageIsValid(message, headers);
 
         string streamName = _internalStationName;
-        if(_memphisClient.StationPartitions.TryGetValue(_stationName, out var partitions))
+        if (_memphisClient.StationPartitions.TryGetValue(_stationName, out var partitions))
         {
-            if (partitions != null)
+            if (partitions != null && partitions.PartitionsList != null)
             {
-                if (partitions.PartitionsList != null)
+                if(partitions.PartitionsList.Length == 1)
                 {
-                    if (partitions.PartitionsList.Length > 0)
-                    {
-                        var partition = PartitionResolver.Resolve();
-                        streamName = $"{streamName}${partition}";
-                    }
+                    streamName = $"{_internalStationName}${partitions.PartitionsList[0]}";
+                }
+                else if (partitions.PartitionsList.Length > 1)
+                {
+                    var partition = PartitionResolver.Resolve();
+                    streamName = $"{streamName}${partition}";
                 }
             }
         }

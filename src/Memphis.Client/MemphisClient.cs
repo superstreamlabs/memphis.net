@@ -121,6 +121,7 @@ public sealed class MemphisClient : IMemphisClient
         string stationName = producerOptions.StationName;
         string producerName = producerOptions.ProducerName.ToLower();
         bool generateRandomSuffix = producerOptions.GenerateUniqueSuffix;
+        string internalStationName = MemphisUtil.GetInternalName(stationName);
 
         if (_brokerConnection.IsClosed())
         {
@@ -130,6 +131,14 @@ public sealed class MemphisClient : IMemphisClient
         if (generateRandomSuffix)
         {
             producerName = $"{producerName}_{MemphisUtil.GetUniqueKey(8)}";
+        }
+        else
+        {
+            var producerCacheKey = $"{internalStationName}_{producerName}";
+            if (_producerCache.TryGetValue(producerCacheKey, out MemphisProducer producer))
+            {
+                return producer;
+            }
         }
 
         try
@@ -158,14 +167,13 @@ public sealed class MemphisClient : IMemphisClient
                 throw new MemphisException(createProducerResponse.Error);
             }
 
-            string internalStationName = MemphisUtil.GetInternalName(stationName);
 
             _stationSchemaVerseToDlsMap.AddOrUpdate(internalStationName, createProducerResponse.SchemaVerseToDls, (_, _) => createProducerResponse.SchemaVerseToDls);
             _clusterConfigurations.AddOrUpdate(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, createProducerResponse.SendNotification, (_, _) => createProducerResponse.SendNotification);
 
             await ListenForSchemaUpdate(internalStationName, createProducerResponse.SchemaUpdate);
 
-            if(createProducerResponse.PartitionsUpdate is not null)
+            if (createProducerResponse.PartitionsUpdate is not null)
             {
                 _stationPartitions.AddOrUpdate(internalStationName, createProducerResponse.PartitionsUpdate, (_, _) => createProducerResponse.PartitionsUpdate);
             }
@@ -176,14 +184,14 @@ public sealed class MemphisClient : IMemphisClient
                 if (partitionsUpdate.PartitionsList == null)
                 {
                     producer.PartitionResolver = new(1);
-                } 
-                else 
+                }
+                else
                 {
                     producer.PartitionResolver = new(partitionsUpdate.PartitionsList);
                 }
             }
-            var producerKey = $"{internalStationName}_{producerName.ToLower()}";
-            _producerCache.AddOrUpdate(producerKey, producer, (_, _) => producer);
+            var producerCacheKey = $"{internalStationName}_{producerName.ToLower()}";
+            _producerCache.AddOrUpdate(producerCacheKey, producer, (_, _) => producer);
             return producer;
         }
         catch (MemphisException)
