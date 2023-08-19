@@ -39,5 +39,8 @@ namespace Memphis.Client.Models.Request
 
         [DataMember(Name = "req_version")]
         public int RequestVersion { get; set; }
+
+        [DataMember(Name = "app_id")]
+        public string ApplicationId { get; set; }
     }
 }

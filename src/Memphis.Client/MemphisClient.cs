@@ -84,6 +84,8 @@ public sealed class MemphisClient : IMemphisClient
         _producerCache = new();
         _consumerCache = new();
 
+        ApplicationId = Guid.NewGuid().ToString();
+
         _stationSchemaVerseToDlsMap = new();
         _clusterConfigurations = new();
 
@@ -150,7 +152,8 @@ public sealed class MemphisClient : IMemphisClient
                 ConnectionId = _connectionId,
                 ProducerType = "application",
                 RequestVersion = MemphisRequestVersions.LastProducerCreationRequestVersion,
-                UserName = _userName
+                UserName = _userName,
+                ApplicationId = ApplicationId
             };
 
             var createProducerModelJson = JsonSerDes.PrepareJsonString<CreateProducerRequest>(createProducerModel);
@@ -356,6 +359,7 @@ public sealed class MemphisClient : IMemphisClient
                 StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
                 LastMessages = consumerOptions.LastMessages,
                 RequestVersion = MemphisRequestVersions.LastConsumerCreationRequestVersion,
+                ApplicationId = ApplicationId
             };
 
             var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
@@ -875,6 +879,8 @@ public sealed class MemphisClient : IMemphisClient
     {
         get { return _connectionId; }
     }
+
+    internal string ApplicationId { get; private set;}
 
     internal bool IsSchemaVerseToDlsEnabled(string stationName)
         => _stationSchemaVerseToDlsMap.TryGetValue(stationName, out bool schemaVerseToDls) && schemaVerseToDls;
