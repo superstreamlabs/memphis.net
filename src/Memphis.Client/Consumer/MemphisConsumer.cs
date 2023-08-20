@@ -152,7 +152,6 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 ConnectionId = _memphisClient.ConnectionId,
                 Username = _memphisClient.Username,
                 RequestVersion = MemphisRequestVersions.LastConsumerDestroyRequestVersion,
-                ApplicationId = _memphisClient.ApplicationId
             };
 
             var removeConsumerModelJson = JsonSerDes.PrepareJsonString<RemoveConsumerRequest>(removeConsumerModel);

@@ -62,6 +62,13 @@ public sealed class MemphisClient : IMemphisClient
     private readonly SemaphoreSlim _schemaUpdateSemaphore = new(1, 1);
     private readonly SemaphoreSlim _sdkClientUpdateSemaphore = new(1, 1);
 
+    static MemphisClient()
+    {
+        ApplicationId = Guid
+            .NewGuid()
+            .ToString();
+    }
+
     public MemphisClient(Options brokerConnOptions, IConnection brokerConnection,
         IJetStream jetStreamContext, string connectionId)
     {
@@ -83,8 +90,6 @@ public sealed class MemphisClient : IMemphisClient
         _producerPerStations = new();
         _producerCache = new();
         _consumerCache = new();
-
-        ApplicationId = Guid.NewGuid().ToString();
 
         _stationSchemaVerseToDlsMap = new();
         _clusterConfigurations = new();
@@ -880,7 +885,7 @@ public sealed class MemphisClient : IMemphisClient
         get { return _connectionId; }
     }
 
-    internal string ApplicationId { get; private set;}
+    internal static readonly string ApplicationId;
 
     internal bool IsSchemaVerseToDlsEnabled(string stationName)
         => _stationSchemaVerseToDlsMap.TryGetValue(stationName, out bool schemaVerseToDls) && schemaVerseToDls;
