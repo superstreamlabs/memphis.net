@@ -62,6 +62,13 @@ public sealed class MemphisClient : IMemphisClient
     private readonly SemaphoreSlim _schemaUpdateSemaphore = new(1, 1);
     private readonly SemaphoreSlim _sdkClientUpdateSemaphore = new(1, 1);
 
+    static MemphisClient()
+    {
+        ApplicationId = Guid
+            .NewGuid()
+            .ToString();
+    }
+
     public MemphisClient(Options brokerConnOptions, IConnection brokerConnection,
         IJetStream jetStreamContext, string connectionId)
     {
@@ -150,7 +157,8 @@ public sealed class MemphisClient : IMemphisClient
                 ConnectionId = _connectionId,
                 ProducerType = "application",
                 RequestVersion = MemphisRequestVersions.LastProducerCreationRequestVersion,
-                UserName = _userName
+                UserName = _userName,
+                ApplicationId = ApplicationId
             };
 
             var createProducerModelJson = JsonSerDes.PrepareJsonString<CreateProducerRequest>(createProducerModel);
@@ -356,6 +364,7 @@ public sealed class MemphisClient : IMemphisClient
                 StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
                 LastMessages = consumerOptions.LastMessages,
                 RequestVersion = MemphisRequestVersions.LastConsumerCreationRequestVersion,
+                ApplicationId = ApplicationId
             };
 
             var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
@@ -875,6 +884,8 @@ public sealed class MemphisClient : IMemphisClient
     {
         get { return _connectionId; }
     }
+
+    internal static readonly string ApplicationId;
 
     internal bool IsSchemaVerseToDlsEnabled(string stationName)
         => _stationSchemaVerseToDlsMap.TryGetValue(stationName, out bool schemaVerseToDls) && schemaVerseToDls;
