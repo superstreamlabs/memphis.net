@@ -38,6 +38,7 @@ public interface IMemphisClient : IDisposable
     /// <param name="message">Message to produce</param>
     /// <param name="headers">Message headers</param>
     /// <param name="messageId">Message id</param>
+    /// <param name="asyncProduceAck">Whether to wait for ack before returning</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
     Task ProduceAsync(
@@ -45,6 +46,7 @@ public interface IMemphisClient : IDisposable
         byte[] message,
         NameValueCollection headers = default,
         string messageId = default,
+        bool asyncProduceAck = true,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -54,6 +56,7 @@ public interface IMemphisClient : IDisposable
     /// <param name="message">Message to produce</param>
     /// <param name="headers">Message headers</param>
     /// <param name="messageId">Message id</param>
+    /// <param name="asyncProduceAck">Whether to wait for ack before returning</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
     Task ProduceAsync<T>(
@@ -61,6 +64,7 @@ public interface IMemphisClient : IDisposable
         T message,
         NameValueCollection headers = default,
         string messageId = default,
+        bool asyncProduceAck = true,
         CancellationToken cancellationToken = default);
 
     /// <summary>

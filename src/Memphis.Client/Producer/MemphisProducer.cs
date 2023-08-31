@@ -53,11 +53,12 @@ public sealed class MemphisProducer : IMemphisProducer
     /// <param name="headers">headers used to send data in the form of key and value</param>
     /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
     /// <param name="messageId">Message ID - for idempotent message production</param>
+    /// <param name="asyncProduceAck">if true, the method will return immediately after sending the message to the broker. If false, the method will wait for the acknowledgement from the broker before returning.</param>
     /// <returns></returns>
     public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
-        string? messageId = default)
+        string? messageId = default, bool asyncProduceAck = true)
     {
-        await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, messageId);
+        await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, asyncProduceAck ,messageId);
     }
 
 
@@ -66,10 +67,15 @@ public sealed class MemphisProducer : IMemphisProducer
     /// </summary>
     /// <param name="message">message to produce</param>
     /// <param name="headers">headers used to send data in the form of key and value</param>
+    /// <param name="asyncProduceAck">if true, the method will return immediately after sending the message to the broker. If false, the method will wait for the acknowledgement from the broker before returning.</param>
     /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
     /// <param name="messageId">Message ID - for idempotent message production</param>
     /// <returns></returns>
-    internal async Task ProduceToBrokerAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
+    internal async Task ProduceToBrokerAsync(
+        byte[] message, 
+        NameValueCollection headers,
+        bool asyncProduceAck, 
+        int ackWaitMs = 15_000,
         string? messageId = default)
     {
         await EnsureMessageIsValid(message, headers);
@@ -117,11 +123,15 @@ public sealed class MemphisProducer : IMemphisProducer
 
         try
         {
-            var publishAck = await _memphisClient.JetStreamConnection.PublishAsync(
+            Task<PublishAck> publishAckTask =  _memphisClient.JetStreamConnection.PublishAsync(
                             msg, PublishOptions.Builder()
                                 .WithTimeout(Duration.OfMillis(ackWaitMs))
                                 .Build());
 
+            if(asyncProduceAck)
+                return;
+
+            var publishAck = await publishAckTask;
             if (publishAck.HasError)
             {
                 throw new MemphisException(publishAck.ErrorDescription);
@@ -147,7 +157,7 @@ public sealed class MemphisProducer : IMemphisProducer
         async Task ReInitializeProducerAndRetry(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
           string? messageId = default)
         {
-            await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, messageId);
+            await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, asyncProduceAck ,messageId);
         }
     }
 
@@ -159,16 +169,18 @@ public sealed class MemphisProducer : IMemphisProducer
     /// <param name="headers">headers used to send data in the form of key and value</param>
     /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
     /// <param name="messageId">Message ID - for idempotent message production</param>
+    /// <param name="asyncProduceAck">if true, the method will return immediately after sending the message to the broker. If false, the method will wait for the acknowledgement from the broker before returning.</param>
     /// <returns></returns>
     public async Task ProduceAsync<T>(T message, NameValueCollection headers, int ackWaitMs = 15_000,
-        string? messageId = default)
+        string? messageId = default, bool asyncProduceAck = true)
     {
 
         await ProduceAsync(
             SerializeMessage(message),
             headers,
             ackWaitMs,
-            messageId);
+            messageId,
+            asyncProduceAck);
 
         byte[] SerializeMessage(T message)
         {

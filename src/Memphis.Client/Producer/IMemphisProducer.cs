@@ -13,9 +13,10 @@ public interface IMemphisProducer
     /// <param name="headers">headers used to send data in the form of key and value</param>
     /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
     /// <param name="messageId">Message ID - for idempotent message production</param>
+    /// <param name="asyncProduceAck">Whether to wait for ack before returning</param>
     /// <returns></returns>
     public Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
-        string? messageId = default);
+        string? messageId = default, bool asyncProduceAck = true);
 
     /// <summary>
     /// Produce messages into station
@@ -24,9 +25,10 @@ public interface IMemphisProducer
     /// <param name="headers">headers used to send data in the form of key and value</param>
     /// <param name="ackWaitMs">duration of time in milliseconds for acknowledgement</param>
     /// <param name="messageId">Message ID - for idempotent message production</param>
+    /// <param name="asyncProduceAck">Whether to wait for ack before returning</param>
     /// <returns></returns>
     public Task ProduceAsync<T>(T message, NameValueCollection headers, int ackWaitMs = 15_000,
-        string? messageId = default);
+        string? messageId = default, bool asyncProduceAck = true);
 
     /// <summary>
     /// Destroy producer
