@@ -254,8 +254,7 @@ try
     var producer = await client.CreateProducer(new MemphisProducerOptions
     {
         StationName = "<memphis-station-name>",
-        ProducerName = "<memphis-producer-name>",
-        GenerateUniqueSuffix = true
+        ProducerName = "<memphis-producer-name>"
     });
 }
 catch (Exception ex)
@@ -280,6 +279,26 @@ await producer.ProduceAsync(
 
 Note:
 When producing to a station with more than one partition, the producer will produce messages in a Round Robin fashion between the different partitions.
+
+### Async produce
+For better performance. The client won't block requests while waiting for an acknowledgment.
+
+```csharp
+await producer.ProduceAsync(
+    message: Encoding.UTF8.GetBytes(text), 
+    headers: commonHeaders,
+    asyncProduceAck: true);
+```
+
+### Sync produce
+For better reliability. The client will block requests and will wait for an acknowledgment.
+
+```csharp
+await producer.ProduceAsync(
+    message: Encoding.UTF8.GetBytes(text), 
+    headers: commonHeaders,
+    asyncProduceAck: false);
+```
 
 ### Message ID
 
@@ -383,7 +402,6 @@ client.FetchMessages(new FetchMessageOptions
     BatchMaxTimeToWaitMs= 5000, // defaults to 5000
     MaxAckTimeMs= 30000, // defaults to 30000
     MaxMsgDeliveries= 10, // defaults to 10
-    GenerateUniqueSuffix= false, // defaults to false
     StartConsumeFromSequence= 1, // start consuming from a specific sequence. defaults to 1
     LastMessages= -1 // consume the last N messages, defaults to -1 (all messages in the station)
 });
