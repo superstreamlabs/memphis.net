@@ -243,6 +243,7 @@ public sealed class MemphisClient : IMemphisClient
     /// <param name="message">message to be produced</param>
     /// <param name="headers">headers of the message</param>
     /// <param name="messageId">Message ID - for idempotent message production</param>
+    /// <param name="asyncProduceAck">if true, producer will not wait for ack from broker</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns></returns>
     public async Task ProduceAsync(
@@ -250,6 +251,7 @@ public sealed class MemphisClient : IMemphisClient
         byte[] message,
         NameValueCollection headers = default,
         string messageId = default,
+        bool asyncProduceAck = true,
         CancellationToken cancellationToken = default)
     {
         if (!IsConnected())
@@ -267,7 +269,7 @@ public sealed class MemphisClient : IMemphisClient
 
         producer ??= await CreateProducer(options);
 
-        await producer.ProduceToBrokerAsync(message, headers, options.MaxAckTimeMs, messageId);
+        await producer.ProduceToBrokerAsync(message, headers, asyncProduceAck, options.MaxAckTimeMs, messageId);
     }
 
     internal async Task ProduceAsync(
@@ -275,6 +277,7 @@ public sealed class MemphisClient : IMemphisClient
         byte[] message,
         NameValueCollection headers,
         int ackWaitMs,
+        bool asyncProduceAck,
         string? messageId = default)
     {
         MemphisProducerOptions options = new()
@@ -285,7 +288,7 @@ public sealed class MemphisClient : IMemphisClient
             MaxAckTimeMs = ackWaitMs
         };
 
-        await ProduceAsync(options, message, headers, messageId);
+        await ProduceAsync(options, message, headers, messageId, asyncProduceAck);
     }
 
     /// <summary>
@@ -302,6 +305,7 @@ public sealed class MemphisClient : IMemphisClient
         T message,
         NameValueCollection headers = default,
         string messageId = default,
+        bool asyncProduceAck = true,
         CancellationToken cancellationToken = default)
     {
         if (!IsConnected())
