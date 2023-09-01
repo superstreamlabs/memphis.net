@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -86,7 +87,9 @@ namespace Memphis.Client
             try
             {
 
-                SuppressDefaultEventHandlerLogs(brokerConnOptions);
+                SuppressDefaultNatsEventHandlerLogs(brokerConnOptions);
+                ConfigureEventHandlers(brokerConnOptions, opts);
+
 
                 IConnection brokerConnection = await EstablishBrokerManagerConnection(brokerConnOptions, cancellationToken);
                 IJetStream jetStreamContext = brokerConnection.CreateJetStreamContext();
@@ -101,8 +104,26 @@ namespace Memphis.Client
                 throw new MemphisConnectionException("error occurred, when connecting memphis", e);
             }
 
+            static void ConfigureEventHandlers(Options options, ClientOptions clientOptions)
+            {
+                if (clientOptions.ClosedEventHandler is null)
+                {
+                    options.ClosedEventHandler += DefaultErrorHandler;
+                    return;
+                }
+                options.ClosedEventHandler += (sender, args)
+                 => clientOptions.ClosedEventHandler.Invoke(sender, args);
+            }
 
-            void SuppressDefaultEventHandlerLogs(Options options)
+            static void DefaultErrorHandler(object sender, ConnEventArgs args)
+            {
+                if (args is { Error: { } })
+                {
+                    Console.WriteLine(args.Error);
+                }
+            }
+
+            static void SuppressDefaultNatsEventHandlerLogs(Options options)
             {
                 options.ClosedEventHandler += (_, _) => { };
                 options.ServerDiscoveredEventHandler += (_, _) => { };
