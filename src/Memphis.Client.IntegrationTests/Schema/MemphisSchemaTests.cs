@@ -10,6 +10,7 @@ public class MemphisSchemaTests
     }
 
     [Theory]
+    [Trait("CI","Skip")]
     [InlineData("test_schema_person", "json", "TestFiles/Schema/JSON/person.json")]
     public async Task GivenSchemaOptions_WhenCreateSchema_ThenSchemaIsCreated(
         string schemaName, string schemaType, string schemaFilePath)

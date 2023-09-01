@@ -11,13 +11,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
+    
+    - name: Download docker-compose file
+      run: |
+        curl -s https://memphisdev.github.io/memphis-docker/docker-compose-dev.yml -o docker-compose.yaml
+
+    - name: Run docker-compose file
+      run: docker compose -f docker-compose.yaml -p memphis up -d
+
     - name: Restore dependencies
       run: dotnet restore src/Memphis.Client.sln
+
     - name: Build
       run: dotnet build --no-restore src/Memphis.Client.sln
+
     - name: Test
-      run: dotnet test --no-build --verbosity normal --filter FullyQualifiedName\!~IntegrationTests src/Memphis.Client.sln
+      run: dotnet test --no-build --verbosity normal --filter CI!=Skip src/Memphis.Client.sln
