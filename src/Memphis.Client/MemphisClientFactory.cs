@@ -159,7 +159,7 @@ namespace Memphis.Client
             }
             catch (System.Exception ex)
             {
-                if (ex.Message.IndexOf("account ID", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (ex.Message.IndexOf("Authorization Violation", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     var pattern = @"(?<username>[^$]*)(?<separator>\$)(?<accountId>.+)";
                     if (Regex.Match(brokerOptions.User, pattern) is { Success: true } match)
