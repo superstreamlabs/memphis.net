@@ -119,7 +119,7 @@ namespace Memphis.Client
             {
                 if (args is { Error: { } })
                 {
-                    Console.WriteLine(args.Error);
+                    Console.WriteLine(new MemphisException(args.Error.ToString()).ToString());
                 }
             }
 
@@ -157,17 +157,20 @@ namespace Memphis.Client
                 return new ConnectionFactory()
                     .CreateConnection(brokerOptions);
             }
-            catch
+            catch (System.Exception ex)
             {
-                var pattern = @"(?<username>[^$]*)(?<separator>\$)(?<accountId>.+)";
-                if (Regex.Match(brokerOptions.User, pattern) is { Success: true } match)
+                if (ex.Message.IndexOf("Authorization Violation", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    await DelayLocalConnection(brokerOptions.Servers);
-                    brokerOptions.User = match.Groups["username"].Value;
-                    return new ConnectionFactory()
-                        .CreateConnection(brokerOptions);
+                    var pattern = @"(?<username>[^$]*)(?<separator>\$)(?<accountId>.+)";
+                    if (Regex.Match(brokerOptions.User, pattern) is { Success: true } match)
+                    {
+                        await DelayLocalConnection(brokerOptions.Servers);
+                        brokerOptions.User = match.Groups["username"].Value;
+                        return new ConnectionFactory()
+                            .CreateConnection(brokerOptions);
+                    }
                 }
-                throw;
+                throw new MemphisException(ex.ToString());
             }
         }
 
