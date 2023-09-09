@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -17,6 +18,7 @@ using Memphis.Client.Models.Response;
 using Memphis.Client.Producer;
 using Memphis.Client.Station;
 using Memphis.Client.Validators;
+using Murmur;
 using NATS.Client;
 using NATS.Client.JetStream;
 using Newtonsoft.Json;
@@ -843,6 +845,17 @@ public sealed class MemphisClient : IMemphisClient
 
         RemoveStationConsumers(station.Name);
         RemoveStationProducers(station.Name);
+    }
+
+    internal int GetPartitionFromKey(string key, string stationName)
+    {
+        var hasher = MurmurHash.Create32(MemphisGlobalVariables.MURMUR_HASH_SEED);
+        var hash = hasher.ComputeHash(Encoding.UTF8.GetBytes(key));
+        var unsignedHash = BitConverter.ToUInt32(hash, 0);
+        var partitionLength = _stationPartitions[stationName].PartitionsList.Length;
+        var partitionIndex = unsignedHash % partitionLength;
+
+        return _stationPartitions[stationName].PartitionsList[partitionIndex];
     }
 
     internal async Task SendNotificationAsync(string title, string message, string code, string msgType)
