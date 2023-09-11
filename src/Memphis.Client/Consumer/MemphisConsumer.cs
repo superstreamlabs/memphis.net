@@ -159,7 +159,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
             byte[] removeConsumerReqBytes = Encoding.UTF8.GetBytes(removeConsumerModelJson);
 
             Msg removeProducerResp = await _memphisClient.BrokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_CONSUMER_DESTRUCTIONS, removeConsumerReqBytes);
+                MemphisStations.MEMPHIS_CONSUMER_DESTRUCTIONS, removeConsumerReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
             string errResp = Encoding.UTF8.GetString(removeProducerResp.Data);
 
             if (!string.IsNullOrEmpty(errResp))
@@ -289,7 +289,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                         new List<MemphisMessage>(),
                         subscription?.Context,
                         new MemphisException("Station unreachable")));
-                    
+
                     _subscriptionActive = false;
                 }
                 catch(System.Exception exception)
