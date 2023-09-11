@@ -56,9 +56,9 @@ public sealed class MemphisProducer : IMemphisProducer
     /// <param name="asyncProduceAck">if true, the method will return immediately after sending the message to the broker. If false, the method will wait for the acknowledgement from the broker before returning.</param>
     /// <returns></returns>
     public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
-        string? messageId = default, bool asyncProduceAck = true)
+        string? messageId = default, bool asyncProduceAck = true, string partitionKey = "")
     {
-        await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, asyncProduceAck ,messageId);
+        await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, asyncProduceAck, messageId);
     }
 
 
@@ -72,27 +72,30 @@ public sealed class MemphisProducer : IMemphisProducer
     /// <param name="messageId">Message ID - for idempotent message production</param>
     /// <returns></returns>
     internal async Task ProduceToBrokerAsync(
-        byte[] message, 
+        byte[] message,
         NameValueCollection headers,
-        bool asyncProduceAck, 
+        bool asyncProduceAck,
+        string partitionKey,
         int ackWaitMs = 15_000,
         string? messageId = default)
     {
         await EnsureMessageIsValid(message, headers);
 
         string streamName = _internalStationName;
-        if (_memphisClient.StationPartitions.TryGetValue(_stationName, out var partitions))
+        if (_memphisClient.StationPartitions.TryGetValue(_internalStationName, out var partitions))
         {
             if (partitions != null && partitions.PartitionsList != null)
             {
-                if(partitions.PartitionsList.Length == 1)
+                if (partitions.PartitionsList.Length == 1)
                 {
                     streamName = $"{_internalStationName}${partitions.PartitionsList[0]}";
                 }
                 else if (partitions.PartitionsList.Length > 1)
                 {
-                    var partition = PartitionResolver.Resolve();
-                    streamName = $"{streamName}${partition}";
+                    var partition = !string.IsNullOrWhiteSpace(partitionKey) 
+                        ? _memphisClient.GetPartitionFromKey(partitionKey, _internalStationName) 
+                        : PartitionResolver.Resolve();
+                    streamName = $"{_internalStationName}${partition}";
                 }
             }
         }
@@ -123,12 +126,12 @@ public sealed class MemphisProducer : IMemphisProducer
 
         try
         {
-            Task<PublishAck> publishAckTask =  _memphisClient.JetStreamConnection.PublishAsync(
+            Task<PublishAck> publishAckTask = _memphisClient.JetStreamConnection.PublishAsync(
                             msg, PublishOptions.Builder()
                                 .WithTimeout(Duration.OfMillis(ackWaitMs))
                                 .Build());
 
-            if(asyncProduceAck)
+            if (asyncProduceAck)
                 return;
 
             var publishAck = await publishAckTask;
@@ -157,7 +160,7 @@ public sealed class MemphisProducer : IMemphisProducer
         async Task ReInitializeProducerAndRetry(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
           string? messageId = default)
         {
-            await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, asyncProduceAck ,messageId);
+            await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, asyncProduceAck, messageId, partitionKey);
         }
     }
 
@@ -172,7 +175,7 @@ public sealed class MemphisProducer : IMemphisProducer
     /// <param name="asyncProduceAck">if true, the method will return immediately after sending the message to the broker. If false, the method will wait for the acknowledgement from the broker before returning.</param>
     /// <returns></returns>
     public async Task ProduceAsync<T>(T message, NameValueCollection headers, int ackWaitMs = 15_000,
-        string? messageId = default, bool asyncProduceAck = true)
+        string? messageId = default, bool asyncProduceAck = true, string partitionKey = "")
     {
 
         await ProduceAsync(
@@ -184,6 +187,8 @@ public sealed class MemphisProducer : IMemphisProducer
 
         byte[] SerializeMessage(T message)
         {
+            if (message is byte[])
+                return (message as byte[])!;
             if (IsPrimitiveType(message))
                 return Encoding.UTF8.GetBytes(message.ToString());
             var schemaType = _memphisClient.GetStationSchemaType(_internalStationName);

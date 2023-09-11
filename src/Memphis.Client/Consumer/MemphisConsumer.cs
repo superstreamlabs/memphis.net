@@ -179,12 +179,22 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// Fetch a batch of messages
     /// </summary>
     /// <param name="batchSize">the number of messages to fetch</param>
-    /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
+    /// <param name="prefetch">if true, Memphis will prefetch messages for the consumer</param>
     /// <returns>A batch of messages</returns>
     public IEnumerable<MemphisMessage> Fetch(int batchSize, bool prefetch)
     {
+        return Fetch(new()
+        {
+            BatchSize = batchSize,
+            Prefetch = prefetch,
+        });
+    }
+
+    internal IEnumerable<MemphisMessage> Fetch(FetchMessageOptions fetchMessageOptions)
+    {
         try
         {
+            var batchSize = fetchMessageOptions.BatchSize;
             _consumerOptions.BatchSize = batchSize;
             IEnumerable<MemphisMessage> messages = Enumerable.Empty<MemphisMessage>();
 
@@ -208,9 +218,9 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 messages = prefetchedMessages;
             }
 
-            if (prefetch)
+            if (fetchMessageOptions.Prefetch)
             {
-                Task.Run(() => Prefetch(), _cancellationTokenSource.Token);
+                Task.Run(() => Prefetch(fetchMessageOptions.PartitionKey), _cancellationTokenSource.Token);
             }
 
             if (messages.Any())
@@ -218,7 +228,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 return messages;
             }
 
-            return FetchSubscriptionWithTimeOut(batchSize);
+            return FetchSubscriptionWithTimeOut(batchSize, fetchMessageOptions.PartitionKey);
         }
         catch (System.Exception ex)
         {
@@ -251,7 +261,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         return true;
     }
 
-    internal void Prefetch()
+    internal void Prefetch(string partitionKey)
     {
         var lowerCaseStationName = _consumerOptions.StationName.ToLower();
         var consumerGroup = _consumerOptions.ConsumerGroup;
@@ -263,7 +273,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         {
             _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup] = new();
         }
-        var messages = FetchSubscriptionWithTimeOut(_consumerOptions.BatchSize);
+        var messages = FetchSubscriptionWithTimeOut(_consumerOptions.BatchSize, partitionKey);
         _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup].AddRange(messages);
     }
 
@@ -319,15 +329,19 @@ public sealed class MemphisConsumer : IMemphisConsumer
         _subscriptionActive = false;
     }
 
-    private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(int batchSize)
+    private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(int batchSize, string partitionKey)
     {
         var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
         if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
         {
             durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
         }
-
-        var subscription = Partitions.Length == 0 ? _subscriptions[0] : _subscriptions[PartitionResolver.Resolve()];
+        int partitionNumber = Partitions.Length == 0 ? 0 : PartitionResolver.Resolve();
+        if(!string.IsNullOrWhiteSpace(partitionKey))
+        {
+            partitionNumber = _memphisClient.GetPartitionFromKey(partitionKey, _consumerOptions.StationName);
+        }
+        var subscription = _subscriptions[partitionNumber];
 
         var batch = subscription.Fetch(batchSize, _consumerOptions.BatchMaxTimeToWaitMs);
         return batch

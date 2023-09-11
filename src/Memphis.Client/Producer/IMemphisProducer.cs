@@ -16,7 +16,7 @@ public interface IMemphisProducer
     /// <param name="asyncProduceAck">Whether to wait for ack before returning</param>
     /// <returns></returns>
     public Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
-        string? messageId = default, bool asyncProduceAck = true);
+        string? messageId = default, bool asyncProduceAck = true, string partitionKey = "");
 
     /// <summary>
     /// Produce messages into station
@@ -28,7 +28,7 @@ public interface IMemphisProducer
     /// <param name="asyncProduceAck">Whether to wait for ack before returning</param>
     /// <returns></returns>
     public Task ProduceAsync<T>(T message, NameValueCollection headers, int ackWaitMs = 15_000,
-        string? messageId = default, bool asyncProduceAck = true);
+        string? messageId = default, bool asyncProduceAck = true, string partitionKey = "");
 
     /// <summary>
     /// Destroy producer

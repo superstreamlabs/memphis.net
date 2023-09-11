@@ -47,6 +47,7 @@ public interface IMemphisClient : IDisposable
         NameValueCollection headers = default,
         string messageId = default,
         bool asyncProduceAck = true,
+        string partitionKey = "",
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -65,6 +66,7 @@ public interface IMemphisClient : IDisposable
         NameValueCollection headers = default,
         string messageId = default,
         bool asyncProduceAck = true,
+        string partitionKey = "",
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -130,7 +132,7 @@ public interface IMemphisClient : IDisposable
     /// <returns>MemphisConsumer</returns>
     Task<MemphisConsumer> CreateConsumer(FetchMessageOptions fetchMessageOptions);
 
-    
+
 }
 
 #pragma warning restore CS8625
