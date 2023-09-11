@@ -221,7 +221,7 @@ public sealed class MemphisProducer : IMemphisProducer
             byte[] removeProducerReqBytes = Encoding.UTF8.GetBytes(removeProducerModelJson);
 
             Msg removeProducerResp = await _memphisClient.BrokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_PRODUCER_DESTRUCTIONS, removeProducerReqBytes);
+                MemphisStations.MEMPHIS_PRODUCER_DESTRUCTIONS, removeProducerReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
             string errResp = Encoding.UTF8.GetString(removeProducerResp.Data);
 
             if (!string.IsNullOrEmpty(errResp))

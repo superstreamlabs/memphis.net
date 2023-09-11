@@ -166,7 +166,7 @@ public sealed class MemphisClient : IMemphisClient
             byte[] createProducerReqBytes = Encoding.UTF8.GetBytes(createProducerModelJson);
 
             Msg createProducerResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_PRODUCER_CREATIONS, createProducerReqBytes);
+                MemphisStations.MEMPHIS_PRODUCER_CREATIONS, createProducerReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
             string respAsJson = Encoding.UTF8.GetString(createProducerResp.Data);
             var createProducerResponse = JsonConvert.DeserializeObject<CreateProducerResponse>(respAsJson)!;
 
@@ -376,7 +376,7 @@ public sealed class MemphisClient : IMemphisClient
             byte[] createConsumerReqBytes = Encoding.UTF8.GetBytes(createConsumerModelJson);
 
             Msg createConsumerResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes);
+                MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
             var responseStr = Encoding.UTF8.GetString(createConsumerResp.Data);
             var createConsumerResponse = JsonConvert.DeserializeObject<CreateConsumerResponse>(responseStr);
 
@@ -455,7 +455,7 @@ public sealed class MemphisClient : IMemphisClient
             byte[] createStationReqBytes = Encoding.UTF8.GetBytes(createStationModelJson);
 
             Msg createStationResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_STATION_CREATIONS, createStationReqBytes);
+                MemphisStations.MEMPHIS_STATION_CREATIONS, createStationReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds, cancellationToken);
             string errResp = Encoding.UTF8.GetString(createStationResp.Data);
 
             if (!string.IsNullOrEmpty(errResp))
@@ -523,7 +523,7 @@ public sealed class MemphisClient : IMemphisClient
             byte[] attachSchemaReqBytes = Encoding.UTF8.GetBytes(attachSchemaModelJson);
 
             Msg attachSchemaResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_SCHEMA_ATTACHMENTS, attachSchemaReqBytes);
+                MemphisStations.MEMPHIS_SCHEMA_ATTACHMENTS, attachSchemaReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds, cancellationToken);
             string errResp = Encoding.UTF8.GetString(attachSchemaResp.Data);
 
             if (!string.IsNullOrEmpty(errResp))
@@ -579,7 +579,7 @@ public sealed class MemphisClient : IMemphisClient
             byte[] detachSchemaReqBytes = Encoding.UTF8.GetBytes(detachSchemaModelJson);
 
             Msg detachSchemaResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_SCHEMA_DETACHMENTS, detachSchemaReqBytes);
+                MemphisStations.MEMPHIS_SCHEMA_DETACHMENTS, detachSchemaReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
             string errResp = Encoding.UTF8.GetString(detachSchemaResp.Data);
 
             if (!string.IsNullOrEmpty(errResp))
@@ -624,7 +624,7 @@ public sealed class MemphisClient : IMemphisClient
         var result = await _brokerConnection.RequestAsync(
            MemphisSubjects.SCHEMA_CREATION,
            Encoding.UTF8.GetBytes(requestJson),
-           (int)TimeSpan.FromSeconds(5).TotalMilliseconds,
+           (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
            cancellationToken);
 
         HandleSchemaCreationErrorResponse(result.Data);
@@ -832,7 +832,10 @@ public sealed class MemphisClient : IMemphisClient
 
         var requestJson = JsonSerDes.PrepareJsonString<RemoveStationRequest>(request);
         var result = await _brokerConnection.RequestAsync(
-            MemphisStations.MEMPHIS_STATION_DESTRUCTION, Encoding.UTF8.GetBytes(requestJson), cancellationToken);
+            MemphisStations.MEMPHIS_STATION_DESTRUCTION, 
+            Encoding.UTF8.GetBytes(requestJson),
+            (int)TimeSpan.FromSeconds(20).TotalMilliseconds, 
+            cancellationToken);
 
         string errResp = Encoding.UTF8.GetString(result.Data);
 
