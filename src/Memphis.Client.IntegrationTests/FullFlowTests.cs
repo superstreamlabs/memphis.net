@@ -54,7 +54,48 @@ public class FullFlowTests
         await producer.DestroyAsync();
 
         await station.DestroyAsync();
+    }
 
+    [Theory]
+    [Trait("CI", "Skip")]
+    [InlineData("docker", "test_partition_key", 100)]
+    public async Task CreateStation_ProduceAndConsumeWithPartitionKey_ThenDestroy(
+        string platform,
+        string partitionKey,
+        int totalMessages)
+    {
+        using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
+
+        var station = await client.CreateStation(Config.GetStationOptions(platform));
+
+        var producer = await client.CreateProducer(Config.GetProducerOptions(platform));
+
+        await producer.ShouldProduceMessages(totalMessages, partitionKey);
+
+        var consumer1 = await client.CreateConsumer(Config.GetConsumerOptions(platform, 1));
+        var consumer2 = await client.CreateConsumer(Config.GetConsumerOptions(platform, 2));
+        var consumer3 = await client.CreateConsumer(Config.GetConsumerOptions(platform, 3, "dotnet.consumers.three.four"));
+        var consumer4 = await client.CreateConsumer(Config.GetConsumerOptions(platform, 4, "dotnet.consumers.three.four"));
+
+
+        int consumer1Count = await consumer1.CountConsumedMessages(partitionKey);
+        int consumer2Count = await consumer2.CountConsumedMessages(partitionKey);
+
+        Assert.Equal(totalMessages, consumer1Count);
+        Assert.Equal(totalMessages, consumer2Count);
+
+        int consumer34Count = await Extensions.CountMessagesConsumedByGroup(consumer3, consumer4, partitionKey);
+
+        Assert.Equal(totalMessages, consumer34Count);
+
+        await consumer1.DestroyAsync();
+        await consumer2.DestroyAsync();
+        await consumer3.DestroyAsync();
+        await consumer4.DestroyAsync();
+
+        await producer.DestroyAsync();
+
+        await station.DestroyAsync();
     }
 }
 
@@ -118,7 +159,7 @@ file static class Config
 
 file static class Extensions
 {
-    public static async Task<int> CountConsumedMessages(this MemphisConsumer consumer)
+    public static async Task<int> CountConsumedMessages(this MemphisConsumer consumer, string partitionKey = null)
     {
         int count = 0;
         consumer.MessageReceived += (sender, args) =>
@@ -130,21 +171,21 @@ file static class Extensions
             }
         };
 
-        _ = consumer.ConsumeAsync();
+        _ = consumer.ConsumeAsync(new ConsumeOptions { PartitionKey = partitionKey });
         await Task.Delay(TimeSpan.FromSeconds(10));
         return count;
     }
 
 
-    public static async Task ShouldProduceMessages(this MemphisProducer producer, int totalMessages)
+    public static async Task ShouldProduceMessages(this MemphisProducer producer, int totalMessages, string partitionKey = null)
     {
         for (int i = 0; i < totalMessages; i++)
         {
-            await producer.ProduceAsync($"Message {i + 1}: Hello World", Config.Headers);
+            await producer.ProduceAsync($"Message {i + 1}: Hello World", Config.Headers, partitionKey: partitionKey);
         }
     }
 
-    public static async Task<int> CountMessagesConsumedByGroup(MemphisConsumer consumer1, MemphisConsumer consumer2)
+    public static async Task<int> CountMessagesConsumedByGroup(MemphisConsumer consumer1, MemphisConsumer consumer2, string partitionKey = null)
     {
         int count = 0;
         consumer1.MessageReceived += (sender, args) =>
@@ -160,8 +201,8 @@ file static class Extensions
             args.MessageList.ForEach(msg => msg.Ack());
         };
 
-        _ = consumer1.ConsumeAsync();
-        _ = consumer2.ConsumeAsync();
+        _ = consumer1.ConsumeAsync(new ConsumeOptions { PartitionKey = partitionKey });
+        _ = consumer2.ConsumeAsync(new ConsumeOptions { PartitionKey = partitionKey });
         await Task.Delay(TimeSpan.FromSeconds(10));
         return count;
     }
