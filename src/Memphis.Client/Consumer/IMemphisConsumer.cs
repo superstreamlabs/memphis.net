@@ -25,6 +25,14 @@ public interface IMemphisConsumer : IDisposable
     Task ConsumeAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// ConsumeAsync messages
+    /// </summary>
+    /// <param name="options">Consume options</param>
+    /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
+    /// <returns></returns>
+    Task ConsumeAsync(ConsumeOptions options, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Fetch a batch of messages
     /// </summary>
     /// <param name="batchSize">the number of messages to fetch</param>

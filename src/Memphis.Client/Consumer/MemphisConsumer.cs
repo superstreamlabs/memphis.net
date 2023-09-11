@@ -119,12 +119,19 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// <returns></returns>
     public async Task ConsumeAsync(CancellationToken cancellationToken = default)
     {
-        var taskForStationConsumption = Task.Run(
-            async () => await Consume(_cancellationTokenSource.Token),
-            _cancellationTokenSource.Token);
-        var taskForDlsConsumption = Task.Run(
-            async () => await ConsumeFromDls(_cancellationTokenSource.Token),
-            _cancellationTokenSource.Token);
+        await ConsumeAsync(new(), cancellationToken);
+    }
+
+    /// <summary>
+    /// ConsumeAsync messages
+    /// </summary>
+    /// <param name="options">Consume options</param>
+    /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
+    /// <returns></returns>
+    public async Task ConsumeAsync(ConsumeOptions options, CancellationToken cancellationToken = default)
+    {
+        var taskForStationConsumption = Task.Run(async () => await Consume(options.PartitionKey, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
+        var taskForDlsConsumption = Task.Run(async () => await ConsumeFromDls(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
         await Task.WhenAll(taskForStationConsumption, taskForDlsConsumption);
     }
 
@@ -293,7 +300,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 {
                     _ = subscription.GetConsumerInformation();
                 }
-                catch(System.Exception exception) when (IsConsumerOrStreamNotFound(exception))
+                catch (System.Exception exception) when (IsConsumerOrStreamNotFound(exception))
                 {
                     MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
                         new List<MemphisMessage>(),
@@ -302,7 +309,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
                     _subscriptionActive = false;
                 }
-                catch(System.Exception exception)
+                catch (System.Exception exception)
                 {
 
                 }
@@ -312,7 +319,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
         static bool IsConsumerOrStreamNotFound(System.Exception exception)
         {
-            if(exception is null || string.IsNullOrWhiteSpace(exception.Message))
+            if (exception is null || string.IsNullOrWhiteSpace(exception.Message))
             {
                 return false;
             }
@@ -337,7 +344,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
             durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
         }
         int partitionNumber = Partitions.Length == 0 ? 0 : PartitionResolver.Resolve();
-        if(!string.IsNullOrWhiteSpace(partitionKey))
+        if (!string.IsNullOrWhiteSpace(partitionKey))
         {
             partitionNumber = _memphisClient.GetPartitionFromKey(partitionKey, _consumerOptions.StationName);
         }
@@ -358,7 +365,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// <param name="msgCallbackHandler">the event handler for messages consumed from station in which MemphisConsumer created for</param>
     /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
     /// <returns></returns>
-    private async Task Consume(CancellationToken cancellationToken)
+    private async Task Consume(string partitionKey, CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -367,14 +374,21 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 break;
             }
 
-            FetchFromPartition(cancellationToken);
+            FetchFromPartition(partitionKey, cancellationToken);
             await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
         }
     }
 
-    private void FetchFromPartition(CancellationToken cancellationToken)
+    private void FetchFromPartition(string partitionKey, CancellationToken cancellationToken)
     {
-        var subscription = Partitions.Length == 0 ? _subscriptions[0] : _subscriptions[PartitionResolver.Resolve()];
+        var partitionNumber = 0;
+        if (_subscriptions is { Length: > 1 })
+        {
+            partitionNumber = !string.IsNullOrWhiteSpace(partitionKey)
+            ? _memphisClient.GetPartitionFromKey(partitionKey, InternalStationName)
+            : PartitionResolver.Resolve();
+        }
+        var subscription = _subscriptions[partitionNumber];
 
         try
         {
