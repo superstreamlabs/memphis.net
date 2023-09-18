@@ -60,6 +60,7 @@ internal static class MemphisSdkClientUpdateTypes
 internal static class MemphisGlobalVariables
 {
     public const string GLOBAL_ACCOUNT_NAME = "$memphis";
+    public const uint MURMUR_HASH_SEED = 31;
 }
 
 internal static class MemphisRequestVersions

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -17,6 +18,7 @@ using Memphis.Client.Models.Response;
 using Memphis.Client.Producer;
 using Memphis.Client.Station;
 using Memphis.Client.Validators;
+using Murmur;
 using NATS.Client;
 using NATS.Client.JetStream;
 using Newtonsoft.Json;
@@ -233,7 +235,7 @@ public sealed class MemphisClient : IMemphisClient
 
         consumer ??= await CreateConsumer(options);
 
-        return consumer.Fetch(options.BatchSize, options.Prefetch);
+        return consumer.Fetch(options);
     }
 
     /// <summary>
@@ -252,6 +254,7 @@ public sealed class MemphisClient : IMemphisClient
         NameValueCollection headers = default,
         string messageId = default,
         bool asyncProduceAck = true,
+        string partitionKey = "",
         CancellationToken cancellationToken = default)
     {
         if (!IsConnected())
@@ -269,7 +272,7 @@ public sealed class MemphisClient : IMemphisClient
 
         producer ??= await CreateProducer(options);
 
-        await producer.ProduceToBrokerAsync(message, headers, asyncProduceAck, options.MaxAckTimeMs, messageId);
+        await producer.ProduceToBrokerAsync(message, headers, asyncProduceAck, partitionKey, options.MaxAckTimeMs, messageId);
     }
 
     internal async Task ProduceAsync(
@@ -278,7 +281,8 @@ public sealed class MemphisClient : IMemphisClient
         NameValueCollection headers,
         int ackWaitMs,
         bool asyncProduceAck,
-        string? messageId = default)
+        string? messageId = default,
+        string partitionKey = default)
     {
         MemphisProducerOptions options = new()
         {
@@ -288,7 +292,7 @@ public sealed class MemphisClient : IMemphisClient
             MaxAckTimeMs = ackWaitMs
         };
 
-        await ProduceAsync(options, message, headers, messageId, asyncProduceAck);
+        await ProduceAsync(options, message, headers, messageId, asyncProduceAck, partitionKey);
     }
 
     /// <summary>
@@ -306,6 +310,7 @@ public sealed class MemphisClient : IMemphisClient
         NameValueCollection headers = default,
         string messageId = default,
         bool asyncProduceAck = true,
+        string partitionKey = "",
         CancellationToken cancellationToken = default)
     {
         if (!IsConnected())
@@ -326,7 +331,7 @@ public sealed class MemphisClient : IMemphisClient
             producer = await CreateProducer(options);
         }
 
-        await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId);
+        await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId, asyncProduceAck, partitionKey);
     }
 
     /// <summary>
@@ -832,9 +837,9 @@ public sealed class MemphisClient : IMemphisClient
 
         var requestJson = JsonSerDes.PrepareJsonString<RemoveStationRequest>(request);
         var result = await _brokerConnection.RequestAsync(
-            MemphisStations.MEMPHIS_STATION_DESTRUCTION, 
+            MemphisStations.MEMPHIS_STATION_DESTRUCTION,
             Encoding.UTF8.GetBytes(requestJson),
-            (int)TimeSpan.FromSeconds(20).TotalMilliseconds, 
+            (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
             cancellationToken);
 
         string errResp = Encoding.UTF8.GetString(result.Data);
@@ -846,6 +851,17 @@ public sealed class MemphisClient : IMemphisClient
 
         RemoveStationConsumers(station.Name);
         RemoveStationProducers(station.Name);
+    }
+
+    internal int GetPartitionFromKey(string key, string stationName)
+    {
+        var hasher = MurmurHash.Create32(MemphisGlobalVariables.MURMUR_HASH_SEED);
+        var hash = hasher.ComputeHash(Encoding.UTF8.GetBytes(key));
+        var unsignedHash = BitConverter.ToUInt32(hash, 0);
+        var partitionLength = _stationPartitions[stationName].PartitionsList.Length;
+        var partitionIndex = unsignedHash % partitionLength;
+
+        return _stationPartitions[stationName].PartitionsList[partitionIndex];
     }
 
     internal async Task SendNotificationAsync(string title, string message, string code, string msgType)
