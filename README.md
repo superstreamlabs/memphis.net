@@ -134,7 +134,8 @@ try
             IdempotencyWindowMs = 0,
             SendPoisonMessageToDls = true,
             SendSchemaFailedMessageToDls = true,
-            PartitionsNumber = 3 // defaults to 1
+            PartitionsNumber = 3, // defaults to 1
+            DlsStation = "<dls-station>" // If DlsStation is set, then DLS events will be sent to selected station as well. The default value is "" (no DLS station).
         });
 }
 catch (Exception ex)
