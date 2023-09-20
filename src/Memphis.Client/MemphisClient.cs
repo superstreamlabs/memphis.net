@@ -452,7 +452,8 @@ public sealed class MemphisClient : IMemphisClient
                 },
                 UserName = _userName,
                 TieredStorageEnabled = stationOptions.TieredStorageEnabled,
-                PartitionsNumber = stationOptions.PartitionsNumber
+                PartitionsNumber = stationOptions.PartitionsNumber,
+                DlsStation = stationOptions.DlsStation
             };
 
             var createStationModelJson = JsonSerDes.PrepareJsonString<CreateStationRequest>(createStationModel);
