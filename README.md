@@ -313,6 +313,28 @@ await producer.ProduceAsync(
 );
 ```
 
+### Produce using partition key
+The partition key will be used to produce messages to a spacific partition.
+
+```csharp
+await producer.ProduceAsync(
+    message: Encoding.UTF8.GetBytes(text),
+    headers:commonHeaders, 
+    partitionKey:"<partition-key>"
+);
+```
+
+### Produce using partition number
+The partition number will be used to produce messages to a spacific partition.
+
+```csharp
+await producer.ProduceAsync(
+    message: Encoding.UTF8.GetBytes(text),
+    headers:commonHeaders, 
+    partitionNumber:<int> // default is -1
+);
+```
+
 ### Destroying a Producer
 
 ```c#
