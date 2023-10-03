@@ -130,7 +130,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// <returns></returns>
     public async Task ConsumeAsync(ConsumeOptions options, CancellationToken cancellationToken = default)
     {
-        var taskForStationConsumption = Task.Run(async () => await Consume(options.PartitionKey, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
+        var taskForStationConsumption = Task.Run(async () => await Consume(options.PartitionKey, options.PartitionNumber, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
         var taskForDlsConsumption = Task.Run(async () => await ConsumeFromDls(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
         await Task.WhenAll(taskForStationConsumption, taskForDlsConsumption);
     }
@@ -227,7 +227,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
             if (fetchMessageOptions.Prefetch)
             {
-                Task.Run(() => Prefetch(fetchMessageOptions.PartitionKey), _cancellationTokenSource.Token);
+                Task.Run(() => Prefetch(fetchMessageOptions.PartitionKey, fetchMessageOptions.PartitionNumber), _cancellationTokenSource.Token);
             }
 
             if (messages.Any())
@@ -235,7 +235,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 return messages;
             }
 
-            return FetchSubscriptionWithTimeOut(batchSize, fetchMessageOptions.PartitionKey);
+            return FetchSubscriptionWithTimeOut(batchSize, fetchMessageOptions.PartitionKey, fetchMessageOptions.PartitionNumber);
         }
         catch (System.Exception ex)
         {
@@ -268,7 +268,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         return true;
     }
 
-    internal void Prefetch(string partitionKey)
+    internal void Prefetch(string partitionKey, int consumerPartitionNumber)
     {
         var lowerCaseStationName = _consumerOptions.StationName.ToLower();
         var consumerGroup = _consumerOptions.ConsumerGroup;
@@ -280,7 +280,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         {
             _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup] = new();
         }
-        var messages = FetchSubscriptionWithTimeOut(_consumerOptions.BatchSize, partitionKey);
+        var messages = FetchSubscriptionWithTimeOut(_consumerOptions.BatchSize, partitionKey, consumerPartitionNumber);
         _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup].AddRange(messages);
     }
 
@@ -336,18 +336,31 @@ public sealed class MemphisConsumer : IMemphisConsumer
         _subscriptionActive = false;
     }
 
-    private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(int batchSize, string partitionKey)
+    private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(int batchSize, string partitionKey, int consumerPartitionNumber)
     {
+
         var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
         if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
         {
             durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
         }
         int partitionNumber = Partitions.Length == 0 ? 0 : PartitionResolver.Resolve();
+
+        if (!string.IsNullOrWhiteSpace(partitionKey) && consumerPartitionNumber > 0)
+        {
+            throw new MemphisException("PartitionKey and PartitionNumber can not be set at the same time");
+        }
         if (!string.IsNullOrWhiteSpace(partitionKey))
         {
             partitionNumber = _memphisClient.GetPartitionFromKey(partitionKey, _consumerOptions.StationName);
         }
+        else if (consumerPartitionNumber > 0)
+        {
+            _memphisClient.EnsurePartitionNumberIsValid(consumerPartitionNumber, _consumerOptions.StationName);
+            partitionNumber = consumerPartitionNumber;
+        }
+
+
         var subscription = _subscriptions[partitionNumber];
 
         var batch = subscription.Fetch(batchSize, _consumerOptions.BatchMaxTimeToWaitMs);
@@ -365,7 +378,10 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// <param name="msgCallbackHandler">the event handler for messages consumed from station in which MemphisConsumer created for</param>
     /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
     /// <returns></returns>
-    private async Task Consume(string partitionKey, CancellationToken cancellationToken)
+    private async Task Consume(
+        string partitionKey,
+        int partitionNumber,
+        CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -374,19 +390,36 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 break;
             }
 
-            FetchFromPartition(partitionKey, cancellationToken);
+            FetchFromPartition(partitionKey, partitionNumber, cancellationToken);
             await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
         }
     }
 
-    private void FetchFromPartition(string partitionKey, CancellationToken cancellationToken)
+    private void FetchFromPartition(
+        string partitionKey,
+        int consumerPartitionNumber,
+        CancellationToken cancellationToken)
     {
         var partitionNumber = 0;
         if (_subscriptions is { Length: > 1 })
         {
-            partitionNumber = !string.IsNullOrWhiteSpace(partitionKey)
-            ? _memphisClient.GetPartitionFromKey(partitionKey, InternalStationName)
-            : PartitionResolver.Resolve();
+            if (!string.IsNullOrWhiteSpace(partitionKey) && consumerPartitionNumber > 0)
+            {
+                throw new MemphisException("PartitionKey and PartitionNumber can not be set at the same time");
+            }
+            if (!string.IsNullOrWhiteSpace(partitionKey))
+            {
+                partitionNumber = _memphisClient.GetPartitionFromKey(partitionKey, InternalStationName);
+            }
+            else if (consumerPartitionNumber > 0)
+            {
+                _memphisClient.EnsurePartitionNumberIsValid(consumerPartitionNumber, InternalStationName);
+                partitionNumber = consumerPartitionNumber;
+            }
+            else
+            {
+                partitionNumber = PartitionResolver.Resolve();
+            }
         }
         var subscription = _subscriptions[partitionNumber];
 

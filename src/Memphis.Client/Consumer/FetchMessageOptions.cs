@@ -21,4 +21,5 @@ public sealed class FetchMessageOptions
     public bool Prefetch { get; set; }
 
     public string PartitionKey { get; set; } = string.Empty;
+    public int PartitionNumber { get; set; } = -1;
 }
