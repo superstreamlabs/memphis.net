@@ -255,6 +255,7 @@ public sealed class MemphisClient : IMemphisClient
         string messageId = default,
         bool asyncProduceAck = true,
         string partitionKey = "",
+        int partitionNumber = -1,
         CancellationToken cancellationToken = default)
     {
         if (!IsConnected())
@@ -272,7 +273,7 @@ public sealed class MemphisClient : IMemphisClient
 
         producer ??= await CreateProducer(options);
 
-        await producer.ProduceToBrokerAsync(message, headers, asyncProduceAck, partitionKey, options.MaxAckTimeMs, messageId);
+        await producer.ProduceToBrokerAsync(message, headers, asyncProduceAck, partitionKey, partitionNumber, options.MaxAckTimeMs, messageId);
     }
 
     internal async Task ProduceAsync(
@@ -282,7 +283,8 @@ public sealed class MemphisClient : IMemphisClient
         int ackWaitMs,
         bool asyncProduceAck,
         string? messageId = default,
-        string partitionKey = default)
+        string partitionKey = default,
+        int partitionNumber = -1)
     {
         MemphisProducerOptions options = new()
         {
@@ -292,7 +294,7 @@ public sealed class MemphisClient : IMemphisClient
             MaxAckTimeMs = ackWaitMs
         };
 
-        await ProduceAsync(options, message, headers, messageId, asyncProduceAck, partitionKey);
+        await ProduceAsync(options, message, headers, messageId, asyncProduceAck, partitionKey, partitionNumber);
     }
 
     /// <summary>
@@ -311,6 +313,7 @@ public sealed class MemphisClient : IMemphisClient
         string messageId = default,
         bool asyncProduceAck = true,
         string partitionKey = "",
+        int partitionNumber = -1,
         CancellationToken cancellationToken = default)
     {
         if (!IsConnected())
@@ -331,7 +334,7 @@ public sealed class MemphisClient : IMemphisClient
             producer = await CreateProducer(options);
         }
 
-        await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId, asyncProduceAck, partitionKey);
+        await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId, asyncProduceAck, partitionKey, partitionNumber);
     }
 
     /// <summary>
@@ -697,7 +700,6 @@ public sealed class MemphisClient : IMemphisClient
 
         return string.Empty;
     }
-
 
     internal async Task ValidateMessageAsync(byte[] message, string internalStationName, string producerName)
     {
@@ -1075,7 +1077,6 @@ public sealed class MemphisClient : IMemphisClient
         }
     }
 
-
     private async Task RemoveSchemaUpdateListener(string stationName)
     {
         try
@@ -1154,6 +1155,31 @@ public sealed class MemphisClient : IMemphisClient
         }
 
         return Task.CompletedTask;
+    }
+
+    internal void EnsurePartitionNumberIsValid(int partitionNumber, string stationName)
+    {
+        var (isValue, error) = ValidatePartitionNumber(partitionNumber, stationName);
+        if (!isValue)
+        {
+            throw new MemphisException(error);
+        }
+
+        (bool IsValue, string Error) ValidatePartitionNumber(int partitionNumber, string stationName)
+        {
+            if (partitionNumber < 0 || partitionNumber >= _stationPartitions[stationName].PartitionsList.Length)
+            {
+                return (false, "Partition number is out of range");
+            }
+            foreach (var partition in _stationPartitions[stationName].PartitionsList)
+            {
+                if (partition == partitionNumber)
+                {
+                    return (true, string.Empty);
+                }
+            }
+            return (false, $"Partition {partitionNumber} does not exist in station {stationName}");
+        }
     }
 
     private void RemoveStationProducers(string stationName)

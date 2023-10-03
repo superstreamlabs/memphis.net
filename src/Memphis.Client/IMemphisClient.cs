@@ -48,6 +48,7 @@ public interface IMemphisClient : IDisposable
         string messageId = default,
         bool asyncProduceAck = true,
         string partitionKey = "",
+        int partitionNumber = -1,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -67,6 +68,7 @@ public interface IMemphisClient : IDisposable
         string messageId = default,
         bool asyncProduceAck = true,
         string partitionKey = "",
+        int partitionNumber = -1,
         CancellationToken cancellationToken = default);
 
     /// <summary>
