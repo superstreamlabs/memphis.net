@@ -11,7 +11,7 @@ namespace Memphis.Client.Models.Response
         public string UpdateType { get; set; }
 
         [DataMember(Name = "init")] 
-        public ProducerSchemaUpdateInit Init { get; set; }
+        public SchemaUpdateInit Init { get; set; }
     }
 
     internal static class ProducerSchemaUpdateType

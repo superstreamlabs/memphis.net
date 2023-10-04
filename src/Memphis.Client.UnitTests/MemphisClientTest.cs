@@ -123,19 +123,19 @@ namespace Memphis.Client.UnitTests
         }
 
 
-        private ConcurrentDictionary<string, ProducerSchemaUpdateInit> getSchemaUpdateDataMock()
+        private ConcurrentDictionary<string, SchemaUpdateInit> getSchemaUpdateDataMock()
         {
-            var schemaUpdateDictionaryMock = new ConcurrentDictionary<string, ProducerSchemaUpdateInit>();
+            var schemaUpdateDictionaryMock = new ConcurrentDictionary<string, SchemaUpdateInit>();
             var internalStationNameForGraphql = "test-station-name-graphql-01";
             var graphqlSchemaStr = @"
                type Query {
                    sayHello : String
                   }
              ";
-            schemaUpdateDictionaryMock.TryAdd(internalStationNameForGraphql, new ProducerSchemaUpdateInit()
+            schemaUpdateDictionaryMock.TryAdd(internalStationNameForGraphql, new SchemaUpdateInit()
             {
                 SchemaName = "test-schema-01",
-                SchemaType = ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL,
+                SchemaType = SchemaUpdateInit.SchemaTypes.GRAPHQL,
                 ActiveVersion = new ProducerSchemaUpdateVersion()
                 {
                     Content = graphqlSchemaStr,
@@ -148,9 +148,9 @@ namespace Memphis.Client.UnitTests
             return schemaUpdateDictionaryMock;
         }
 
-        private ConcurrentDictionary<string, ProducerSchemaUpdateInit> getEmptySchemaUpdateDataMock()
+        private ConcurrentDictionary<string, SchemaUpdateInit> getEmptySchemaUpdateDataMock()
         {
-            return new ConcurrentDictionary<string, ProducerSchemaUpdateInit>();
+            return new ConcurrentDictionary<string, SchemaUpdateInit>();
         }
 
         #endregion
