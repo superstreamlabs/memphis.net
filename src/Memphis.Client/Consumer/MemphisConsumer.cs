@@ -174,7 +174,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 throw new MemphisException(errResp);
             }
 
-            _memphisClient.NotifyRemoveConsumer(_consumerOptions.StationName);
+            await _memphisClient.NotifyRemoveConsumer(_consumerOptions.StationName);
         }
         catch (System.Exception e)
         {
@@ -366,8 +366,12 @@ public sealed class MemphisConsumer : IMemphisConsumer
         var batch = subscription.Fetch(batchSize, _consumerOptions.BatchMaxTimeToWaitMs);
         return batch
             .Select<Msg, MemphisMessage>(
-                msg => new(msg, _memphisClient, _consumerOptions.ConsumerGroup,
-                    _consumerOptions.MaxAckTimeMs)
+                msg => new(
+                    msg,
+                    _memphisClient,
+                    _consumerOptions.ConsumerGroup,
+                    _consumerOptions.MaxAckTimeMs,
+                    InternalStationName)
             )
             .ToList();
     }
@@ -428,8 +432,13 @@ public sealed class MemphisConsumer : IMemphisConsumer
             var msgList = subscription.Fetch(_consumerOptions.BatchSize,
                 _consumerOptions.BatchMaxTimeToWaitMs);
             var memphisMessageList = msgList
-                .Select(item => new MemphisMessage(item, _memphisClient, _consumerOptions.ConsumerGroup,
-                    _consumerOptions.MaxAckTimeMs))
+                .Select(item =>
+                    new MemphisMessage(
+                        item,
+                        _memphisClient,
+                        _consumerOptions.ConsumerGroup,
+                        _consumerOptions.MaxAckTimeMs,
+                        InternalStationName))
                 .ToList();
 
             MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, subscription.Context, null));
@@ -470,8 +479,13 @@ public sealed class MemphisConsumer : IMemphisConsumer
                     continue;
                 }
 
-                var memphisMsg = new MemphisMessage(msg, _memphisClient, _consumerOptions.ConsumerGroup,
-                        _consumerOptions.MaxAckTimeMs);
+                MemphisMessage memphisMsg = new(
+                    msg,
+                    _memphisClient,
+                    _consumerOptions.ConsumerGroup,
+                    _consumerOptions.MaxAckTimeMs,
+                    InternalStationName
+                );
                 if (DlsMessageReceived is null)
                 {
                     EnqueueDlsMessage(memphisMsg);

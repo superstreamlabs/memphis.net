@@ -43,13 +43,16 @@ public sealed class MemphisClient : IMemphisClient
     private CancellationTokenSource _cancellationTokenSource;
 
     // Dictionary key: station (internal)name, value: schema update data for that station
-    private readonly ConcurrentDictionary<string, ProducerSchemaUpdateInit> _schemaUpdateDictionary;
+    private readonly ConcurrentDictionary<string, SchemaUpdateInit> _schemaUpdateDictionary;
 
     // Dictionary key: station (internal)name, value: subscription for fetching schema updates for station
     private readonly ConcurrentDictionary<string, ISyncSubscription> _subscriptionPerSchema;
 
-    // Dictionary key: station (internal)name, value: number of producer created per that station
-    private readonly ConcurrentDictionary<string, int> _producerPerStations;
+    /// <summary>
+    /// Dictionary key: station (internal)name, value: number of schema update listners for that station. 
+    /// Schema update listners can be either producers or consumers
+    /// </summary>
+    private readonly ConcurrentDictionary<string, int> _stationSchemaUpdateListeners;
 
     private readonly ConcurrentDictionary<ValidatorType, ISchemaValidator> _schemaValidators;
     private readonly ConcurrentDictionary<string, MemphisProducer> _producerCache;
@@ -89,7 +92,7 @@ public sealed class MemphisClient : IMemphisClient
 
         _schemaUpdateDictionary = new();
         _subscriptionPerSchema = new();
-        _producerPerStations = new();
+        _stationSchemaUpdateListeners = new();
         _producerCache = new();
         _consumerCache = new();
 
@@ -382,6 +385,8 @@ public sealed class MemphisClient : IMemphisClient
             var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
 
             byte[] createConsumerReqBytes = Encoding.UTF8.GetBytes(createConsumerModelJson);
+
+            await ListenForSchemaUpdate(consumerOptions.StationName);
 
             Msg createConsumerResp = await _brokerConnection.RequestAsync(
                 MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
@@ -693,7 +698,7 @@ public sealed class MemphisClient : IMemphisClient
     internal string GetStationSchemaType(string internalStationName)
     {
         if (_schemaUpdateDictionary.TryGetValue(internalStationName,
-            out ProducerSchemaUpdateInit schemaUpdateInit))
+            out SchemaUpdateInit schemaUpdateInit))
         {
             return schemaUpdateInit.SchemaType;
         }
@@ -704,7 +709,7 @@ public sealed class MemphisClient : IMemphisClient
     internal async Task ValidateMessageAsync(byte[] message, string internalStationName, string producerName)
     {
         if (!_schemaUpdateDictionary.TryGetValue(internalStationName,
-            out ProducerSchemaUpdateInit schemaUpdateInit))
+            out SchemaUpdateInit schemaUpdateInit))
         {
             return;
         }
@@ -713,7 +718,7 @@ public sealed class MemphisClient : IMemphisClient
         {
             switch (schemaUpdateInit.SchemaType)
             {
-                case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+                case SchemaUpdateInit.SchemaTypes.JSON:
                     {
                         if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
                         {
@@ -722,7 +727,7 @@ public sealed class MemphisClient : IMemphisClient
 
                         break;
                     }
-                case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+                case SchemaUpdateInit.SchemaTypes.GRAPHQL:
                     {
                         if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
                         {
@@ -731,7 +736,7 @@ public sealed class MemphisClient : IMemphisClient
 
                         break;
                     }
-                case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
+                case SchemaUpdateInit.SchemaTypes.PROTOBUF:
                     {
                         if (_schemaValidators.TryGetValue(ValidatorType.PROTOBUF, out ISchemaValidator schemaValidator))
                         {
@@ -758,31 +763,38 @@ public sealed class MemphisClient : IMemphisClient
 
     internal async Task NotifyRemoveProducer(string stationName)
     {
+        await RemoveFromSchemaUpdateListener(stationName);
+    }
+
+    internal async Task NotifyRemoveConsumer(string stationName)
+    {
+        await RemoveFromSchemaUpdateListener(stationName);
+    }
+
+    private async Task RemoveFromSchemaUpdateListener(string stationName)
+    {
         var internalStationName = MemphisUtil.GetInternalName(stationName);
-        if (_producerPerStations.TryGetValue(internalStationName, out int prodCnt))
+        if (_stationSchemaUpdateListeners.TryGetValue(internalStationName, out int updateListenrsCount))
         {
-            if (prodCnt == 0)
+            if (updateListenrsCount == 0)
             {
                 return;
             }
 
-            var prodCntAfterRemove = prodCnt - 1;
-            _producerPerStations.TryUpdate(internalStationName, prodCntAfterRemove, prodCnt);
+            var updateListenerCountAfterRemove = updateListenrsCount - 1;
+            _stationSchemaUpdateListeners.TryUpdate(internalStationName, updateListenerCountAfterRemove, updateListenrsCount);
 
-            // Is there any producer for given station ?
-            if (prodCntAfterRemove == 0)
+            if (updateListenerCountAfterRemove == 0)
             {
-                //unsubscribe for listening schema updates
                 if (_subscriptionPerSchema.TryGetValue(internalStationName, out ISyncSubscription subscription))
                 {
                     await subscription.DrainAsync();
                 }
 
                 if (_schemaUpdateDictionary.TryRemove(internalStationName,
-                    out ProducerSchemaUpdateInit schemaUpdateInit)
+                    out SchemaUpdateInit schemaUpdateInit)
                 )
                 {
-                    // clean up cache from unused schema data
                     foreach (var schemaValidator in _schemaValidators.Values)
                     {
                         schemaValidator.RemoveSchema(schemaUpdateInit.SchemaName);
@@ -790,11 +802,6 @@ public sealed class MemphisClient : IMemphisClient
                 }
             }
         }
-    }
-
-    internal void NotifyRemoveConsumer(string stationName)
-    {
-        return;
     }
 
     /// <summary>
@@ -834,9 +841,9 @@ public sealed class MemphisClient : IMemphisClient
             subscription.Unsubscribe();
         }
         _stationSchemaVerseToDlsMap.TryRemove(station.InternalName, out bool _);
-        _schemaUpdateDictionary.TryRemove(station.InternalName, out ProducerSchemaUpdateInit _);
+        _schemaUpdateDictionary.TryRemove(station.InternalName, out SchemaUpdateInit _);
         _subscriptionPerSchema.TryRemove(station.InternalName, out ISyncSubscription _);
-        _producerPerStations.TryRemove(station.InternalName, out int _);
+        _stationSchemaUpdateListeners.TryRemove(station.InternalName, out int _);
 
         var requestJson = JsonSerDes.PrepareJsonString<RemoveStationRequest>(request);
         var result = await _brokerConnection.RequestAsync(
@@ -930,7 +937,7 @@ public sealed class MemphisClient : IMemphisClient
         await ProcessAndStoreSchemaUpdate(internalStationName, respAsObject.Init);
     }
 
-    private async Task ProcessAndStoreSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdate)
+    private async Task ProcessAndStoreSchemaUpdate(string internalStationName, SchemaUpdateInit schemaUpdate)
     {
         if (string.IsNullOrWhiteSpace(internalStationName))
         {
@@ -947,7 +954,7 @@ public sealed class MemphisClient : IMemphisClient
 
         switch (schemaUpdate.SchemaType)
         {
-            case ProducerSchemaUpdateInit.SchemaTypes.JSON:
+            case SchemaUpdateInit.SchemaTypes.JSON:
                 {
                     if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
                     {
@@ -966,7 +973,7 @@ public sealed class MemphisClient : IMemphisClient
 
                     break;
                 }
-            case ProducerSchemaUpdateInit.SchemaTypes.GRAPHQL:
+            case SchemaUpdateInit.SchemaTypes.GRAPHQL:
                 {
                     if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
                     {
@@ -985,7 +992,7 @@ public sealed class MemphisClient : IMemphisClient
 
                     break;
                 }
-            case ProducerSchemaUpdateInit.SchemaTypes.PROTOBUF:
+            case SchemaUpdateInit.SchemaTypes.PROTOBUF:
                 {
                     if (_schemaValidators.TryGetValue(ValidatorType.PROTOBUF, out ISchemaValidator schemaValidator))
                     {
@@ -1030,7 +1037,37 @@ public sealed class MemphisClient : IMemphisClient
         }
     }
 
-    private async Task ListenForSchemaUpdate(string internalStationName, ProducerSchemaUpdateInit schemaUpdateInit)
+    private async Task ListenForSchemaUpdate(string stationName)
+    {
+        string internalStationName = MemphisUtil.GetInternalName(stationName);
+        var schemaUpdateSubject = MemphisSubjects.MEMPHIS_SCHEMA_UPDATE + internalStationName;
+
+        if (_subscriptionPerSchema.TryGetValue(internalStationName, out _))
+        {
+            _stationSchemaUpdateListeners.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+            return;
+        }
+
+        var subscription = _brokerConnection.SubscribeSync(schemaUpdateSubject);
+
+        if (!_subscriptionPerSchema.TryAdd(internalStationName, subscription))
+        {
+            throw new MemphisException("Unable to add subscription of schema updates for station");
+        }
+
+        Task.Run(async () =>
+        {
+            while (!_cancellationTokenSource.IsCancellationRequested)
+            {
+                var schemaUpdateMsg = subscription.NextMessage();
+                await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
+            }
+        }, _cancellationTokenSource.Token);
+
+        _stationSchemaUpdateListeners.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+    }
+
+    private async Task ListenForSchemaUpdate(string internalStationName, SchemaUpdateInit schemaUpdateInit)
     {
         try
         {
@@ -1047,7 +1084,7 @@ public sealed class MemphisClient : IMemphisClient
 
             if (_subscriptionPerSchema.TryGetValue(internalStationName, out ISyncSubscription schemaSub))
             {
-                _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+                _stationSchemaUpdateListeners.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
                 return;
             }
 
@@ -1069,7 +1106,7 @@ public sealed class MemphisClient : IMemphisClient
                 }
             }, _cancellationTokenSource.Token);
 
-            _producerPerStations.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
+            _stationSchemaUpdateListeners.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
         }
         finally
         {
