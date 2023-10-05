@@ -413,6 +413,29 @@ The consumer will try to fetch messages every _PullIntervalMs_ (that was given i
  await consumer.ConsumeAsync();
 ```
 
+
+#### Consumer schema deserialization
+To get messages deserialized, use `msg.GetDeserializedData()` or  `msg.GetDeserializedData<T>()`.  
+
+```csharp
+consumer.MessageReceived += (sender, args) =>
+{
+    if (args.Exception != null)
+    {
+        Console.Error.WriteLine(args.Exception);
+        return;
+    }
+
+    foreach (var msg in args.MessageList)
+    {
+        Console.WriteLine($"Received data: {msg.GetDeserializedData()}");
+        msg.Ack();
+    }
+};
+```
+
+if you have ingested data into station in one format, afterwards you apply a schema on the station, the consumer won't deserialize the previously ingested data. For example, you have ingested string into the station and attached a protobuf schema on the station. In this case, consumer won't deserialize the string.
+
 ### Fetch a single batch of messages
 
 ```c#
