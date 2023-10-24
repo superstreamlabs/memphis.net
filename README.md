@@ -44,6 +44,8 @@ using Memphis.Client;
 
 ### Connecting to Memphis
 
+The createClient method in the Memphis class allows for the connection to Memphis. Connecting to Memphis (cloud or open-source) will be needed in order to use any of the other functionality of the Memphis class. Upon connection, all of Memphis' features are available.
+
 First, we need to create or use default `ClientOptions` and then connect to Memphis by using `MemphisClientFactory.CreateClient(ClientOptions opts)`.
 
 ```c#
@@ -80,7 +82,24 @@ catch (Exception ex) {
 }
 ```
 
-A JWT, token-based connection would look like this:
+If you wanted to connect to Memphis cloud instead, simply add your account ID and change the host. The host and account_id can be found on the Overview page in the Memphis cloud UI under your name at the top. Here is an example to connecting to a cloud broker that is located in US East:  
+
+```csharp
+try
+{
+    var options = MemphisClientFactory.GetDefaultOptions();
+    options.Host = "aws-us-east-1.cloud.memphis.dev";
+    options.Username = "my_client_username";
+    options.Password = "my_client_password";  
+    options.AccountId = 123456789;
+    var memphisClient = await MemphisClientFactory.CreateClient(options);
+}
+catch (Exception ex) {
+    // handle exception
+}
+```
+
+It is possible to use a token-based connection to memphis as well, where multiple users can share the same token to connect to memphis. Here is an example of using memphis.connect with a token:
 
 ```csharp
 try
@@ -95,6 +114,8 @@ catch (Exception ex) {
     // handle exception
 }
 ```
+
+The token will be presented when creating new users. 
 
 Memphis needs to be configured to use token based connection. See the [docs](https://docs.memphis.dev/memphis/memphis-broker/concepts/security) for help doing this.
 
@@ -117,9 +138,6 @@ catch (Exception ex)
 
 Memphis needs to configured for these use cases. To configure memphis to use TLS see the [docs](https://docs.memphis.dev/memphis/open-source-installation/kubernetes/production-best-practices#memphis-metadata-tls-connection-configuration). 
 
-
-Once client created, the entire functionalities offered by Memphis are available.
-
 ### Disconnecting from Memphis
 
 To disconnect from Memphis, call `Dispose()` on the `MemphisClient`.
@@ -128,6 +146,11 @@ To disconnect from Memphis, call `Dispose()` on the `MemphisClient`.
 await memphisClient.Dispose()
 ```
 ### Creating a Station
+
+Stations are distributed units that store messages. Producers add messages to stations and Consumers take messages from them. Each station stores messages until their retention policy causes them to either delete the messages or move them to [remote storage](https://docs.memphis.dev/memphis/integrations-center/storage/s3-compatible). 
+
+**A station will be automatically created for the user when a consumer or producer is used if no stations with the given station name exist.**<br><br>
+_If the station trying to be created exists when this function is called, nothing will change with the exisitng station_
 
 ```c#
 try
@@ -432,56 +455,57 @@ catch (Exception ex)
 
 ### Retention types
 
-Memphis currently supports the following types of retention:
+Retention types define the methodology behind how a station behaves with its messages. Memphis currently supports the following retention types:
 
 ```c#
 RetentionTypes.MAX_MESSAGE_AGE_SECONDS
 ```
-The above means that every message persists for the value set in the retention value field (in seconds).
+When the retention type is set to MAX_MESSAGE_AGE_SECONDS, messages will persist in the station for the number of seconds specified in the retention_value. 
 
 ```c#
 RetentionTypes.MESSAGES
 ```
-The above means that after the maximum number of saved messages (set in retention value) has been reached, the oldest messages will be deleted.
+When the retention type is set to MESSAGES, the station will only hold up to retention_value messages. The station will delete the oldest messsages to maintain a retention_value number of messages.
 
 ```c#
 RetentionTypes.BYTES
 ```
-The above means that after maximum number of saved bytes (set in retention value) has been reached, the oldest messages will be deleted.
+When the retention type is set to BYTES, the station will only hold up to retention_value BYTES. The oldest messages will be deleted in order to maintain at maximum retention_vlaue BYTES in the station.
 
 ```c#
 RetentionTypes.ACK_BASED
 ```
-The above means that after a message is getting acked by all interested consumer groups it will be deleted from the Station. This retention type is for cloud users only.
-
+When the retention type is set to ACK_BASED, messages in the station will be deleted after they are acked by all subscribed consumer groups.
 
 ### Retention Values
 
-The `retention values` are directly related to the `retention types` mentioned above,<br> where the values vary according to the type of retention chosen.
+The unit of the `retention_value` changes depending on the `retention_type` specified. 
 
-All retention values are of type `int` but with different representations as follows:
+All retention values are of type `int`. The following units are used based on the respective retention type:
 
-`RetentionTypes.MAX_MESSAGE_AGE_SECONDS` is represented **in seconds**, `RetentionTypes.MESSAGES` in a **number of messages**, `RetentionTypes.BYTES` in a **number of bytes**, and finally `RetentionTypes.ACK_BASED` is not using the retention value. 
-
-After these limits are reached oldest messages will be deleted.
-
+`RetentionTypes.MAX_MESSAGE_AGE_SECONDS` is represented **in seconds**,<br>
+`RetentionTypes.MESSAGES` is a **number of messages**,<br>
+`RetentionTypes.BYTES` is a **number of bytes**,<br>
+With `RetentionTypes.ACK_BASED` the `RetentionType` is ignored. 
 
 ### Storage Types
+
 Memphis currently supports the following types of messages storage:
 
 ```c#
 StorageTypes.DISK
 ```
-The above means that messages persist on disk.
+When storage is set to DISK, messages are stored on disk.
 
 ```c#
 StorageTypes.MEMORY
 ```
-The above means that messages persist in the main memory.
+When storage is set to MEMORY, messages are stored in the system memory.
 
 ### Destroying a Station
 
 Destroying a station will remove all its resources (including producers and consumers).
+
 ```c#
 station.DestroyAsync()
 ```
@@ -513,16 +537,18 @@ await client.DetachSchema(stationName: station.Name);
 
 ### Produce and Consume messages
 
-The most common client operations are `produce` to send messages and `consume` to
+The most common client operations are using `produce` to send messages and `consume` to
 receive messages.
 
-Messages are published to a station and consumed from it by creating a consumer.
-Consumers are pull-based and consume all the messages in a station unless you are using a consumers group, in this case, messages are spread across all members in this group.
+Messages are published to a station with a Producer and consumed from it by a Consumer. 
 
-Memphis messages are payload agnostic. Payloads are `byte[]`.
+Consumers are poll based and consume all the messages in a station. Consumers can also be grouped into consumer groups. When consuming with a consumer group, all consumers in the group will receive each message.
 
-In order to stop getting messages, you have to call `consumer.Dispose()`. Destroy will terminate regardless
-of whether there are messages in flight for the client.
+Memphis messages are payload agnostic. Payloads are always `byte[]`s.
+
+In order to stop getting messages, you have to call `consumer.Dispose()`. Destroy will terminate the consumer even if messages are currently being sent to the consumer.
+
+If a station is created with more than one partition, producing to and consuming from the station will happen in a round robin fashion. 
 
 ### Creating a Producer
 
@@ -561,8 +587,6 @@ await producer.ProduceAsync(
     headers:commonHeaders
 );
 ```
-
-
 Note:
 When producing to a station with more than one partition, the producer will produce messages in a Round Robin fashion between the different partitions.
 
@@ -661,7 +685,7 @@ catch (Exception ex)
 }
 ```
 
-Lastly, memphis can produce to a specific partition in a station. To do so, use the partitionKey parameter:
+Memphis can produce to a specific partition in a station. To do so, use the partitionKey parameter:
 
 ```csharp
 try
@@ -687,17 +711,6 @@ catch (Exception ex)
 {
     // handle exception
 }
-```
-
-### Produce using partition key
-The partition key will be used to produce messages to a spacific partition.
-
-```csharp
-await producer.ProduceAsync(
-    message: Encoding.UTF8.GetBytes(text),
-    headers:commonHeaders, 
-    partitionKey:"<partition-key>"
-);
 ```
 
 ### Produce using partition number
@@ -748,7 +761,7 @@ catch (Exception ex)
 Note:
 When consuming from a station with more than one partition, the consumer will consume messages in Round Robin fashion from the different partitions.
 
-Use the Memphis CreateConsumer method to create a Consumer. It offeres some extra options that may be useful.
+Use the Memphis CreateConsumer method to create a Consumer. Consumers are used to pull messages from stations.
 
 Here is an example on how to create a consumer with all of the default options:
 
@@ -824,7 +837,7 @@ catch (Exception ex)
 
 Every time the consumer polls, the consumer will try to take BatchSize number of elements from the station. However, sometimes there are not enough messages in the station for the consumer to consume a full batch. In this case, the consumer will continue to wait until either BatchSize messages are gathered or the time in milliseconds specified by BatchMaxTimeToWaitMs is reached. 
 
-Here is an example of a consumer that will try to poll 100 messages every 10 seconds while waiting up to 15 seconds for all messages to reach the consumer.
+Here is an example of a consumer that will try to pull 100 messages from a station every 10 seconds while waiting up to 15 seconds for all messages to reach the consumer.
 
 ```csharp
 try
@@ -939,9 +952,11 @@ consumer.MessageReceived += (sender, args) =>
 };
 ```
 
-if you have ingested data into station in one format, afterwards you apply a schema on the station, the consumer won't deserialize the previously ingested data. For example, you have ingested string into the station and attached a protobuf schema on the station. In this case, consumer won't deserialize the string.
+There may be some instances where you apply a schema *after* a station has received some messages. In order to consume those messages get_data_deserialized may be used to consume the messages without trying to apply the schema to them. As an example, if you produced a string to a station and then attached a protobuf schema, using get_data_deserialized will not try to deserialize the string as a protobuf-formatted message.
 
 ### Fetch a single batch of messages
+
+Using fetch_messages or fetch will allow the user to remove a specific number of messages from a given station. This behavior could be beneficial if the user does not want to have a consumer actively poll from a station indefinetly.
 
 ```c#
 client.FetchMessages(new FetchMessageOptions
