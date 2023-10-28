@@ -17,7 +17,7 @@ public class MemphisProducerTests
         string stationName, string producerName, bool generateUniqueSuffix)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var station = await client.CreateStation(stationName);
+        var station = await _fixture.SetupStationAsync(client, stationName);
         var producerOptions = new MemphisProducerOptions
         {
             StationName = stationName,
@@ -40,7 +40,7 @@ public class MemphisProducerTests
         string stationName, string producerName, bool generateUniqueSuffix, string message)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var station = await client.CreateStation(stationName);
+        var station = await _fixture.SetupStationAsync(client, stationName);
 
         var producerOptions = new MemphisProducerOptions
         {
@@ -65,7 +65,7 @@ public class MemphisProducerTests
         string stationName, string producerName, bool generateUniqueSuffix)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var station = await client.CreateStation(stationName);
+        var station = await _fixture.SetupStationAsync(client, stationName);
 
         var producerOptions = new MemphisProducerOptions
         {

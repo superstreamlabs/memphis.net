@@ -35,6 +35,6 @@ public interface IMemphisProducer
     /// </summary>
     /// <returns></returns>
     /// <exception cref="MemphisException"></exception>
-    Task DestroyAsync();
+    Task DestroyAsync(int timeoutRetry = 5);
 
 }

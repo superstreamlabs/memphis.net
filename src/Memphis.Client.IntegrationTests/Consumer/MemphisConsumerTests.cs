@@ -20,7 +20,7 @@ public class MemphisConsumerTests
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var station = await client.CreateStation(stationName);
+        var station = await _fixture.SetupStationAsync(client, stationName);
 
         var consumerOptions = new MemphisConsumerOptions
         {
@@ -45,9 +45,8 @@ public class MemphisConsumerTests
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix, string producerName, string message)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var stationOptions = _fixture.DefaultStationOptions;
-        stationOptions.Name = stationName;
-        var station = await client.CreateStation(stationOptions);
+        var station = await _fixture.SetupStationAsync(client, stationName);
+
 
         var producerOptions = new MemphisProducerOptions
         {
@@ -92,7 +91,7 @@ public class MemphisConsumerTests
         string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var station = await client.CreateStation(stationName);
+        var station = await _fixture.SetupStationAsync(client, stationName);
 
         var consumerOptions = new MemphisConsumerOptions
         {
@@ -115,7 +114,7 @@ public class MemphisConsumerTests
             string stationName, string consumerName, string consumerGroup, bool generateUniqueSuffix, string producerName, string message)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var station = await client.CreateStation(stationName);
+        var station = await _fixture.SetupStationAsync(client, stationName);
 
         var producerOptions = new MemphisProducerOptions
         {

@@ -139,7 +139,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// Destroy the consumer
     /// </summary>
     /// <returns></returns>
-    public async Task DestroyAsync()
+    public async Task DestroyAsync(int timeoutRetry = 5)
     {
         try
         {
@@ -165,8 +165,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
             byte[] removeConsumerReqBytes = Encoding.UTF8.GetBytes(removeConsumerModelJson);
 
-            Msg removeProducerResp = await _memphisClient.BrokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_CONSUMER_DESTRUCTIONS, removeConsumerReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
+            Msg removeProducerResp = await _memphisClient.RequestAsync(MemphisStations.MEMPHIS_CONSUMER_DESTRUCTIONS, removeConsumerReqBytes, timeoutRetry);
             string errResp = Encoding.UTF8.GetString(removeProducerResp.Data);
 
             if (!string.IsNullOrEmpty(errResp))
