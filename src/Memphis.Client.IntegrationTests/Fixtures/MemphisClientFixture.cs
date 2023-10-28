@@ -15,12 +15,11 @@ public class MemphisClientFixture
         MemphisClientOptions.Username = "root";
         MemphisClientOptions.Host = "localhost";
         MemphisClientOptions.Password = "memphis";
-        
         DefaultStationOptions = new StationOptions
         {
             Name = "default",
             RetentionType = RetentionTypes.MAX_MESSAGE_AGE_SECONDS,
-            RetentionValue = 604_800,
+            RetentionValue = 86_400,
             StorageType = StorageTypes.DISK,
             Replicas = 1,
             IdempotenceWindowMs = 0,
@@ -31,5 +30,13 @@ public class MemphisClientFixture
 
         CommonHeaders = new NameValueCollection();
         CommonHeaders.Add("key-1", "value-1");
+    }
+
+    internal async Task<MemphisStation> SetupStationAsync(MemphisClient client, string stationName)
+    {
+        var options = DefaultStationOptions;
+        options.Name = stationName;
+
+        return await client.CreateStation(options);
     }
 }

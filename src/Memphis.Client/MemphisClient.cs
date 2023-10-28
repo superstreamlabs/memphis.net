@@ -128,7 +128,7 @@ public sealed class MemphisClient : IMemphisClient
     /// </summary>
     /// <param name="producerOptions">Producer options</param>
     /// <returns>An <see cref="MemphisProducer"/> object connected to the station to produce data</returns>
-    public async Task<MemphisProducer> CreateProducer(MemphisProducerOptions producerOptions)
+    public async Task<MemphisProducer> CreateProducer(MemphisProducerOptions producerOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
     {
         string stationName = producerOptions.StationName;
         string producerName = producerOptions.ProducerName.ToLower();
@@ -170,8 +170,7 @@ public sealed class MemphisClient : IMemphisClient
 
             byte[] createProducerReqBytes = Encoding.UTF8.GetBytes(createProducerModelJson);
 
-            Msg createProducerResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_PRODUCER_CREATIONS, createProducerReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
+            Msg createProducerResp = await RequestAsync(MemphisStations.MEMPHIS_PRODUCER_CREATIONS, createProducerReqBytes, timeoutRetry, cancellationToken);
             string respAsJson = Encoding.UTF8.GetString(createProducerResp.Data);
             var createProducerResponse = JsonConvert.DeserializeObject<CreateProducerResponse>(respAsJson)!;
 
@@ -279,6 +278,26 @@ public sealed class MemphisClient : IMemphisClient
         await producer.ProduceToBrokerAsync(message, headers, asyncProduceAck, partitionKey, partitionNumber, options.MaxAckTimeMs, messageId);
     }
 
+    internal async Task<Msg> RequestAsync(
+        string subject,
+        byte[] message,
+        int timeoutRetry,
+        CancellationToken cancellationToken = default
+    )
+    {
+        try
+        {
+            int timeoutMilliSeconds = (int)TimeSpan.FromSeconds(20).TotalMilliseconds;
+            return await _brokerConnection.RequestAsync(subject, message, timeoutMilliSeconds);
+        }
+        catch (NATSTimeoutException)
+        {
+            if (timeoutRetry <= 0)
+                throw;
+            return await RequestAsync(subject, message, timeoutRetry - 1, cancellationToken);
+        }
+    }
+
     internal async Task ProduceAsync(
         MemphisProducer producer,
         byte[] message,
@@ -345,7 +364,7 @@ public sealed class MemphisClient : IMemphisClient
     /// </summary>
     /// <param name="consumerOptions">options used to customize the behaviour of consumer</param>
     /// <returns>An <see cref="MemphisConsumer"/> object connected to the station from consuming data</returns>
-    public async Task<MemphisConsumer> CreateConsumer(MemphisConsumerOptions consumerOptions)
+    public async Task<MemphisConsumer> CreateConsumer(MemphisConsumerOptions consumerOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
     {
         if (_brokerConnection.IsClosed())
         {
@@ -388,8 +407,7 @@ public sealed class MemphisClient : IMemphisClient
 
             await ListenForSchemaUpdate(consumerOptions.StationName);
 
-            Msg createConsumerResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
+            Msg createConsumerResp = await RequestAsync(MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes, timeoutRetry, cancellationToken);
             var responseStr = Encoding.UTF8.GetString(createConsumerResp.Data);
             var createConsumerResponse = JsonConvert.DeserializeObject<CreateConsumerResponse>(responseStr);
 
@@ -435,7 +453,7 @@ public sealed class MemphisClient : IMemphisClient
     /// <param name="stationOptions">options used to customize the parameters of station</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
-    public async Task<MemphisStation> CreateStation(StationOptions stationOptions, CancellationToken cancellationToken = default)
+    public async Task<MemphisStation> CreateStation(StationOptions stationOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
     {
         if (_brokerConnection.IsClosed())
         {
@@ -468,8 +486,7 @@ public sealed class MemphisClient : IMemphisClient
 
             byte[] createStationReqBytes = Encoding.UTF8.GetBytes(createStationModelJson);
 
-            Msg createStationResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_STATION_CREATIONS, createStationReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds, cancellationToken);
+            Msg createStationResp = await RequestAsync(MemphisStations.MEMPHIS_STATION_CREATIONS, createStationReqBytes, timeoutRetry, cancellationToken);
             string errResp = Encoding.UTF8.GetString(createStationResp.Data);
 
             if (!string.IsNullOrEmpty(errResp))
@@ -500,9 +517,9 @@ public sealed class MemphisClient : IMemphisClient
     /// <param name="stationName">station name</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
-    public async Task<MemphisStation> CreateStation(string stationName, CancellationToken cancellationToken = default)
+    public async Task<MemphisStation> CreateStation(string stationName, int timeoutRetry = 5, CancellationToken cancellationToken = default)
     {
-        return await CreateStation(new StationOptions { Name = stationName }, cancellationToken);
+        return await CreateStation(new StationOptions { Name = stationName }, timeoutRetry, cancellationToken);
     }
 
     /// <summary>
@@ -511,7 +528,7 @@ public sealed class MemphisClient : IMemphisClient
     /// <param name="stationName">station name</param>
     /// <param name="schemaName">schema name</param>
     /// <returns></returns>
-    public async Task EnforceSchema(string stationName, string schemaName, CancellationToken cancellationToken = default)
+    public async Task EnforceSchema(string stationName, string schemaName, int timeoutRetry = 5, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(stationName))
         {
@@ -536,8 +553,7 @@ public sealed class MemphisClient : IMemphisClient
 
             byte[] attachSchemaReqBytes = Encoding.UTF8.GetBytes(attachSchemaModelJson);
 
-            Msg attachSchemaResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_SCHEMA_ATTACHMENTS, attachSchemaReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds, cancellationToken);
+            Msg attachSchemaResp = await RequestAsync(MemphisStations.MEMPHIS_SCHEMA_ATTACHMENTS, attachSchemaReqBytes, timeoutRetry, cancellationToken);
             string errResp = Encoding.UTF8.GetString(attachSchemaResp.Data);
 
             if (!string.IsNullOrEmpty(errResp))
@@ -573,7 +589,7 @@ public sealed class MemphisClient : IMemphisClient
     /// </summary>
     /// <param name="stationName">station name</param>
     /// <returns>No object or value is returned by this method when it completes.</returns>
-    public async Task DetachSchema(string stationName)
+    public async Task DetachSchema(string stationName, int timeoutRetry = 5, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(stationName))
         {
@@ -592,8 +608,7 @@ public sealed class MemphisClient : IMemphisClient
 
             byte[] detachSchemaReqBytes = Encoding.UTF8.GetBytes(detachSchemaModelJson);
 
-            Msg detachSchemaResp = await _brokerConnection.RequestAsync(
-                MemphisStations.MEMPHIS_SCHEMA_DETACHMENTS, detachSchemaReqBytes, (int)TimeSpan.FromSeconds(20).TotalMilliseconds);
+            Msg detachSchemaResp = await RequestAsync(MemphisStations.MEMPHIS_SCHEMA_DETACHMENTS, detachSchemaReqBytes, timeoutRetry, cancellationToken);
             string errResp = Encoding.UTF8.GetString(detachSchemaResp.Data);
 
             if (!string.IsNullOrEmpty(errResp))
@@ -619,7 +634,12 @@ public sealed class MemphisClient : IMemphisClient
     /// <param name="schemaFilePath">Path of the schema file</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task CreateSchema(string schemaName, string schemaType, string schemaFilePath, CancellationToken cancellationToken = default)
+    public async Task CreateSchema(
+        string schemaName,
+        string schemaType,
+        string schemaFilePath,
+        int timeoutRetry = 5,
+        CancellationToken cancellationToken = default)
     {
         EnsureSchemaNameIsValid(schemaName);
         EnsureSchemaTypeIsValid(schemaType);
@@ -635,10 +655,10 @@ public sealed class MemphisClient : IMemphisClient
         };
 
         var requestJson = JsonSerDes.PrepareJsonString<CreateSchemaRequest>(createSchemaRequest);
-        var result = await _brokerConnection.RequestAsync(
+        var result = await RequestAsync(
            MemphisSubjects.SCHEMA_CREATION,
            Encoding.UTF8.GetBytes(requestJson),
-           (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
+           timeoutRetry,
            cancellationToken);
 
         HandleSchemaCreationErrorResponse(result.Data);
@@ -809,7 +829,7 @@ public sealed class MemphisClient : IMemphisClient
     /// </summary>
     /// <param name="fetchMessageOptions">Fetch message options</param>
     /// <returns>MemphisConsumer</returns>
-    public async Task<MemphisConsumer> CreateConsumer(FetchMessageOptions fetchMessageOptions)
+    public async Task<MemphisConsumer> CreateConsumer(FetchMessageOptions fetchMessageOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
     {
         return await CreateConsumer(new MemphisConsumerOptions
         {
@@ -823,11 +843,11 @@ public sealed class MemphisClient : IMemphisClient
             GenerateUniqueSuffix = fetchMessageOptions.GenerateUniqueSuffix,
             StartConsumeFromSequence = fetchMessageOptions.StartConsumeFromSequence,
             LastMessages = fetchMessageOptions.LastMessages,
-        });
+        }, timeoutRetry, cancellationToken);
     }
 
 
-    internal async Task RemoveStation(MemphisStation station, CancellationToken cancellationToken = default)
+    internal async Task RemoveStation(MemphisStation station, int timeoutRetry = 5, CancellationToken cancellationToken = default)
     {
         var request = new RemoveStationRequest
         {
@@ -846,10 +866,10 @@ public sealed class MemphisClient : IMemphisClient
         _stationSchemaUpdateListeners.TryRemove(station.InternalName, out int _);
 
         var requestJson = JsonSerDes.PrepareJsonString<RemoveStationRequest>(request);
-        var result = await _brokerConnection.RequestAsync(
+        var result = await RequestAsync(
             MemphisStations.MEMPHIS_STATION_DESTRUCTION,
             Encoding.UTF8.GetBytes(requestJson),
-            (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
+            timeoutRetry,
             cancellationToken);
 
         string errResp = Encoding.UTF8.GetString(result.Data);

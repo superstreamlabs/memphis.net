@@ -115,7 +115,7 @@ file static class Config
         {
             Name = GetStationName(platform),
             RetentionType = RetentionTypes.MAX_MESSAGE_AGE_SECONDS,
-            RetentionValue = 604_800,
+            RetentionValue = 86_400,
             StorageType = StorageTypes.DISK,
             Replicas = 1,
             IdempotenceWindowMs = 0,

@@ -18,7 +18,11 @@ public interface IMemphisClient : IDisposable
     /// </summary>
     /// <param name="producerOptions">Producer options</param>
     /// <returns>An <see cref="MemphisProducer"/> object connected to the station to produce data</returns>
-    Task<MemphisProducer> CreateProducer(MemphisProducerOptions producerOptions);
+    Task<MemphisProducer> CreateProducer(
+        MemphisProducerOptions producerOptions,
+        int timeoutRetry = 5,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Fetch messages from station
@@ -76,7 +80,10 @@ public interface IMemphisClient : IDisposable
     /// </summary>
     /// <param name="consumerOptions">Consumer options</param>
     /// <returns>An <see cref="MemphisConsumer"/> object connected to the station to consume data</returns>
-    Task<MemphisConsumer> CreateConsumer(MemphisConsumerOptions consumerOptions);
+    Task<MemphisConsumer> CreateConsumer(
+        MemphisConsumerOptions consumerOptions,
+        int timeoutRetry = 5,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Create a station
@@ -84,7 +91,11 @@ public interface IMemphisClient : IDisposable
     /// <param name="stationOptions">Station options</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>An <see cref="MemphisStation"/> object connected to the station</returns>
-    Task<MemphisStation> CreateStation(StationOptions stationOptions, CancellationToken cancellationToken = default);
+    Task<MemphisStation> CreateStation(
+        StationOptions stationOptions,
+        int timeoutRetry = 5,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Create a station
@@ -92,7 +103,11 @@ public interface IMemphisClient : IDisposable
     /// <param name="stationName">Station name</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>An <see cref="MemphisStation"/> object connected to the station</returns>
-    Task<MemphisStation> CreateStation(string stationName, CancellationToken cancellationToken = default);
+    Task<MemphisStation> CreateStation(
+        string stationName,
+        int timeoutRetry = 5,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Applies schema to an existing station
@@ -100,7 +115,12 @@ public interface IMemphisClient : IDisposable
     /// <param name="stationName">station name</param>
     /// <param name="schemaName">schema name</param>
     /// <returns></returns>
-    Task EnforceSchema(string stationName, string schemaName, CancellationToken cancellationToken = default);
+    Task EnforceSchema(
+        string stationName,
+        string schemaName,
+        int timeoutRetry = 5,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Attach schema to an existing station
@@ -116,7 +136,7 @@ public interface IMemphisClient : IDisposable
     /// </summary>
     /// <param name="stationName">station name</param>
     /// <returns></returns>
-    Task DetachSchema(string stationName);
+    Task DetachSchema(string stationName, int timeoutRetry = 5, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates schema from the specified schema file path.
@@ -125,14 +145,24 @@ public interface IMemphisClient : IDisposable
     /// <param name="schemaType">Type of the schema(such as JSON, GraphQL, ProtoBuf)</param>
     /// <param name="schemaFilePath">Schema file path</param>
     /// <returns></returns>
-    Task CreateSchema(string schemaName, string schemaType, string schemaFilePath, CancellationToken cancellationToken = default);
+    Task CreateSchema(
+        string schemaName, 
+        string schemaType, 
+        string schemaFilePath, 
+        int timeoutRetry = 5, 
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Create a new consumer
     /// </summary>
     /// <param name="fetchMessageOptions">Fetch message options</param>
     /// <returns>MemphisConsumer</returns>
-    Task<MemphisConsumer> CreateConsumer(FetchMessageOptions fetchMessageOptions);
+    Task<MemphisConsumer> CreateConsumer(
+        FetchMessageOptions fetchMessageOptions, 
+        int timeoutRetry = 5, 
+        CancellationToken cancellationToken = default
+    );
 
 
 }

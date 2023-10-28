@@ -45,7 +45,7 @@ public interface IMemphisConsumer : IDisposable
     /// Destroy the consumer
     /// </summary>
     /// <returns></returns>
-    Task DestroyAsync();
+    Task DestroyAsync(int timeoutRetry = 5);
 }
 
 

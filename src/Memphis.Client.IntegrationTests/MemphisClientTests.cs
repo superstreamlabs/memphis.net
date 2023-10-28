@@ -22,7 +22,7 @@ public class MemphisClientTests
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
 
-        var station = await client.CreateStation(stationName);        
+        var station = await _fixture.SetupStationAsync(client, stationName);
 
         var producerOptions = new MemphisProducerOptions 
         {
