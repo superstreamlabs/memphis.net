@@ -881,7 +881,7 @@ try
         PullIntervalMs = 10_000,
         BatchSize = 100,
         BatchMaxTimeToWaitMs = 15_000,
-        MaxMsgDeliveries = 100
+        MaxMsgDeliveries = 2
     });
 }
 catch (Exception ex)
@@ -967,7 +967,7 @@ client.FetchMessages(new FetchMessageOptions
     BatchSize= 10, // defaults to 10
     BatchMaxTimeToWaitMs= 5000, // defaults to 5000
     MaxAckTimeMs= 30000, // defaults to 30000
-    MaxMsgDeliveries= 10, // defaults to 10
+    MaxMsgDeliveries= 2, // defaults to 2
     StartConsumeFromSequence= 1, // start consuming from a specific sequence. defaults to 1
     LastMessages= -1 // consume the last N messages, defaults to -1 (all messages in the station)
 });

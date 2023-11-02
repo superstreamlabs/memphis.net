@@ -315,7 +315,7 @@ client.FetchMessages(new FetchMessageOptions
     BatchSize= 10, // defaults to 10
     BatchMaxTimeToWaitMs= 5000, // defaults to 5000
     MaxAckTimeMs= 30000, // defaults to 30000
-    MaxMsgDeliveries= 10, // defaults to 10
+    MaxMsgDeliveries= 2, // defaults to 2
     GenerateUniqueSuffix= false, // defaults to false
     StartConsumeFromSequence= 1, // start consuming from a specific sequence. defaults to 1
     LastMessages= -1 // consume the last N messages, defaults to -1 (all messages in the station)

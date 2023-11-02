@@ -12,7 +12,7 @@ public sealed class FetchMessageOptions
     public int BatchSize { get; set; } = 10;
     public int BatchMaxTimeToWaitMs { get; set; } = 5_000;
     public int MaxAckTimeMs { get; set; } = 30_000;
-    public int MaxMsgDeliveries { get; set; } = 10;
+    public int MaxMsgDeliveries { get; set; } = 2;
 
     [Obsolete("GenerateUniqueSuffix will be stopped to be supported after November 1'st, 2023.")]
     public bool GenerateUniqueSuffix { get; set; } 
