@@ -43,9 +43,11 @@ node ("small-ec2-fleet") {
 
     if (env.BRANCH_NAME ==~ /(latest)/) {
       stage('Create new Release'){
-	sh 'sudo yum-config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo'
-        sh 'sudo yum install gh -y'
-        sh 'sudo yum install jq -y'
+	sh """
+	  sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo -y
+          sudo dnf install gh -y
+          sudo dnf install jq -y
+	"""
         withCredentials([sshUserPrivateKey(keyFileVariable:'check',credentialsId: 'main-github')]) {
           sh """
             git reset --hard origin/latest
