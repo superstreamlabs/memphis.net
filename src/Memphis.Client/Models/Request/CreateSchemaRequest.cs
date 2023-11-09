@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-
-namespace Memphis.Client.Models.Request;
+﻿namespace Memphis.Client.Models.Request;
 
 #nullable disable
 

@@ -1,10 +1,9 @@
-﻿namespace Memphis.Client.Validators
+﻿namespace Memphis.Client.Validators;
+
+internal enum ValidatorType
 {
-    internal enum ValidatorType
-    {
-        GRAPHQL = 1,
-        JSON = 2,
-        PROTOBUF = 3,
-        AVRO = 4
-    }
+    GRAPHQL = 1,
+    JSON = 2,
+    PROTOBUF = 3,
+    AVRO = 4
 }

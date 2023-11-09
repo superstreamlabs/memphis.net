@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace Memphis.Client.Station;
+﻿namespace Memphis.Client.Station;
 
 public interface IMemphisStation
 {

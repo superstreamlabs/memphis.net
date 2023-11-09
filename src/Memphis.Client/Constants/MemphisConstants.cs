@@ -39,6 +39,8 @@ internal class MemphisSubjects
 
     // not available yes
     public const string SCHEMA_DESTRUCTION = "";
+
+    public const string FUNCTIONS_UPDATE = "$memphis_functions_updates_";
 }
 
 public static class MemphisSchemaTypes

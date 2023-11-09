@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading;
-
-namespace Memphis.Client.Station;
+﻿namespace Memphis.Client.Station;
 
 internal enum StationPartitionResolverType
 {

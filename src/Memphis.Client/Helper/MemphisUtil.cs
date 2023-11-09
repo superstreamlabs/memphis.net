@@ -1,41 +1,38 @@
-using System;
 using System.Security.Cryptography;
-using System.Text;
 
-namespace Memphis.Client.Helper
+namespace Memphis.Client.Helper;
+
+internal static class MemphisUtil
 {
-    internal static class MemphisUtil
+    internal static string GetInternalName(string name)
+    { 
+        return name.ToLower().Replace(".", "#");
+    }
+    
+    internal static string GetStationName(string internalStationName)
     {
-        internal static string GetInternalName(string name)
-        { 
-            return name.ToLower().Replace(".", "#");
-        }
-        
-        internal static string GetStationName(string internalStationName)
+        return internalStationName.Replace("#", ".");
+    }
+    
+    internal static readonly char[] chars =
+        "0123456789abcdef".ToCharArray(); 
+
+    internal static string GetUniqueKey(int size)
+    {
+        byte[] data = new byte[4*size];
+        using (var crypto = RandomNumberGenerator.Create())
         {
-            return internalStationName.Replace("#", ".");
+            crypto.GetBytes(data);
         }
-        
-        internal static readonly char[] chars =
-            "0123456789abcdef".ToCharArray(); 
-
-        internal static string GetUniqueKey(int size)
+        StringBuilder result = new StringBuilder(size);
+        for (int i = 0; i < size; i++)
         {
-            byte[] data = new byte[4*size];
-            using (var crypto = RandomNumberGenerator.Create())
-            {
-                crypto.GetBytes(data);
-            }
-            StringBuilder result = new StringBuilder(size);
-            for (int i = 0; i < size; i++)
-            {
-                var rnd = BitConverter.ToUInt32(data, i * 4);
-                var idx = rnd % chars.Length;
+            var rnd = BitConverter.ToUInt32(data, i * 4);
+            var idx = rnd % chars.Length;
 
-                result.Append(chars[idx]);
-            }
-
-            return result.ToString();
+            result.Append(chars[idx]);
         }
+
+        return result.ToString();
     }
 }

@@ -1,17 +1,5 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using Memphis.Client.Constants;
 using Memphis.Client.Consumer;
 using Memphis.Client.Core;
-using Memphis.Client.Exception;
 using Memphis.Client.Helper;
 using Memphis.Client.Models.Request;
 using Memphis.Client.Models.Response;
@@ -19,9 +7,6 @@ using Memphis.Client.Producer;
 using Memphis.Client.Station;
 using Memphis.Client.Validators;
 using Murmur;
-using NATS.Client;
-using NATS.Client.JetStream;
-using Newtonsoft.Json;
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -31,7 +16,7 @@ using Newtonsoft.Json;
 
 namespace Memphis.Client;
 
-public sealed class MemphisClient : IMemphisClient
+public sealed partial class MemphisClient : IMemphisClient
 {
     private bool _desposed;
     private readonly Options _brokerConnOptions;
@@ -184,6 +169,7 @@ public sealed class MemphisClient : IMemphisClient
             _clusterConfigurations.AddOrUpdate(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, createProducerResponse.SendNotification, (_, _) => createProducerResponse.SendNotification);
 
             await ListenForSchemaUpdate(internalStationName, createProducerResponse.SchemaUpdate);
+            await ListenForFunctionUpdate(internalStationName, createProducerResponse.StationVersion, cancellationToken);
 
             if (createProducerResponse.PartitionsUpdate is not null)
             {
@@ -215,6 +201,8 @@ public sealed class MemphisClient : IMemphisClient
             throw new MemphisException("Failed to create memphis producer", e);
         }
     }
+
+    
 
     public async Task<IEnumerable<MemphisMessage>> FetchMessages(
         FetchMessageOptions options,
@@ -784,6 +772,7 @@ public sealed class MemphisClient : IMemphisClient
     internal async Task NotifyRemoveProducer(string stationName)
     {
         await RemoveFromSchemaUpdateListener(stationName);
+        await RemoveFunctionUpdateListenerAsync(stationName);
     }
 
     internal async Task NotifyRemoveConsumer(string stationName)
@@ -1177,7 +1166,6 @@ public sealed class MemphisClient : IMemphisClient
                     {
                         throw new MemphisException($"Unable to deserialize sdk client update: {respAsJson}", exc);
                     }
-
                     try
                     {
                         _sdkClientUpdateSemaphore.WaitAsync();
@@ -1194,6 +1182,7 @@ public sealed class MemphisClient : IMemphisClient
                                 RemoveStationProducers(sdkClientUpdate.StationName);
                                 RemoveStationConsumers(sdkClientUpdate.StationName);
                                 RemoveSchemaUpdateListener(sdkClientUpdate.StationName);
+                                RemoveFunctionUpdateListenerAsync(sdkClientUpdate.StationName);
                                 break;
                             default:
                                 break;

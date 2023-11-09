@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Specialized;
-using System.Threading.Tasks;
-
-namespace Memphis.Client.Producer;
+﻿namespace Memphis.Client.Producer;
 
 public interface IMemphisProducer
 {

@@ -1,13 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿namespace Memphis.Client.Validators;
 
-namespace Memphis.Client.Validators
+internal interface ISchemaValidator
 {
-    internal interface ISchemaValidator
-    {
-        Task ValidateAsync(byte[] messageToValidate, string schemaAsStr);
+    Task ValidateAsync(byte[] messageToValidate, string schemaAsStr);
 
-        bool ParseAndStore(string schemeName, string schemaData);
+    bool ParseAndStore(string schemeName, string schemaData);
 
-        void RemoveSchema(string schemaName);
-    }
+    void RemoveSchema(string schemaName);
 }

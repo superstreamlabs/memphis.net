@@ -1,8 +1,7 @@
-namespace Memphis.Client.Exception
+namespace Memphis.Client.Exception;
+
+public class MemphisConnectionException : MemphisException
 {
-    public class MemphisConnectionException : MemphisException
-    {
-        public MemphisConnectionException(string err, System.Exception ex) : base(err, ex) { }
-        public MemphisConnectionException(string err) : base(err) { }
-    }
+    public MemphisConnectionException(string err, System.Exception ex) : base(err, ex) { }
+    public MemphisConnectionException(string err) : base(err) { }
 }

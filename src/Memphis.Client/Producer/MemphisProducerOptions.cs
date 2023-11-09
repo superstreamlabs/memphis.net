@@ -1,6 +1,4 @@
-﻿using System;
-
-#nullable disable
+﻿#nullable disable
 
 namespace Memphis.Client.Producer;
 
