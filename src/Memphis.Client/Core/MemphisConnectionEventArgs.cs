@@ -1,8 +1,4 @@
-﻿using System;
-using Memphis.Client.Exception;
-using NATS.Client;
-
-namespace Memphis.Client;
+﻿namespace Memphis.Client;
 
 public class MemphisConnectionEventArgs
 {

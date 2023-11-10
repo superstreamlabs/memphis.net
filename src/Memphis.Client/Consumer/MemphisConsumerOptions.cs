@@ -1,7 +1,5 @@
 ﻿#nullable disable
 
-using System;
-
 namespace Memphis.Client.Consumer;
 
 public sealed class MemphisConsumerOptions

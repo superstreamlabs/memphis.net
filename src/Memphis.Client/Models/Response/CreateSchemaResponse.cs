@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-
-namespace Memphis.Client.Models.Response;
+﻿namespace Memphis.Client.Models.Response;
 
 #nullable disable
 [DataContract]

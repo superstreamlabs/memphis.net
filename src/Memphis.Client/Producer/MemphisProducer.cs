@@ -1,18 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Memphis.Client.Constants;
-using Memphis.Client.Exception;
 using Memphis.Client.Helper;
 using Memphis.Client.Models.Request;
 using Memphis.Client.Station;
-using NATS.Client;
-using NATS.Client.Internals;
-using NATS.Client.JetStream;
-using Newtonsoft.Json;
 
 #pragma warning disable CS8602 // Possible null reference argument.
 
@@ -25,7 +13,6 @@ public sealed class MemphisProducer : IMemphisProducer
 
     internal string StationName { get => _stationName; }
     internal string ProducerName { get => _producerName; }
-
 
     private readonly string _realName;
     private readonly string _producerName;
@@ -83,38 +70,36 @@ public sealed class MemphisProducer : IMemphisProducer
         await EnsureMessageIsValid(message, headers);
 
         string streamName = _internalStationName;
-        if (_memphisClient.StationPartitions.TryGetValue(_internalStationName, out var partitions))
+        if (_memphisClient.StationPartitions.TryGetValue(_internalStationName, out var partitions) &&
+            partitions != null && partitions.PartitionsList != null)
         {
-            if (partitions != null && partitions.PartitionsList != null)
+            if (partitions.PartitionsList.Length == 1)
             {
-                if (partitions.PartitionsList.Length == 1)
-                {
-                    streamName = $"{_internalStationName}${partitions.PartitionsList[0]}";
-                }
-                else if (partitions.PartitionsList.Length > 1)
-                {
-                    if(partitionNumber > 0 && !string.IsNullOrWhiteSpace(partitionKey))
-                        throw new MemphisException("Can not use both partition number and partition key");
-                    
-                    int partition = PartitionResolver.Resolve();
-                    
-                    if(!string.IsNullOrWhiteSpace(partitionKey))
-                        partition = _memphisClient.GetPartitionFromKey(partitionKey, _internalStationName);
+                streamName = $"{_internalStationName}${partitions.PartitionsList[0]}";
+            }
+            else if (partitions.PartitionsList.Length > 1)
+            {
+                if (partitionNumber > 0 && !string.IsNullOrWhiteSpace(partitionKey))
+                    throw new MemphisException("Can not use both partition number and partition key");
 
-                    else if(partitionNumber > 0)
-                    {
-                        _memphisClient.EnsurePartitionNumberIsValid(partitionNumber, _internalStationName);
-                        partition = partitionNumber;
-                    }
+                int partition = PartitionResolver.Resolve();
 
-                    streamName = $"{_internalStationName}${partition}";
+                if (!string.IsNullOrWhiteSpace(partitionKey))
+                    partition = _memphisClient.GetPartitionFromKey(partitionKey, _internalStationName);
+
+                else if (partitionNumber > 0)
+                {
+                    _memphisClient.EnsurePartitionNumberIsValid(partitionNumber, _internalStationName);
+                    partition = partitionNumber;
                 }
+
+                streamName = $"{_internalStationName}${partition}";
             }
         }
 
         var msg = new Msg
         {
-            Subject = $"{streamName}.final",
+            Subject = FullSubjectName(),
             Data = message,
             Header = new MsgHeader
                 {
@@ -152,7 +137,7 @@ public sealed class MemphisProducer : IMemphisProducer
                 throw new MemphisException(publishAck.ErrorDescription);
             }
         }
-        catch (NATS.Client.NATSNoRespondersException)
+        catch (NATSNoRespondersException)
         {
             /// <summary>
             /// This exception is thrown when there are no station available to produce the message.
@@ -173,6 +158,18 @@ public sealed class MemphisProducer : IMemphisProducer
           string? messageId = default)
         {
             await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, asyncProduceAck, messageId, partitionKey);
+        }
+
+        string FullSubjectName()
+        {
+            string partitionString = streamName.Split('$')[1];
+            int partitionNumber = Convert.ToInt32(partitionString);
+            if (_memphisClient.FunctionDetails.TryGetValue(_internalStationName, out var functionDetails) &&
+                functionDetails.PartitionsFunctions.TryGetValue(partitionNumber, out var functionId))
+            {
+                return $"{streamName}.functions.{functionId}";
+            }
+            return $"{streamName}.final";
         }
     }
 

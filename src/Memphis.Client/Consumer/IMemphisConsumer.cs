@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Memphis.Client.Core;
+﻿using Memphis.Client.Core;
 
 namespace Memphis.Client.Consumer;
 

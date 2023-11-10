@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Threading;
-using System.Threading.Tasks;
-using Memphis.Client.Consumer;
+﻿using Memphis.Client.Consumer;
 using Memphis.Client.Core;
 using Memphis.Client.Producer;
 using Memphis.Client.Station;

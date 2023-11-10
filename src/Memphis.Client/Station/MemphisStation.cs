@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Memphis.Client.Helper;
+﻿using Memphis.Client.Helper;
 
 namespace Memphis.Client.Station;
 

@@ -1,222 +1,213 @@
-using System;
-using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using Memphis.Client.Exception;
-using NATS.Client;
-using NATS.Client.JetStream;
 
-namespace Memphis.Client
+namespace Memphis.Client;
+
+public static class MemphisClientFactory
 {
-    public static class MemphisClientFactory
+    public static ClientOptions GetDefaultOptions()
     {
-        public static ClientOptions GetDefaultOptions()
+        return new ClientOptions
         {
-            return new ClientOptions
-            {
-                Port = 6666,
-                Reconnect = true,
-                MaxReconnect = 10,
-                MaxReconnectIntervalMs = 1_500,
-                TimeoutMs = (int)TimeSpan.FromSeconds(2).TotalMilliseconds,
-                AccountId = 1
-            };
+            Port = 6666,
+            Reconnect = true,
+            MaxReconnect = 10,
+            MaxReconnectIntervalMs = 1_500,
+            TimeoutMs = (int)TimeSpan.FromSeconds(2).TotalMilliseconds,
+            AccountId = 1
+        };
+    }
+
+    /// <summary>
+    /// Create Memphis Client
+    /// </summary>
+    /// <param name="opts">Client Options used to customize behavior of client used to connect Memphis</param>
+    /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
+    public static async Task<MemphisClient> CreateClient(ClientOptions opts,
+        CancellationToken cancellationToken = default)
+    {
+        if (XNOR(string.IsNullOrWhiteSpace(opts.ConnectionToken),
+           string.IsNullOrWhiteSpace(opts.Password)))
+            throw new MemphisException("You have to connect with one of the following methods: connection token / password");
+
+        var connectionId = Guid.NewGuid().ToString();
+
+        var brokerConnOptions = ConnectionFactory.GetDefaultOptions();
+        brokerConnOptions.Servers = new[] { $"{NormalizeHost(opts.Host)}:{opts.Port}" };
+        brokerConnOptions.AllowReconnect = opts.Reconnect;
+        brokerConnOptions.ReconnectWait = opts.MaxReconnectIntervalMs;
+        brokerConnOptions.Name = $"{connectionId}::{opts.Username}";
+        brokerConnOptions.Timeout = opts.TimeoutMs;
+        brokerConnOptions.Verbose = true;
+
+        if (!string.IsNullOrWhiteSpace(opts.ConnectionToken))
+        {
+            brokerConnOptions.Token = opts.ConnectionToken;
+        }
+        else
+        {
+            brokerConnOptions.User = $"{opts.Username}${opts.AccountId}";
+            brokerConnOptions.Password = opts.Password;
         }
 
-        /// <summary>
-        /// Create Memphis Client
-        /// </summary>
-        /// <param name="opts">Client Options used to customize behavior of client used to connect Memphis</param>
-        /// <returns>An <see cref="MemphisClient"/> object connected to the Memphis server.</returns>
-        public static async Task<MemphisClient> CreateClient(ClientOptions opts,
-            CancellationToken cancellationToken = default)
+
+        if (opts.Tls != null)
         {
-            if (XNOR(string.IsNullOrWhiteSpace(opts.ConnectionToken),
-               string.IsNullOrWhiteSpace(opts.Password)))
-                throw new MemphisException("You have to connect with one of the following methods: connection token / password");
-
-            var connectionId = Guid.NewGuid().ToString();
-
-            var brokerConnOptions = ConnectionFactory.GetDefaultOptions();
-            brokerConnOptions.Servers = new[] { $"{NormalizeHost(opts.Host)}:{opts.Port}" };
-            brokerConnOptions.AllowReconnect = opts.Reconnect;
-            brokerConnOptions.ReconnectWait = opts.MaxReconnectIntervalMs;
-            brokerConnOptions.Name = $"{connectionId}::{opts.Username}";
-            brokerConnOptions.Timeout = opts.TimeoutMs;
-            brokerConnOptions.Verbose = true;
-
-            if (!string.IsNullOrWhiteSpace(opts.ConnectionToken))
+            brokerConnOptions.Secure = true;
+            brokerConnOptions.CheckCertificateRevocation = true;
+            if (opts.Tls.Certificate is not null)
             {
-                brokerConnOptions.Token = opts.ConnectionToken;
+                brokerConnOptions.AddCertificate(opts.Tls.Certificate);
             }
-            else
+            else if (!string.IsNullOrWhiteSpace(opts.Tls.FileName))
             {
-                brokerConnOptions.User = $"{opts.Username}${opts.AccountId}";
-                brokerConnOptions.Password = opts.Password;
-            }
-
-
-            if (opts.Tls != null)
-            {
-                brokerConnOptions.Secure = true;
-                brokerConnOptions.CheckCertificateRevocation = true;
-                if (opts.Tls.Certificate is not null)
+                if (!string.IsNullOrWhiteSpace(opts.Tls.Password))
                 {
-                    brokerConnOptions.AddCertificate(opts.Tls.Certificate);
+                    brokerConnOptions.AddCertificate(new X509Certificate2(opts.Tls.FileName, opts.Tls.Password));
                 }
-                else if (!string.IsNullOrWhiteSpace(opts.Tls.FileName))
+                else
                 {
-                    if (!string.IsNullOrWhiteSpace(opts.Tls.Password))
-                    {
-                        brokerConnOptions.AddCertificate(new X509Certificate2(opts.Tls.FileName, opts.Tls.Password));
-                    }
-                    else
-                    {
-                        brokerConnOptions.AddCertificate(opts.Tls.FileName);
-                    }
-                }
-
-                if (opts.Tls.RemoteCertificateValidationCallback is not null)
-                {
-                    brokerConnOptions.TLSRemoteCertificationValidationCallback = opts.Tls.RemoteCertificateValidationCallback;
+                    brokerConnOptions.AddCertificate(opts.Tls.FileName);
                 }
             }
 
-            try
+            if (opts.Tls.RemoteCertificateValidationCallback is not null)
             {
-
-                SuppressDefaultNatsEventHandlerLogs(brokerConnOptions);
-                ConfigureEventHandlers(brokerConnOptions, opts);
-
-
-                IConnection brokerConnection = await EstablishBrokerManagerConnection(brokerConnOptions, cancellationToken);
-                IJetStream jetStreamContext = brokerConnection.CreateJetStreamContext();
-                MemphisClient client = new(
-                    brokerConnOptions, brokerConnection,
-                    jetStreamContext, connectionId);
-                await client.ListenForSdkClientUpdate();
-                return client;
+                brokerConnOptions.TLSRemoteCertificationValidationCallback = opts.Tls.RemoteCertificateValidationCallback;
             }
-            catch (System.Exception e)
-            {
-                throw new MemphisConnectionException("error occurred, when connecting memphis", e);
-            }
+        }
 
-            static void ConfigureEventHandlers(Options options, ClientOptions clientOptions)
+        try
+        {
+
+            SuppressDefaultNatsEventHandlerLogs(brokerConnOptions);
+            ConfigureEventHandlers(brokerConnOptions, opts);
+
+
+            IConnection brokerConnection = await EstablishBrokerManagerConnection(brokerConnOptions, cancellationToken);
+            IJetStream jetStreamContext = brokerConnection.CreateJetStreamContext();
+            MemphisClient client = new(
+                brokerConnOptions, brokerConnection,
+                jetStreamContext, connectionId);
+            await client.ListenForSdkClientUpdate();
+            return client;
+        }
+        catch (System.Exception e)
+        {
+            throw new MemphisConnectionException("error occurred, when connecting memphis", e);
+        }
+
+        static void ConfigureEventHandlers(Options options, ClientOptions clientOptions)
+        {
+            if (clientOptions.ClosedEventHandler is null)
             {
-                if (clientOptions.ClosedEventHandler is null)
+                options.ClosedEventHandler += DefaultErrorHandler;
+                return;
+            }
+            options.ClosedEventHandler += (sender, args)
+             => clientOptions.ClosedEventHandler.Invoke(sender, args);
+        }
+
+        static void DefaultErrorHandler(object sender, ConnEventArgs args)
+        {
+            if (args is { Error: { } })
+            {
+                Console.WriteLine(new MemphisException(args.Error.ToString()).ToString());
+            }
+        }
+
+        static void SuppressDefaultNatsEventHandlerLogs(Options options)
+        {
+            options.ClosedEventHandler += (_, _) => { };
+            options.ServerDiscoveredEventHandler += (_, _) => { };
+            options.DisconnectedEventHandler += (_, _) => { };
+            options.ReconnectedEventHandler += (_, _) => { };
+            options.LameDuckModeEventHandler += (_, _) => { };
+            options.AsyncErrorEventHandler += (_, _) => { };
+            options.HeartbeatAlarmEventHandler += (_, _) => { };
+            options.UnhandledStatusEventHandler += (_, _) => { };
+            options.FlowControlProcessedEventHandler += (_, _) => { };
+        }
+    }
+
+    /// <summary>
+    /// This method is used to connect to Memphis Broker. 
+    /// It attempts to establish connection using accountId, and if it fails, it tries to connect using username(with out accountId).
+    /// </summary>
+    /// <param name="brokerOptions">Broker Options used to customize behavior of client used to connect Memphis</param>
+    /// <returns>An <see cref="IConnection"/> object connected to the Memphis server.</returns>
+    private static async Task<IConnection> EstablishBrokerManagerConnection(Options brokerOptions, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(brokerOptions.User))
+        {
+            await DelayLocalConnection(brokerOptions.Servers);
+            return new ConnectionFactory()
+                .CreateConnection(brokerOptions);
+        }
+
+        try
+        {
+            return new ConnectionFactory()
+                .CreateConnection(brokerOptions);
+        }
+        catch (System.Exception ex)
+        {
+            if (ex.Message.IndexOf("Authorization Violation", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                var pattern = @"(?<username>[^$]*)(?<separator>\$)(?<accountId>.+)";
+                if (Regex.Match(brokerOptions.User, pattern) is { Success: true } match)
                 {
-                    options.ClosedEventHandler += DefaultErrorHandler;
-                    return;
-                }
-                options.ClosedEventHandler += (sender, args)
-                 => clientOptions.ClosedEventHandler.Invoke(sender, args);
-            }
-
-            static void DefaultErrorHandler(object sender, ConnEventArgs args)
-            {
-                if (args is { Error: { } })
-                {
-                    Console.WriteLine(new MemphisException(args.Error.ToString()).ToString());
+                    await DelayLocalConnection(brokerOptions.Servers);
+                    brokerOptions.User = match.Groups["username"].Value;
+                    return new ConnectionFactory()
+                        .CreateConnection(brokerOptions);
                 }
             }
-
-            static void SuppressDefaultNatsEventHandlerLogs(Options options)
-            {
-                options.ClosedEventHandler += (_, _) => { };
-                options.ServerDiscoveredEventHandler += (_, _) => { };
-                options.DisconnectedEventHandler += (_, _) => { };
-                options.ReconnectedEventHandler += (_, _) => { };
-                options.LameDuckModeEventHandler += (_, _) => { };
-                options.AsyncErrorEventHandler += (_, _) => { };
-                options.HeartbeatAlarmEventHandler += (_, _) => { };
-                options.UnhandledStatusEventHandler += (_, _) => { };
-                options.FlowControlProcessedEventHandler += (_, _) => { };
-            }
+            throw new MemphisException(ex.ToString());
         }
+    }
 
-        /// <summary>
-        /// This method is used to connect to Memphis Broker. 
-        /// It attempts to establish connection using accountId, and if it fails, it tries to connect using username(with out accountId).
-        /// </summary>
-        /// <param name="brokerOptions">Broker Options used to customize behavior of client used to connect Memphis</param>
-        /// <returns>An <see cref="IConnection"/> object connected to the Memphis server.</returns>
-        private static async Task<IConnection> EstablishBrokerManagerConnection(Options brokerOptions, CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrWhiteSpace(brokerOptions.User))
-            {
-                await DelayLocalConnection(brokerOptions.Servers);
-                return new ConnectionFactory()
-                    .CreateConnection(brokerOptions);
-            }
+    /// <summary>
+    /// Delay local connection for handling bad quality networks like port fwd
+    /// </summary>
+    /// <param name="servers">List of servers</param>
+    /// <returns>Task</returns>
+    private static async Task DelayLocalConnection(string[] servers)
+    {
+        if (servers is { Length: > 0 } && IsLocalConnection(servers[0]))
+            await Task.Delay((int)TimeSpan.FromSeconds(1).TotalMilliseconds);
+    }
 
-            try
-            {
-                return new ConnectionFactory()
-                    .CreateConnection(brokerOptions);
-            }
-            catch (System.Exception ex)
-            {
-                if (ex.Message.IndexOf("Authorization Violation", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    var pattern = @"(?<username>[^$]*)(?<separator>\$)(?<accountId>.+)";
-                    if (Regex.Match(brokerOptions.User, pattern) is { Success: true } match)
-                    {
-                        await DelayLocalConnection(brokerOptions.Servers);
-                        brokerOptions.User = match.Groups["username"].Value;
-                        return new ConnectionFactory()
-                            .CreateConnection(brokerOptions);
-                    }
-                }
-                throw new MemphisException(ex.ToString());
-            }
-        }
+    /// <summary>
+    /// Check if connection is local
+    /// </summary>
+    /// <param name="host">Host</param>
+    /// <returns>True if connection is local, otherwise false</returns>
+    private static bool IsLocalConnection(string host)
+    {
+        return
+            !string.IsNullOrWhiteSpace(host) &&
+            host.Contains("localhost");
+    }
 
-        /// <summary>
-        /// Delay local connection for handling bad quality networks like port fwd
-        /// </summary>
-        /// <param name="servers">List of servers</param>
-        /// <returns>Task</returns>
-        private static async Task DelayLocalConnection(string[] servers)
-        {
-            if (servers is { Length: > 0 } && IsLocalConnection(servers[0]))
-                await Task.Delay((int)TimeSpan.FromSeconds(1).TotalMilliseconds);
-        }
+    /// <summary>
+    /// XNOR operator
+    /// </summary>
+    /// <param name="a">First boolean value</param>
+    /// <param name="b">Second boolean value</param>
+    /// <returns>True if both values are equal, otherwise false</returns>
+    private static bool XNOR(bool a, bool b)
+        => a == b;
 
-        /// <summary>
-        /// Check if connection is local
-        /// </summary>
-        /// <param name="host">Host</param>
-        /// <returns>True if connection is local, otherwise false</returns>
-        private static bool IsLocalConnection(string host)
-        {
-            return
-                !string.IsNullOrWhiteSpace(host) &&
-                host.Contains("localhost");
-        }
-
-        /// <summary>
-        /// XNOR operator
-        /// </summary>
-        /// <param name="a">First boolean value</param>
-        /// <param name="b">Second boolean value</param>
-        /// <returns>True if both values are equal, otherwise false</returns>
-        private static bool XNOR(bool a, bool b)
-            => a == b;
-
-        /// <summary>
-        /// Normalize host
-        /// </summary>
-        /// <remark>
-        /// Remove http:// or https:// from host
-        /// </remark>
-        /// <param name="host">Host</param>
-        /// <returns>Normalized host</returns>
-        internal static string NormalizeHost(string host)
-        {
-            return Regex.Replace(host, "^http(s?)://", string.Empty);
-        }
+    /// <summary>
+    /// Normalize host
+    /// </summary>
+    /// <remark>
+    /// Remove http:// or https:// from host
+    /// </remark>
+    /// <param name="host">Host</param>
+    /// <returns>Normalized host</returns>
+    internal static string NormalizeHost(string host)
+    {
+        return Regex.Replace(host, "^http(s?)://", string.Empty);
     }
 }

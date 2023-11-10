@@ -1,10 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Text;
-using Memphis.Client.Constants;
-using Memphis.Client.Exception;
-using Newtonsoft.Json;
-using SolTechnology.Avro;
+﻿using SolTechnology.Avro;
 
 namespace Memphis.Client;
 
