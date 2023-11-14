@@ -13,7 +13,7 @@ public partial class MemphisClient
     private Task ListenForFunctionUpdate(string stationName, int stationVersion, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(stationName) ||
-            stationVersion <= 0)
+            stationVersion < 2)
             return Task.CompletedTask;
 
         try
