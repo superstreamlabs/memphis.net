@@ -1,5 +1,7 @@
 ﻿#nullable disable
 
+using Memphis.Client.Station;
+
 namespace Memphis.Client.Producer;
 
 public class MemphisProducerOptions
@@ -11,4 +13,6 @@ public class MemphisProducerOptions
     public bool GenerateUniqueSuffix { get; set; }
     
     public int MaxAckTimeMs { get; set; } = 30_000;
+
+    public IEnumerable<StationOptions> Stations { get; set; } = Enumerable.Empty<StationOptions>();
 }

@@ -1,3 +1,4 @@
+using System.Linq;
 using Memphis.Client.Helper;
 using Memphis.Client.Models.Request;
 using Memphis.Client.Station;
@@ -20,6 +21,9 @@ public sealed class MemphisProducer : IMemphisProducer
     private readonly string _internalStationName;
     private readonly MemphisClient _memphisClient;
 
+    private readonly bool IsMultiStationProducer;
+    private readonly List<string> _stations = new();
+
     internal StationPartitionResolver PartitionResolver { get; set; }
 
     public MemphisProducer(MemphisClient memphisClient, string producerName, string stationName, string realName)
@@ -31,6 +35,23 @@ public sealed class MemphisProducer : IMemphisProducer
         _internalStationName = MemphisUtil.GetInternalName(stationName);
 
         PartitionResolver = new(new int[0]);
+        IsMultiStationProducer = false;
+    }
+
+    internal MemphisProducer(MemphisClient memphisClient, string producerName, string realName, List<string> stations)
+    {
+        _stationName = string.Empty;
+        _internalStationName = string.Empty;
+        PartitionResolver = new(new int[0]);
+
+        _realName = realName ?? throw new ArgumentNullException(nameof(realName));
+        _memphisClient = memphisClient ?? throw new ArgumentNullException(nameof(memphisClient));
+        _producerName = producerName ?? throw new ArgumentNullException(nameof(producerName));
+
+        if (stations == null || !stations.Any())
+            throw new ArgumentNullException($"{nameof(stations)} cannot be null or empty");
+        IsMultiStationProducer = true;
+        _stations = stations;
     }
 
     /// <summary>
@@ -45,7 +66,58 @@ public sealed class MemphisProducer : IMemphisProducer
     public async Task ProduceAsync(byte[] message, NameValueCollection headers, int ackWaitMs = 15_000,
         string? messageId = default, bool asyncProduceAck = true, string partitionKey = "", int partitionNumber = -1)
     {
+        if (IsMultiStationProducer)
+        {
+            await MultiStationProduceAsync(message, headers, ackWaitMs, messageId, asyncProduceAck, partitionKey, partitionNumber);
+            return;
+        }
+
+        await SingleStationProduceAsync(message, headers, ackWaitMs, messageId, asyncProduceAck, partitionKey, partitionNumber);
+    }
+
+    internal async Task SingleStationProduceAsync(
+        byte[] message,
+        NameValueCollection headers,
+        int ackWaitMs,
+        string? messageId,
+        bool asyncProduceAck,
+        string partitionKey,
+        int partitionNumber)
+    {
         await _memphisClient.ProduceAsync(this, message, headers, ackWaitMs, asyncProduceAck, messageId, partitionKey, partitionNumber);
+    }
+
+    internal async Task MultiStationProduceAsync(
+        byte[] message,
+        NameValueCollection headers,
+        int ackWaitMs,
+        string? messageId,
+        bool asyncProduceAck,
+        string partitionKey,
+        int partitionNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var tasks = _stations.Select(async station =>
+        {
+            var options = new MemphisProducerOptions
+            {
+                StationName = station,
+                ProducerName = _producerName,
+                MaxAckTimeMs = ackWaitMs,
+            };
+            await _memphisClient.ProduceAsync(
+                options,
+                message,
+                headers,
+                messageId,
+                asyncProduceAck,
+                partitionKey,
+                partitionNumber,
+                cancellationToken
+            );
+        });
+
+        await Task.WhenAll(tasks);
     }
 
 
@@ -221,6 +293,17 @@ public sealed class MemphisProducer : IMemphisProducer
     /// <exception cref="MemphisException"></exception>
     public async Task DestroyAsync(int timeoutRetry = 5)
     {
+        if (IsMultiStationProducer)
+        {
+            await DestroyMultiStationProducerAsync(timeoutRetry);
+            return;
+        }
+        await DestroySingleStationProducerAsync(timeoutRetry);
+    }
+
+
+    public async Task DestroySingleStationProducerAsync(int timeoutRetry)
+    {
         try
         {
             var removeProducerModel = new RemoveProducerRequest()
@@ -245,6 +328,25 @@ public sealed class MemphisProducer : IMemphisProducer
             }
 
             await _memphisClient.NotifyRemoveProducer(_stationName);
+        }
+        catch (System.Exception e)
+        {
+            throw new MemphisException("Failed to destroy producer", e);
+        }
+    }
+
+    private async Task DestroyMultiStationProducerAsync(int timeoutRetry)
+    {
+        try
+        {
+            var internalStationNames = _stations.Select(MemphisUtil.GetInternalName).ToList();
+            var producerKeys = internalStationNames.Select(station => $"{station}_{_realName}").ToList();
+            var producers = _memphisClient.ProducerCache.Where(producer => producerKeys.Contains(producer.Key)).Select(p => p.Value).ToList();
+            var tasks = producers.Select(async producer =>
+            {
+                await producer.DestroyAsync(timeoutRetry);
+            });
+            await Task.WhenAll(tasks);
         }
         catch (System.Exception e)
         {

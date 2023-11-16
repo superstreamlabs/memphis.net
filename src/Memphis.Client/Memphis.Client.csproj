@@ -14,6 +14,7 @@
         <PackageIcon>Icon.png</PackageIcon>
         <Description>Memphis.Client SDK intended to make easy integration of Memphis into .NET projects</Description>
         <EnablePackageValidation>true</EnablePackageValidation>
+        <PackageValidationBaselineVersion>0.5.0</PackageValidationBaselineVersion>
     </PropertyGroup>
 
     <ItemGroup>

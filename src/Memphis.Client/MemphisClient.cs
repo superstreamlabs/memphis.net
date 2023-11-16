@@ -108,102 +108,6 @@ public sealed partial class MemphisClient : IMemphisClient
         return !_brokerConnection.IsClosed();
     }
 
-    /// <summary>
-    /// Create Producer for station 
-    /// </summary>
-    /// <param name="producerOptions">Producer options</param>
-    /// <returns>An <see cref="MemphisProducer"/> object connected to the station to produce data</returns>
-    public async Task<MemphisProducer> CreateProducer(MemphisProducerOptions producerOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
-    {
-        string stationName = producerOptions.StationName;
-        string producerName = producerOptions.ProducerName.ToLower();
-        bool generateRandomSuffix = producerOptions.GenerateUniqueSuffix;
-        string internalStationName = MemphisUtil.GetInternalName(stationName);
-
-        if (_brokerConnection.IsClosed())
-        {
-            throw new MemphisConnectionException("Connection is dead");
-        }
-
-        if (generateRandomSuffix)
-        {
-            producerName = $"{producerName}_{MemphisUtil.GetUniqueKey(8)}";
-        }
-        else
-        {
-            var producerCacheKey = $"{internalStationName}_{producerName}";
-            if (_producerCache.TryGetValue(producerCacheKey, out MemphisProducer producer))
-            {
-                return producer;
-            }
-        }
-
-        try
-        {
-            var createProducerModel = new CreateProducerRequest
-            {
-                ProducerName = producerName,
-                StationName = MemphisUtil.GetInternalName(stationName),
-                ConnectionId = _connectionId,
-                ProducerType = "application",
-                RequestVersion = MemphisRequestVersions.LastProducerCreationRequestVersion,
-                UserName = _userName,
-                ApplicationId = ApplicationId
-            };
-
-            var createProducerModelJson = JsonSerDes.PrepareJsonString<CreateProducerRequest>(createProducerModel);
-
-            byte[] createProducerReqBytes = Encoding.UTF8.GetBytes(createProducerModelJson);
-
-            Msg createProducerResp = await RequestAsync(MemphisStations.MEMPHIS_PRODUCER_CREATIONS, createProducerReqBytes, timeoutRetry, cancellationToken);
-            string respAsJson = Encoding.UTF8.GetString(createProducerResp.Data);
-            var createProducerResponse = JsonConvert.DeserializeObject<CreateProducerResponse>(respAsJson)!;
-
-            if (!string.IsNullOrEmpty(createProducerResponse.Error))
-            {
-                throw new MemphisException(createProducerResponse.Error);
-            }
-
-
-            _stationSchemaVerseToDlsMap.AddOrUpdate(internalStationName, createProducerResponse.SchemaVerseToDls, (_, _) => createProducerResponse.SchemaVerseToDls);
-            _clusterConfigurations.AddOrUpdate(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, createProducerResponse.SendNotification, (_, _) => createProducerResponse.SendNotification);
-
-            await ListenForSchemaUpdate(internalStationName, createProducerResponse.SchemaUpdate);
-            await ListenForFunctionUpdate(internalStationName, createProducerResponse.StationVersion, cancellationToken);
-
-            if (createProducerResponse.PartitionsUpdate is not null)
-            {
-                _stationPartitions.AddOrUpdate(internalStationName, createProducerResponse.PartitionsUpdate, (_, _) => createProducerResponse.PartitionsUpdate);
-            }
-
-            var producer = new MemphisProducer(this, producerName, stationName, producerName.ToLower());
-            if (_stationPartitions.TryGetValue(internalStationName, out PartitionsUpdate partitionsUpdate))
-            {
-                if (partitionsUpdate.PartitionsList == null)
-                {
-                    producer.PartitionResolver = new(1);
-                }
-                else
-                {
-                    producer.PartitionResolver = new(partitionsUpdate.PartitionsList);
-                }
-            }
-            var producerCacheKey = $"{internalStationName}_{producerName.ToLower()}";
-            _producerCache.AddOrUpdate(producerCacheKey, producer, (_, _) => producer);
-            return producer;
-        }
-        catch (MemphisException)
-        {
-            throw;
-        }
-        catch (System.Exception e)
-        {
-            throw new MemphisException("Failed to create memphis producer", e);
-        }
-    }
-
-    
-
     public async Task<IEnumerable<MemphisMessage>> FetchMessages(
         FetchMessageOptions options,
         CancellationToken cancellationToken = default
@@ -339,10 +243,7 @@ public sealed partial class MemphisClient : IMemphisClient
             producer = cacheProducer;
         }
 
-        if (producer is null)
-        {
-            producer = await CreateProducer(options);
-        }
+        producer ??= await CreateProducer(options);
 
         await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId, asyncProduceAck, partitionKey, partitionNumber);
     }

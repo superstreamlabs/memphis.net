@@ -1,4 +1,4 @@
-﻿using Memphis.Client.Helper;
+﻿using Memphis.Client.Station;
 
 namespace Memphis.Client;
 
@@ -81,5 +81,14 @@ public partial class MemphisClient
         {
             throw new MemphisException(e.Message, e);
         }
+    }
+
+    private async Task CreateStationsAsync(IEnumerable<StationOptions> stations, int timeoutRetry, CancellationToken cancellationToken)
+    {
+        if (stations is null)
+            return;
+
+        var tasks = stations.Select(station => CreateStation(station, timeoutRetry, cancellationToken));
+        await Task.WhenAll(tasks);
     }
 }
