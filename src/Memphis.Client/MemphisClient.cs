@@ -132,43 +132,6 @@ public sealed partial class MemphisClient : IMemphisClient
         return consumer.Fetch(options);
     }
 
-    /// <summary>
-    /// Produce a message to a station
-    /// </summary>
-    /// <param name="options">options for producing a message</param>
-    /// <param name="message">message to be produced</param>
-    /// <param name="headers">headers of the message</param>
-    /// <param name="messageId">Message ID - for idempotent message production</param>
-    /// <param name="asyncProduceAck">if true, producer will not wait for ack from broker</param>
-    /// <param name="cancellationToken">cancellation token</param>
-    /// <returns></returns>
-    public async Task ProduceAsync(
-        MemphisProducerOptions options,
-        byte[] message,
-        NameValueCollection headers = default,
-        string messageId = default,
-        bool asyncProduceAck = true,
-        string partitionKey = "",
-        int partitionNumber = -1,
-        CancellationToken cancellationToken = default)
-    {
-        if (!IsConnected())
-        {
-            throw new MemphisConnectionException("Connection is dead. Can't produce a message without being connected!");
-        }
-
-        MemphisProducer producer = default;
-        var internalStationName = MemphisUtil.GetInternalName(options.StationName);
-        var producerKey = $"{internalStationName}_{options.ProducerName.ToLower()}";
-        if (_producerCache.TryGetValue(producerKey, out MemphisProducer cacheProducer))
-        {
-            producer = cacheProducer;
-        }
-
-        producer ??= await CreateProducer(options);
-
-        await producer.ProduceToBrokerAsync(message, headers, asyncProduceAck, partitionKey, partitionNumber, options.MaxAckTimeMs, messageId);
-    }
 
     internal async Task<Msg> RequestAsync(
         string subject,
@@ -188,64 +151,6 @@ public sealed partial class MemphisClient : IMemphisClient
                 throw;
             return await RequestAsync(subject, message, timeoutRetry - 1, cancellationToken);
         }
-    }
-
-    internal async Task ProduceAsync(
-        MemphisProducer producer,
-        byte[] message,
-        NameValueCollection headers,
-        int ackWaitMs,
-        bool asyncProduceAck,
-        string? messageId = default,
-        string partitionKey = default,
-        int partitionNumber = -1)
-    {
-        MemphisProducerOptions options = new()
-        {
-            StationName = producer.StationName,
-            ProducerName = producer.ProducerName,
-            GenerateUniqueSuffix = false,
-            MaxAckTimeMs = ackWaitMs
-        };
-
-        await ProduceAsync(options, message, headers, messageId, asyncProduceAck, partitionKey, partitionNumber);
-    }
-
-    /// <summary>
-    /// Produce a message to a station
-    /// </summary>
-    /// <param name="options">options for producing a message</param>
-    /// <param name="message">message to be produced</param>
-    /// <param name="headers">headers of the message</param>
-    /// <param name="messageId">id of the message</param>
-    /// <param name="cancellationToken">cancellation token</param>
-    /// <returns></returns>
-    public async Task ProduceAsync<T>(
-        MemphisProducerOptions options,
-        T message,
-        NameValueCollection headers = default,
-        string messageId = default,
-        bool asyncProduceAck = true,
-        string partitionKey = "",
-        int partitionNumber = -1,
-        CancellationToken cancellationToken = default)
-    {
-        if (!IsConnected())
-        {
-            throw new MemphisConnectionException("Connection is dead. Can't produce a message without being connected!");
-        }
-
-        MemphisProducer producer = default;
-        var internalStationName = MemphisUtil.GetInternalName(options.StationName);
-        var producerKey = $"{internalStationName}_{options.ProducerName.ToLower()}";
-        if (_producerCache.TryGetValue(producerKey, out MemphisProducer cacheProducer))
-        {
-            producer = cacheProducer;
-        }
-
-        producer ??= await CreateProducer(options);
-
-        await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId, asyncProduceAck, partitionKey, partitionNumber);
     }
 
     /// <summary>

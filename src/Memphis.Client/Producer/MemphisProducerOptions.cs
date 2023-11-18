@@ -1,11 +1,12 @@
 ﻿#nullable disable
 
-using Memphis.Client.Station;
-
 namespace Memphis.Client.Producer;
 
 public class MemphisProducerOptions
 {
+    /// <summary>
+    /// If set, producer will be produce for this station. Only one of <see cref="StationName"/> or <see cref="StationNames"/> can be set.
+    /// </summary>
     public string StationName { get; set; }
     public string ProducerName { get; set; }
     
@@ -14,5 +15,18 @@ public class MemphisProducerOptions
     
     public int MaxAckTimeMs { get; set; } = 30_000;
 
-    public IEnumerable<StationOptions> Stations { get; set; } = Enumerable.Empty<StationOptions>();
+    /// <summary>
+    /// If set, producer will be produce for all stations in the list. Only one of <see cref="StationName"/> or <see cref="StationNames"/> can be set.
+    /// </summary>
+    public IEnumerable<string> StationNames { get; set; } = Enumerable.Empty<string>();
+
+
+    internal void EnsureOptionIsValid()
+    {
+        if (!string.IsNullOrWhiteSpace(StationName) &&
+            StationNames is not null &&
+            StationNames.Any())
+            throw new MemphisException($"Invalid configuration. Only one of {nameof(StationName)} or {nameof(StationNames)} can be set.");
+    }
+
 }

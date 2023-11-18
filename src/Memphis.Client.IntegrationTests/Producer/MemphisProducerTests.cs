@@ -84,34 +84,22 @@ public class MemphisProducerTests
     }
 
     [Theory]
-    [InlineData("producer_tst_station_d", "producer_tst_producer_d", true)]
+    [InlineData(
+        "broadcast_tst_producer", 
+        true,
+        "broadcast_station_1", "broadcast_station_2", "broadcast_station_3"
+    )]
     public async Task GivenMultiStationProducer_WhenProduce_ThenProduceToAllStations(
-        string stationName, string producerName, bool generateUniqueSuffix)
+        string producerName, 
+        bool generateUniqueSuffix, 
+        params string[] stationNames)
     {
         using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
-        var station1 = _fixture.DefaultStationOptions;
-        station1.Name = $"{stationName}_1";
-
-        var station2 = new StationOptions
-        {
-            RetentionType = RetentionTypes.MAX_MESSAGE_AGE_SECONDS,
-            RetentionValue = 86_400,
-            StorageType = StorageTypes.DISK,
-            Replicas = 1,
-            IdempotenceWindowMs = 0,
-            SendPoisonMessageToDls = true,
-            SendSchemaFailedMessageToDls = true,
-            PartitionsNumber = 3,
-            Name = $"{stationName}_2"
-        };
-
-        var stations = new List<StationOptions> { station1, station2 };
-
         var producer = await client.CreateProducer(new MemphisProducerOptions
         {
-            Stations = stations,
+            StationNames = stationNames,
             ProducerName = producerName,
-            GenerateUniqueSuffix = generateUniqueSuffix
+            GenerateUniqueSuffix = generateUniqueSuffix,
         });
 
         await producer.ProduceAsync("Broadcast Message", _fixture.CommonHeaders);

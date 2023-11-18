@@ -26,15 +26,122 @@ public partial class MemphisClient
             producerName = $"{producerName}_{MemphisUtil.GetUniqueKey(8)}";
         }
 
-        if (!string.IsNullOrWhiteSpace(producerOptions.StationName) &&
-            producerOptions.Stations.Any())
-            throw new MemphisException($"Only one of {nameof(producerOptions.StationName)} or {nameof(producerOptions.Stations)} can be set.");
+        producerOptions.EnsureOptionIsValid();
 
-        return producerOptions.Stations.Any() ?
-         await CreateMultiStationProducer(producerName, producerOptions, timeoutRetry, cancellationToken)
+        return producerOptions.StationNames.Any() ?
+        CreateMultiStationProducer(producerName, producerOptions)
         : await CreateSingleStationProducer(producerName, producerOptions, timeoutRetry, cancellationToken);
     }
 
+    /// <summary>
+    /// Produce a message to a station
+    /// </summary>
+    /// <param name="options">options for producing a message</param>
+    /// <param name="message">message to be produced</param>
+    /// <param name="headers">headers of the message</param>
+    /// <param name="messageId">Message ID - for idempotent message production</param>
+    /// <param name="asyncProduceAck">if true, producer will not wait for ack from broker</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns></returns>
+    public async Task ProduceAsync(
+        MemphisProducerOptions options,
+        byte[] message,
+        NameValueCollection headers = default,
+        string messageId = default,
+        bool asyncProduceAck = true,
+        string partitionKey = "",
+        int partitionNumber = -1,
+        CancellationToken cancellationToken = default)
+    {
+        options.EnsureOptionIsValid();
+        if (!IsConnected())
+        {
+            throw new MemphisConnectionException("Connection is dead. Can't produce a message without being connected!");
+        }
+
+        MemphisProducer producer = default;
+        if (!string.IsNullOrWhiteSpace(options.StationName))
+        {
+            var internalStationName = MemphisUtil.GetInternalName(options.StationName);
+            var producerKey = $"{internalStationName}_{options.ProducerName.ToLower()}";
+            if (_producerCache.TryGetValue(producerKey, out MemphisProducer cacheProducer))
+            {
+                producer = cacheProducer;
+            }
+
+            producer ??= await CreateProducer(options);
+            await producer.ProduceToBrokerAsync(message, headers, asyncProduceAck, partitionKey, partitionNumber, options.MaxAckTimeMs, messageId);
+            return;
+        }
+
+        producer ??= await CreateProducer(options);
+        await producer.MultiStationProduceAsync(message, headers, options.MaxAckTimeMs, messageId, asyncProduceAck, partitionKey, partitionNumber, cancellationToken);
+    }
+
+
+    /// <summary>
+    /// Produce a message to a station
+    /// </summary>
+    /// <param name="options">options for producing a message</param>
+    /// <param name="message">message to be produced</param>
+    /// <param name="headers">headers of the message</param>
+    /// <param name="messageId">id of the message</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns></returns>
+    public async Task ProduceAsync<T>(
+        MemphisProducerOptions options,
+        T message,
+        NameValueCollection headers = default,
+        string messageId = default,
+        bool asyncProduceAck = true,
+        string partitionKey = "",
+        int partitionNumber = -1,
+        CancellationToken cancellationToken = default)
+    {
+        options.EnsureOptionIsValid();
+        if (!IsConnected())
+        {
+            throw new MemphisConnectionException("Connection is dead. Can't produce a message without being connected!");
+        }
+
+        MemphisProducer producer = default;
+        if (!string.IsNullOrWhiteSpace(options.StationName))
+        {
+            var internalStationName = MemphisUtil.GetInternalName(options.StationName);
+            var producerKey = $"{internalStationName}_{options.ProducerName.ToLower()}";
+            if (_producerCache.TryGetValue(producerKey, out MemphisProducer cacheProducer))
+            {
+                producer = cacheProducer;
+            }
+        }
+
+        producer ??= await CreateProducer(options);
+        await producer.ProduceAsync(message, headers, options.MaxAckTimeMs, messageId, asyncProduceAck, partitionKey, partitionNumber);
+    }
+    
+    internal async Task ProduceAsync(
+        MemphisProducer producer,
+        byte[] message,
+        NameValueCollection headers,
+        int ackWaitMs,
+        bool asyncProduceAck,
+        string? messageId = default,
+        string partitionKey = default,
+        int partitionNumber = -1)
+    {
+        MemphisProducerOptions options = new()
+        {
+            StationName = producer.StationName,
+            ProducerName = producer.ProducerName,
+            GenerateUniqueSuffix = false,
+            MaxAckTimeMs = ackWaitMs
+        };
+
+        await ProduceAsync(options, message, headers, messageId, asyncProduceAck, partitionKey, partitionNumber);
+    }
+
+
+    #region  Private Methods
     private async Task<MemphisProducer> CreateSingleStationProducer(
         string producerName,
         MemphisProducerOptions producerOptions,
@@ -114,14 +221,11 @@ public partial class MemphisClient
     }
 
 
-    private async Task<MemphisProducer> CreateMultiStationProducer(
+    private MemphisProducer CreateMultiStationProducer(
         string producerName,
-        MemphisProducerOptions producerOptions,
-        int timeoutRetry,
-        CancellationToken cancellationToken)
+        MemphisProducerOptions producerOptions)
     {
-        await CreateStationsAsync(producerOptions.Stations, timeoutRetry, cancellationToken);
-        List<string> stationNames = producerOptions.Stations.Select(s => s.Name).ToList();
-        return new MemphisProducer(this, producerName, producerName.ToLower(), stationNames);
+        return new MemphisProducer(this, producerName, producerName.ToLower(), producerOptions.StationNames.ToList());
     }
+    #endregion
 }
