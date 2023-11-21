@@ -1,4 +1,5 @@
 ﻿global using System;
+global using System.Linq;
 global using System.Collections.Concurrent;
 global using System.Collections.Generic;
 global using System.Collections.Specialized;
@@ -14,3 +15,6 @@ global using NATS.Client;
 global using NATS.Client.Internals;
 global using NATS.Client.JetStream;
 global using Newtonsoft.Json;
+global using Memphis.Client.Helper;
+global using Memphis.Client.Models.Request;
+global using Memphis.Client.Models.Response;

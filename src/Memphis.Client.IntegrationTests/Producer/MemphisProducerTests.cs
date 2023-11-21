@@ -1,4 +1,5 @@
 using Memphis.Client.Producer;
+using Memphis.Client.Station;
 
 namespace Memphis.Client.IntegrationTests.Producer;
 
@@ -82,6 +83,30 @@ public class MemphisProducerTests
         Assert.NotNull(producer);
     }
 
+    [Theory]
+    [InlineData(
+        "broadcast_tst_producer", 
+        true,
+        "broadcast_station_1", "broadcast_station_2", "broadcast_station_3"
+    )]
+    public async Task GivenMultiStationProducer_WhenProduce_ThenProduceToAllStations(
+        string producerName, 
+        bool generateUniqueSuffix, 
+        params string[] stationNames)
+    {
+        using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
+        var producer = await client.CreateProducer(new MemphisProducerOptions
+        {
+            StationNames = stationNames,
+            ProducerName = producerName,
+            GenerateUniqueSuffix = generateUniqueSuffix,
+        });
+
+        await producer.ProduceAsync("Broadcast Message", _fixture.CommonHeaders);
+
+        await producer.DestroyAsync();
+    }
+
     // [Theory]
     // [InlineData("infinite_st", "infinite_produce", true)]
     // public async Task ProduceInfinitely(
@@ -108,7 +133,7 @@ public class MemphisProducerTests
     //     }
 
     //     await producer.DestroyAsync();
-      
+
     //     Assert.NotNull(producer);
     // }
 }
