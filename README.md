@@ -724,6 +724,73 @@ await producer.ProduceAsync(
 );
 ```
 
+### Produce to multiple stations
+
+To produce a message to multiple stations, use the `StationNames` property of the `MemphisProducerOptions`:
+
+```csharp
+try
+{
+    // First: creating Memphis client
+    var options = MemphisClientFactory.GetDefaultOptions();
+    options.Host = "<memphis-host>";
+    options.Username = "<username>";
+    options.Password = "<password>";
+    var client = await MemphisClientFactory.CreateClient(options);
+
+    // Second: creating the Memphis producer 
+    var producer = await client.CreateProducer(new MemphisProducerOptions
+    {
+        StationName = "<memphis-station-name>",
+        ProducerName = "<memphis-producer-name>",
+        StationNames = new string[] { "<memphis-station-name-1>", "<memphis-station-name-2>" }
+    });
+
+    // Third: sending the message
+    var headers = new NameValueCollection
+    {
+        { "key-1", "value-1" }
+    };
+    await producer.ProduceAsync(
+        message: Encoding.UTF8.GetBytes("Hello World!"),
+        headers:headers
+    );
+}
+catch (Exception ex)
+{
+    // handle exception
+}
+```
+
+It is also possible to produce a message to multiple stations using the `ProduceAsync` method of the `MemphisClient`:
+
+```csharp
+// First: creating Memphis client
+var options = MemphisClientFactory.GetDefaultOptions();
+options.Host = "<memphis-host>";
+options.Username = "<username>";
+options.Password = "<password>";
+
+var client = await MemphisClientFactory.CreateClient(options);
+
+var headers = new NameValueCollection
+{
+    { "trace_header", "track_me_123" }
+};
+
+// Second: sending the message
+await client.ProduceAsync(
+    options: new MemphisProducerOptions
+    {
+        MaxAckTimeMs = 60_000,
+        ProducerName = "MyProducer",
+        StationNames = new string[] { "<memphis-station-name-1>", "<memphis-station-name-2>" }
+    },
+    message: Encoding.UTF8.GetBytes("MyMessage"),
+    headers: headers
+);
+```
+
 ### Destroying a Producer
 
 ```c#

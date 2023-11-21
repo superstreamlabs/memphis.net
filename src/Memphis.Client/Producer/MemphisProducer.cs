@@ -97,7 +97,7 @@ public sealed class MemphisProducer : IMemphisProducer
         int partitionNumber,
         CancellationToken cancellationToken = default)
     {
-        var tasks = _stations.Select(async station =>
+        foreach (var station in _stations)
         {
             var options = new MemphisProducerOptions
             {
@@ -105,6 +105,7 @@ public sealed class MemphisProducer : IMemphisProducer
                 ProducerName = _producerName,
                 MaxAckTimeMs = ackWaitMs,
             };
+
             await _memphisClient.ProduceAsync(
                 options,
                 message,
@@ -115,9 +116,7 @@ public sealed class MemphisProducer : IMemphisProducer
                 partitionNumber,
                 cancellationToken
             );
-        });
-
-        await Task.WhenAll(tasks);
+        }
     }
 
 
@@ -337,21 +336,12 @@ public sealed class MemphisProducer : IMemphisProducer
 
     private async Task DestroyMultiStationProducerAsync(int timeoutRetry)
     {
-        try
-        {
-            var internalStationNames = _stations.Select(MemphisUtil.GetInternalName).ToList();
-            var producerKeys = internalStationNames.Select(station => $"{station}_{_realName}").ToList();
-            var producers = _memphisClient.ProducerCache.Where(producer => producerKeys.Contains(producer.Key)).Select(p => p.Value).ToList();
-            var tasks = producers.Select(async producer =>
-            {
-                await producer.DestroyAsync(timeoutRetry);
-            });
-            await Task.WhenAll(tasks);
-        }
-        catch (System.Exception e)
-        {
-            throw new MemphisException("Failed to destroy producer", e);
-        }
+        var internalStationNames = _stations.Select(MemphisUtil.GetInternalName).ToList();
+        var producerKeys = internalStationNames.Select(station => $"{station}_{_realName}").ToList();
+        var producers = _memphisClient.ProducerCache.Where(producer => producerKeys.Contains(producer.Key)).Select(p => p.Value).ToList();
+
+        foreach (var producer in producers)
+            await producer.DestroyAsync(timeoutRetry);
     }
 
     /// <summary>
