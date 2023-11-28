@@ -509,6 +509,7 @@ station.DestroyAsync()
 ```
 
 ### Creating a new Schema
+In case schema is already exist a new version will be created
 
 ```c#
 await client.CreateSchema("<schema-name>", "<schema-type>", "<schema-file-path>")

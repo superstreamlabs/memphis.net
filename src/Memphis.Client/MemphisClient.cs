@@ -421,7 +421,7 @@ public sealed partial class MemphisClient : IMemphisClient
     }
 
     /// <summary>
-    /// Creates schema from the specified file path.
+    /// Creates schema from the specified file path. In case schema is already exist a new version will be created
     /// </summary>
     /// <param name="schemaName">Name of the schema</param>
     /// <param name="schemaType">Type of schema(Eg. JSON, GraphQL, ProtoBuf)</param>
