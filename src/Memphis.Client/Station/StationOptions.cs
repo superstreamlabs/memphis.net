@@ -18,7 +18,7 @@ public sealed class StationOptions
     /// </description>
     /// </summary>
     public string RetentionType { get; set; } = RetentionTypes.MAX_MESSAGE_AGE_SECONDS;
-    public int RetentionValue { get; set; } = 604_800;
+    public int RetentionValue { get; set; } = 3600;
     public string StorageType { get; set; } = StorageTypes.DISK;
     public int Replicas { get; set; } = 1;
     public int IdempotenceWindowMs { get; set; } = 120_000;
