@@ -89,7 +89,7 @@ try
         {
             Name = "<station-name>",
             RetentionType = RetentionTypes.MAX_MESSAGE_AGE_SECONDS,
-            RetentionValue = 604_800,
+            RetentionValue = 3600,
             StorageType = StorageTypes.DISK,
             Replicas = 1,
             IdempotencyWindowMs = 0,
