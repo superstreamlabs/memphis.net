@@ -233,12 +233,14 @@ public sealed class MemphisProducer : IMemphisProducer
 
         string FullSubjectName()
         {
-            string partitionString = streamName.Split('$')[1];
-            int partitionNumber = Convert.ToInt32(partitionString);
-            if (_memphisClient.FunctionDetails.TryGetValue(_internalStationName, out var functionDetails) &&
-                functionDetails.PartitionsFunctions.TryGetValue(partitionNumber, out var functionId))
+            if (_memphisClient.FunctionDetails.TryGetValue(_internalStationName, out var functionDetails))
             {
-                return $"{streamName}.functions.{functionId}";
+                string partitionString = streamName.Split('$')[1];
+                int partitionNumber = Convert.ToInt32(partitionString);
+                if (functionDetails.PartitionsFunctions.TryGetValue(partitionNumber, out var functionId))
+                {
+                    return $"{streamName}.functions.{functionId}";
+                }
             }
             return $"{streamName}.final";
         }

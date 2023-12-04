@@ -10,12 +10,10 @@
 
 <div align="center">
   
-  <img width="200" alt="CNCF Silver Member" src="https://github.com/cncf/artwork/raw/master/other/cncf-member/silver/color/cncf-member-silver-color.svg#gh-light-mode-only">
-  <img width="200" alt="CNCF Silver Member" src="https://github.com/cncf/artwork/raw/master/other/cncf-member/silver/white/cncf-member-silver-white.svg#gh-dark-mode-only">
- 
+<img width="177" alt="cloud_native 2 (5)" src="https://github.com/memphisdev/memphis/assets/107035359/a20ea11c-d509-42bb-a46c-e388c8424101"> 
 
   <h4>
-
+    
 **[Memphis.dev](https://memphis.dev)** is a highly scalable, painless, and effortless data streaming platform.<br>
 Made to enable developers and data teams to collaborate and build<br>
 real-time and streaming apps fast.
@@ -169,7 +167,7 @@ try
         {
             Name = "<station-name>",
             RetentionType = RetentionTypes.MAX_MESSAGE_AGE_SECONDS,
-            RetentionValue = 604_800,
+            RetentionValue = 3600,
             StorageType = StorageTypes.DISK,
             Replicas = 1,
             IdempotencyWindowMs = 0,
@@ -511,6 +509,7 @@ station.DestroyAsync()
 ```
 
 ### Creating a new Schema
+In case schema is already exist a new version will be created
 
 ```c#
 await client.CreateSchema("<schema-name>", "<schema-type>", "<schema-file-path>")
