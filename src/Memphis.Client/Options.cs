@@ -30,7 +30,7 @@ public sealed class ClientOptions
     public string ConnectionToken { get; set; }
     public int Port { get; set; }
     public bool Reconnect { get; set; }
-    public int MaxReconnect { get; set; }
+    public int MaxReconnect { get; set; } = Options.ReconnectForever;
     public int MaxReconnectIntervalMs { get; set; }
     public int TimeoutMs { get; set; }
     public TlsOptions Tls { get; set; }
