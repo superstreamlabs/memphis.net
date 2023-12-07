@@ -10,7 +10,7 @@ public static class MemphisClientFactory
         {
             Port = 6666,
             Reconnect = true,
-            MaxReconnect = 10,
+            MaxReconnect = Options.ReconnectForever,
             MaxReconnectIntervalMs = 1_500,
             TimeoutMs = (int)TimeSpan.FromSeconds(2).TotalMilliseconds,
             AccountId = 1
@@ -38,6 +38,7 @@ public static class MemphisClientFactory
         brokerConnOptions.Name = $"{connectionId}::{opts.Username}";
         brokerConnOptions.Timeout = opts.TimeoutMs;
         brokerConnOptions.Verbose = true;
+        brokerConnOptions.MaxReconnect = opts.MaxReconnect;
 
         if (!string.IsNullOrWhiteSpace(opts.ConnectionToken))
         {
