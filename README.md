@@ -54,6 +54,7 @@ try
     options.Username = "<username>";
     options.ConnectionToken = "<broker-token>"; // you will get it on broker creation
     options.AccountId = <account-id>; // You can find it on the profile page in the Memphis UI. This field should be set only on the cloud version of Memphis, otherwise it will be ignored
+    options.MaxReconnect = <max-reconnect>; // Gets or sets the maximum number of times connection will attempt to reconnect. To reconnect indefinitely set this value to -1. The default value is -1.
     var memphisClient = await MemphisClientFactory.CreateClient(options);
     ...
 }

@@ -30,6 +30,10 @@ public sealed class ClientOptions
     public string ConnectionToken { get; set; }
     public int Port { get; set; }
     public bool Reconnect { get; set; }
+    /// <summary>
+    /// Gets or sets the maximum number of times a connection will
+    /// attempt to reconnect. To reconnect indefinitely set this value to -1.
+    /// </summary>
     public int MaxReconnect { get; set; } = Options.ReconnectForever;
     public int MaxReconnectIntervalMs { get; set; }
     public int TimeoutMs { get; set; }
