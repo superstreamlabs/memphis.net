@@ -498,7 +498,7 @@ public sealed partial class MemphisClient : IMemphisClient
             try
             {
                 var response = (CreateSchemaResponse)JsonSerDes.PrepareObjectFromString<CreateSchemaResponse>(responseStr);
-                if (!string.IsNullOrWhiteSpace(response.Error))
+                if (!string.IsNullOrWhiteSpace(response.Error) && !response.Error.Contains("already exist"))
                     throw new MemphisException(response.Error);
             }
             catch (System.Exception e) when (e is not MemphisException)
