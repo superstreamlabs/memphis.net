@@ -577,8 +577,8 @@ public sealed partial class MemphisClient : IMemphisClient
 
     internal async Task NotifyRemoveProducer(string stationName)
     {
-        await RemoveFromSchemaUpdateListener(stationName);
         await RemoveFunctionUpdateListenerAsync(stationName);
+        await RemoveFromSchemaUpdateListener(stationName);
     }
 
     internal async Task NotifyRemoveConsumer(string stationName)
@@ -599,11 +599,12 @@ public sealed partial class MemphisClient : IMemphisClient
             var updateListenerCountAfterRemove = updateListenrsCount - 1;
             _stationSchemaUpdateListeners.TryUpdate(internalStationName, updateListenerCountAfterRemove, updateListenrsCount);
 
-            if (updateListenerCountAfterRemove == 0)
+            if (updateListenerCountAfterRemove <= 0)
             {
                 if (_subscriptionPerSchema.TryGetValue(internalStationName, out ISyncSubscription subscription))
                 {
                     await subscription.DrainAsync();
+                    _subscriptionPerSchema.TryRemove(internalStationName, out _);
                 }
 
                 if (_schemaUpdateDictionary.TryRemove(internalStationName,
@@ -745,6 +746,9 @@ public sealed partial class MemphisClient : IMemphisClient
 
     private async Task ProcessAndStoreSchemaUpdate(string internalStationName, Msg message)
     {
+        if (message is null)
+            return;
+
         string respAsJson = Encoding.UTF8.GetString(message.Data);
         var respAsObject =
             (ProducerSchemaUpdate)JsonSerDes.PrepareObjectFromString<ProducerSchemaUpdate>(respAsJson);
@@ -874,8 +878,12 @@ public sealed partial class MemphisClient : IMemphisClient
         {
             while (!_cancellationTokenSource.IsCancellationRequested)
             {
+                if (subscription is null || !subscription.IsValid)
+                    break;
+                
                 var schemaUpdateMsg = subscription.NextMessage();
                 await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
+
             }
         }, _cancellationTokenSource.Token);
 
@@ -916,6 +924,9 @@ public sealed partial class MemphisClient : IMemphisClient
             {
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
+                    if (subscription is null || !subscription.IsValid)
+                        break;
+                    
                     var schemaUpdateMsg = subscription.NextMessage();
                     await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
                 }
