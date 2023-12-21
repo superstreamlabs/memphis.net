@@ -4,12 +4,23 @@ namespace Memphis.Client.Consumer;
 
 public sealed class MemphisConsumerOptions
 {
+    private int _batchMaxTimeToWaitMs = 5_000;
+
     public string StationName { get; set; }
     public string ConsumerName { get; set; }
     public string ConsumerGroup { get; set; } = string.Empty;
     public int PullIntervalMs { get; set; } = 1_000;
     public int BatchSize { get; set; } = 10;
-    public int BatchMaxTimeToWaitMs { get; set; } = 5_000;
+    /// <summary>
+    ///    The maximum time to wait for a batch message to be consumed in milliseconds.
+    ///    The default value is 5000 (5 seconds). 
+    ///    The lowest value is 1000 (1 second), and if it is set a value lower than 1 second, it will be ignored.
+    /// </summary>
+    public int BatchMaxTimeToWaitMs
+    {
+        get => _batchMaxTimeToWaitMs;
+        set => _batchMaxTimeToWaitMs =  (value < 1_000) ? 1_000 : value;
+    }
     public int MaxAckTimeMs { get; set; } = 30_000;
     public int MaxMsgDeliveries { get; set; } = 2;
 
