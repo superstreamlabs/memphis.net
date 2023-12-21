@@ -4,16 +4,11 @@ internal class MemphisStations
     public const string MEMPHIS_PRODUCER_CREATIONS = "$memphis_producer_creations";
     public const string MEMPHIS_CONSUMER_CREATIONS = "$memphis_consumer_creations";
     public const string MEMPHIS_STATION_CREATIONS = "$memphis_station_creations";
-
     public const string MEMPHIS_PRODUCER_DESTRUCTIONS = "$memphis_producer_destructions";
     public const string MEMPHIS_CONSUMER_DESTRUCTIONS = "$memphis_consumer_destructions";
-
     public const string MEMPHIS_SCHEMA_ATTACHMENTS = "$memphis_schema_attachments";
     public const string MEMPHIS_SCHEMA_DETACHMENTS = "$memphis_schema_detachments";
-
     public const string MEMPHIS_NOTIFICATIONS = "$memphis_notifications";
-
-
     public const string MEMPHIS_STATION_DESTRUCTION = "$memphis_station_destructions";
 }
 
@@ -63,6 +58,7 @@ internal static class MemphisGlobalVariables
 {
     public const string GLOBAL_ACCOUNT_NAME = "$memphis";
     public const uint MURMUR_HASH_SEED = 31;
+    public const int MAX_BATCH_SIZE = 5000;
 }
 
 internal static class MemphisRequestVersions

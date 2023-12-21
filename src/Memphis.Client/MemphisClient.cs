@@ -38,17 +38,12 @@ public sealed partial class MemphisClient : IMemphisClient
     /// Schema update listners can be either producers or consumers
     /// </summary>
     private readonly ConcurrentDictionary<string, int> _stationSchemaUpdateListeners;
-
     private readonly ConcurrentDictionary<ValidatorType, ISchemaValidator> _schemaValidators;
     private readonly ConcurrentDictionary<string, MemphisProducer> _producerCache;
     private readonly ConcurrentDictionary<string, MemphisConsumer> _consumerCache;
     private readonly ConcurrentDictionary<string, bool> _stationSchemaVerseToDlsMap;
     private readonly ConcurrentDictionary<string, bool> _clusterConfigurations;
-
-
     private readonly ConcurrentDictionary<string, PartitionsUpdate> _stationPartitions;
-
-
     private readonly SemaphoreSlim _schemaUpdateSemaphore = new(1, 1);
     private readonly SemaphoreSlim _sdkClientUpdateSemaphore = new(1, 1);
 
@@ -160,6 +155,8 @@ public sealed partial class MemphisClient : IMemphisClient
     /// <returns>An <see cref="MemphisConsumer"/> object connected to the station from consuming data</returns>
     public async Task<MemphisConsumer> CreateConsumer(MemphisConsumerOptions consumerOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
     {
+        EnsureBatchSizeIsValid(consumerOptions.BatchSize);
+
         if (_brokerConnection.IsClosed())
         {
             throw new MemphisConnectionException("Connection is dead");
@@ -507,6 +504,13 @@ public sealed partial class MemphisClient : IMemphisClient
                     throw new MemphisException(responseStr);
             }
         }
+    }
+
+    internal static void EnsureBatchSizeIsValid(int batchSize)
+    {
+        if (batchSize > MemphisGlobalVariables.MAX_BATCH_SIZE ||
+           batchSize < 1)
+            throw new MemphisException($"Batch size should be between 1 and {MemphisGlobalVariables.MAX_BATCH_SIZE}");
     }
 
     internal string GetStationSchemaType(string internalStationName)
@@ -880,7 +884,7 @@ public sealed partial class MemphisClient : IMemphisClient
             {
                 if (subscription is null || !subscription.IsValid)
                     break;
-                
+
                 var schemaUpdateMsg = subscription.NextMessage();
                 await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
 
@@ -926,7 +930,7 @@ public sealed partial class MemphisClient : IMemphisClient
                 {
                     if (subscription is null || !subscription.IsValid)
                         break;
-                    
+
                     var schemaUpdateMsg = subscription.NextMessage();
                     await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
                 }
