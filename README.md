@@ -40,6 +40,84 @@ Update-Package Memphis.Client
 using Memphis.Client;
 ```
 
+### Quickstart - Producing and Consuming
+
+The most basic functionaly of memphis is the ability to produce messages to a station and to consume those messages. 
+
+> The Memphis.py SDK uses asyncio for many functions. Make sure to call the following code in an async function:
+
+```python 
+async def main():
+    ...
+
+if __name__ == '__main__':
+  asyncio.run(main()) 
+```
+
+First, a connection to Memphis must be made:
+
+```c#
+using Memphis.Client;
+
+// Connecting to the broker
+var options = MemphisClientFactory.GetDefaultOptions();
+options.Host = "aws-us-east-1.cloud.memphis.dev";
+options.AccountId = int.Parse(Environment.GetEnvironmentVariable("memphis_account_id"));
+options.Username = "test_user";
+options.Password = Environment.GetEnvironmentVariable("memphis_pass");
+
+var memphisClient = await MemphisClientFactory.CreateClient(options);
+```
+
+Then, to produce a message, call the `memphisClient.ProduceAsync` function or create a producer and call its `producer.ProduceAsync` function:
+
+```C#
+Message message = new()
+{
+    Hello = "World!"
+};
+
+var headers = new NameValueCollection();
+
+var msgBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
+await memphisClient.ProduceAsync(new Memphis.Client.Producer.MemphisProducerOptions
+    {
+        StationName = "test_station",
+        ProducerName = "producer"
+    },
+    msgBytes,
+    headers);
+
+public class Message
+{
+    public string Hello { get; set; }
+}
+```
+
+Lastly, to consume this message, call the `memphisClient.FetchMessages` function or create a consumer and call its `consumer.Fetch` function:
+
+```C#
+var messages = await memphisClient.FetchMessages(new Memphis.Client.Consumer.FetchMessageOptions
+    {
+        StationName = "test_station",
+        ConsumerName = "consumer",
+        Prefetch = false
+    });
+
+foreach (MemphisMessage message in messages)
+{
+    var messageData = message.GetData();
+    var messageOBJ = JsonSerializer.Deserialize<Message>(messageData);
+
+    // Do something with the message object here
+
+    message.Ack();
+}
+```
+
+> Remember to call `memphisClient.Dispose()` to close the connection!
+
+
 ### Connecting to Memphis
 
 The createClient method in the Memphis class allows for the connection to Memphis. Connecting to Memphis (cloud or open-source) will be needed in order to use any of the other functionality of the Memphis class. Upon connection, all of Memphis' features are available.
@@ -142,7 +220,7 @@ Memphis needs to configured for these use cases. To configure memphis to use TLS
 To disconnect from Memphis, call `Dispose()` on the `MemphisClient`.
 
 ```c#
-await memphisClient.Dispose()
+memphisClient.Dispose()
 ```
 ### Creating a Station
 
