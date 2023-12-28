@@ -40,4 +40,7 @@ internal sealed class CreateConsumerRequest
 
     [DataMember(Name = "app_id")]
     public string ApplicationId { get; set; }
+
+    [DataMember(Name = "sdk_lang")]
+    public string SdkLang { get; set; }
 }

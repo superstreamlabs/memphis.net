@@ -189,7 +189,8 @@ public sealed partial class MemphisClient : IMemphisClient
                 StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
                 LastMessages = consumerOptions.LastMessages,
                 RequestVersion = MemphisRequestVersions.LastConsumerCreationRequestVersion,
-                ApplicationId = ApplicationId
+                ApplicationId = ApplicationId,
+                SdkLang = ".NET"
             };
 
             var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);

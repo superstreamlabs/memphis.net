@@ -63,9 +63,9 @@ internal static class MemphisGlobalVariables
 
 internal static class MemphisRequestVersions
 {
-    public const int LastProducerCreationRequestVersion = 3;
+    public const int LastProducerCreationRequestVersion = 4;
     public const int LastProducerDestroyRequestVersion = 1;
 
-    public const int LastConsumerCreationRequestVersion = 3;
+    public const int LastConsumerCreationRequestVersion = 4;
     public const int LastConsumerDestroyRequestVersion = 1;
 }
