@@ -165,7 +165,8 @@ public partial class MemphisClient
                 ProducerType = "application",
                 RequestVersion = MemphisRequestVersions.LastProducerCreationRequestVersion,
                 UserName = _userName,
-                ApplicationId = ApplicationId
+                ApplicationId = ApplicationId,
+                SdkLang = ".NET"
             };
 
             var createProducerModelJson = JsonSerDes.PrepareJsonString<CreateProducerRequest>(createProducerModel);
