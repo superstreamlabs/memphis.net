@@ -1,71 +1,46 @@
-﻿using System;
-using System.Text;
-using System.Threading.Tasks;
-using Memphis.Client;
-using Memphis.Client.Consumer;
+﻿using Memphis.Client;
 using Memphis.Client.Core;
+using System.Text.Json;
 
-namespace Consumer
+try
 {
-    class ConsumerApp
+    var options = MemphisClientFactory.GetDefaultOptions();
+    options.Host = "aws-us-east-1.cloud.memphis.dev";
+    options.AccountId = int.Parse(Environment.GetEnvironmentVariable("memphis_account_id"));
+    options.Username = "test_user";
+    options.Password = Environment.GetEnvironmentVariable("memphis_pass");
+
+    var memphisClient = await MemphisClientFactory.CreateClient(options);
+
+    var consumer = await memphisClient.CreateConsumer(
+       new Memphis.Client.Consumer.MemphisConsumerOptions
+       {
+           StationName = "test_station",
+           ConsumerName = "consumer"
+       });
+
+    var messages = consumer.Fetch(3, false);
+
+    foreach (MemphisMessage message in messages)
     {
-        public static async Task Main(string[] args)
-        {
-            try
-            {
-                var options = MemphisClientFactory.GetDefaultOptions();
-                options.Host = "localhost";
-                options.Username = "<username>";
-                options.Password = "<password>";
-                // options.AccountId = <account-id>;
-                // The AccountId field should be sent only on the cloud version of Memphis, otherwise it will be ignored.
-                var client = await MemphisClientFactory.CreateClient(options);
+        var messageData = message.GetData();
+        var messageOBJ = JsonSerializer.Deserialize<Message>(messageData);
 
-                var consumer = await client.CreateConsumer(new MemphisConsumerOptions
-                {
-                    StationName = "<station-name>",
-                    ConsumerName = "<consumer-name>",
-                    ConsumerGroup = "<consumer-group-name>",
-                });
+        // Do something with the message here
+        Console.WriteLine(JsonSerializer.Serialize(messageOBJ));
 
-                consumer.MessageReceived += (sender, args) =>
-                {
-                    if (args.Exception != null)
-                    {
-                        Console.Error.WriteLine(args.Exception);
-                        return;
-                    }
-
-                    foreach (var msg in args.MessageList)
-                    {
-                        //print message itself
-                        Console.WriteLine("Received data: " + Encoding.UTF8.GetString(msg.GetData()));
-
-
-                        // print message headers
-                        foreach (var headerKey in msg.GetHeaders().Keys)
-                        {
-                            Console.WriteLine(
-                                $"Header Key: {headerKey}, value: {msg.GetHeaders()[headerKey.ToString()]}");
-                        }
-
-                        Console.WriteLine("---------");
-                        msg.Ack();
-                    }
-                    Console.WriteLine("destroyed");
-                };
-
-                consumer.ConsumeAsync();
-
-                // Wait 10 seconds, consumer starts to consume, if you need block main thread use await keyword.
-                await Task.Delay(10_000);
-                await consumer.DestroyAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine("Exception: " + ex.Message);
-                Console.Error.WriteLine(ex);
-            }
-        }
+        message.Ack();
     }
+
+    memphisClient.Dispose();
+
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine(ex.Message);
+}
+
+public class Message
+{
+    public string Hello { get; set; }
 }
