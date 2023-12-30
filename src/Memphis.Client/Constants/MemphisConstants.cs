@@ -59,6 +59,7 @@ internal static class MemphisGlobalVariables
     public const string GLOBAL_ACCOUNT_NAME = "$memphis";
     public const uint MURMUR_HASH_SEED = 31;
     public const int MAX_BATCH_SIZE = 5000;
+    public const int JETSTREAM_OPERATION_TIMEOUT = 30;
 }
 
 internal static class MemphisRequestVersions

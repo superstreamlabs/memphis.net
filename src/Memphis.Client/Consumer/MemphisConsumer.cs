@@ -1,7 +1,3 @@
-using System.Linq;
-using Memphis.Client.Core;
-using Memphis.Client.Helper;
-using Memphis.Client.Models.Request;
 using Memphis.Client.Station;
 
 namespace Memphis.Client.Consumer;
@@ -17,13 +13,10 @@ public sealed class MemphisConsumer : IMemphisConsumer
     private ISyncSubscription _dlsSubscription;
     private readonly MemphisClient _memphisClient;
     private readonly MemphisConsumerOptions _consumerOptions;
-    private IJetStreamPullSubscription[] _subscriptions;
-
+    private IConsumerContext[] _consumerContexts;
     private ConcurrentQueue<MemphisMessage> _dlsMessages;
-
     private readonly CancellationTokenSource _cancellationTokenSource;
-
-    private static bool _subscriptionActive;
+    private bool _subscriptionActive;
     private readonly int _pingConsumerIntervalMs;
 
 
@@ -68,7 +61,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
         Partitions = partitions ?? (new int[0]);
 
-        InitSubscription();
+        InitConsumerContext();
 
 #pragma warning disable 4014
         PingConsumer(_cancellationTokenSource.Token);
@@ -76,30 +69,24 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
     }
 
-
-    private void InitSubscription()
+    private void InitConsumerContext()
     {
         var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
         var internalSubjectName = MemphisUtil.GetInternalName(_consumerOptions.StationName);
 
-        var options = new ConsumerConfiguration.ConsumerConfigurationBuilder()
-            .WithDurable(durableName)
-            .WithMaxDeliver(_consumerOptions.MaxMsgDeliveries)
-            .BuildPullSubscribeOptions();
-
         if (Partitions.Length == 0)
         {
-            var subscription = _memphisClient.JetStreamConnection.PullSubscribe(internalSubjectName + ".final", options);
-            _subscriptions = new IJetStreamPullSubscription[] { subscription };
+            var consumer = _memphisClient.GetConsumerContext(internalSubjectName, durableName);
+            _consumerContexts = new IConsumerContext[] { consumer };
             return;
         }
 
-        _subscriptions = new IJetStreamPullSubscription[Partitions.Length];
+        _consumerContexts = new IConsumerContext[Partitions.Length];
         for (int i = 0; i < Partitions.Length; i++)
         {
-            var streamName = $"{internalSubjectName}${Partitions[i]}.final";
-            var subscription = _memphisClient.JetStreamConnection.PullSubscribe(streamName, options);
-            _subscriptions[i] = subscription;
+            var consumerStreamName = $"{internalSubjectName}${Partitions[i]}";
+            var consumer = _memphisClient.GetConsumerContext(consumerStreamName, durableName);
+            _consumerContexts[i] = consumer;
         }
     }
 
@@ -189,7 +176,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
     internal IEnumerable<MemphisMessage> Fetch(FetchMessageOptions fetchMessageOptions)
     {
         MemphisClient.EnsureBatchSizeIsValid(fetchMessageOptions.BatchSize);
-        
+
         try
         {
             var batchSize = fetchMessageOptions.BatchSize;
@@ -285,26 +272,25 @@ public sealed class MemphisConsumer : IMemphisConsumer
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            foreach (var subscription in _subscriptions)
+
+            foreach (var consumerContext in _consumerContexts)
             {
                 try
                 {
-                    _ = subscription.GetConsumerInformation();
+                    _ = consumerContext.GetConsumerInfo();
                 }
                 catch (System.Exception exception) when (IsConsumerOrStreamNotFound(exception))
                 {
                     MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
                         new List<MemphisMessage>(),
-                        subscription?.Context,
+                        consumerContext,
                         new MemphisException("Station unreachable")));
 
                     _subscriptionActive = false;
                 }
-                catch (System.Exception exception)
-                {
-
-                }
+                catch { }
             }
+
             await Task.Delay(_pingConsumerIntervalMs, cancellationToken);
         }
 
@@ -352,19 +338,12 @@ public sealed class MemphisConsumer : IMemphisConsumer
         }
 
 
-        var subscription = _subscriptions[partitionNumber];
-
-        var batch = subscription.Fetch(batchSize, _consumerOptions.BatchMaxTimeToWaitMs);
-        return batch
-            .Select<Msg, MemphisMessage>(
-                msg => new(
-                    msg,
-                    _memphisClient,
-                    _consumerOptions.ConsumerGroup,
-                    _consumerOptions.MaxAckTimeMs,
-                    InternalStationName)
-            )
-            .ToList();
+        var consumer = _consumerContexts[partitionNumber];
+        return consumer.FetchMessages(new FetchOptions(
+            _memphisClient,
+            InternalStationName,
+            _consumerOptions
+        ));
     }
 
     /// <summary>
@@ -393,10 +372,11 @@ public sealed class MemphisConsumer : IMemphisConsumer
     private void FetchFromPartition(
         string partitionKey,
         int consumerPartitionNumber,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var partitionNumber = 0;
-        if (_subscriptions is { Length: > 1 })
+        if (_consumerContexts is { Length: > 1 })
         {
             if (!string.IsNullOrWhiteSpace(partitionKey) && consumerPartitionNumber > 0)
             {
@@ -416,27 +396,21 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 partitionNumber = PartitionResolver.Resolve();
             }
         }
-        var subscription = _subscriptions[partitionNumber];
+        var consumerContext = _consumerContexts[partitionNumber];
 
         try
         {
-            var msgList = subscription.Fetch(_consumerOptions.BatchSize,
-                _consumerOptions.BatchMaxTimeToWaitMs);
-            var memphisMessageList = msgList
-                .Select(item =>
-                    new MemphisMessage(
-                        item,
-                        _memphisClient,
-                        _consumerOptions.ConsumerGroup,
-                        _consumerOptions.MaxAckTimeMs,
-                        InternalStationName))
-                .ToList();
+            var memphisMessages = consumerContext.FetchMessages(new FetchOptions(
+                _memphisClient,
+                InternalStationName,
+                _consumerOptions
+            ));
 
-            MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, subscription.Context, null));
+            MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessages, consumerContext, null));
         }
         catch (System.Exception e)
         {
-            MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), subscription?.Context, e));
+            MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), consumerContext, e));
         }
     }
 
@@ -485,16 +459,15 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
                 var memphisMessageList = new List<MemphisMessage> { memphisMsg };
 
-                var subscription = Partitions.Length == 0 ? _subscriptions[0] : _subscriptions[PartitionResolver.Resolve()];
-
-                DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, subscription.Context, null));
+                var consumerContext = Partitions.Length == 0 ? _consumerContexts[0] : _consumerContexts[PartitionResolver.Resolve()];
+                DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, consumerContext, null));
 
                 await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
             }
             catch (System.Exception e)
             {
-                var subscription = Partitions.Length == 0 ? _subscriptions[0] : _subscriptions[PartitionResolver.Resolve()];
-                DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), subscription?.Context, e));
+                var consumerContext = Partitions.Length == 0 ? _consumerContexts[0] : _consumerContexts[PartitionResolver.Resolve()];
+                DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), consumerContext, e));
             }
 
         }

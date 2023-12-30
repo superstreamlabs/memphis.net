@@ -1,3 +1,4 @@
+using System.Data;
 using Memphis.Client.Producer;
 using Memphis.Client.Station;
 
@@ -106,6 +107,32 @@ public class MemphisProducerTests
 
         await producer.DestroyAsync();
     }
+
+
+    [Theory]
+    [InlineData("loop_tst_producer_1","loop_producer_station_1", true)]
+    [InlineData("loop_tst_producer_2","loop_producer_station_2", false)]
+    public async Task GivenProducerOptions_WhenRecreateProducerMultipleTimes_ThenProducerIsRecreated(
+        string producerName, string stationName, bool generateUniqueSuffix)
+    {
+        using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
+        bool noError = true;
+        
+        for (int i = 0; i < 10; i++)
+        {
+            var producerOptions = new MemphisProducerOptions
+            {
+                StationName = stationName,
+                ProducerName = producerName,
+                GenerateUniqueSuffix = generateUniqueSuffix
+            };
+            var producer = await client.CreateProducer(producerOptions);
+            await producer.DestroyAsync();
+        }
+
+        Assert.True(noError);
+    }
+
 
     // [Theory]
     // [InlineData("infinite_st", "infinite_produce", true)]

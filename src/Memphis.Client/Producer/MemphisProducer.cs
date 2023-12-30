@@ -194,11 +194,11 @@ public sealed class MemphisProducer : IMemphisProducer
 
         try
         {
-            Task<PublishAck> publishAckTask = _memphisClient.JetStreamConnection.PublishAsync(
-                            msg, PublishOptions.Builder()
-                                .WithTimeout(Duration.OfMillis(ackWaitMs))
-                                .Build());
-
+            var publishOptions = PublishOptions.Builder()
+                .WithTimeout(Duration.OfMillis(ackWaitMs))
+                .Build();
+            var publishAckTask = _memphisClient.PublishWithJetStreamAsync(msg, publishOptions);
+            
             if (asyncProduceAck)
                 return;
 
