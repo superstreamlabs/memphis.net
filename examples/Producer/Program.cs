@@ -1,51 +1,49 @@
-﻿using System;
+﻿using Memphis.Client;
 using System.Collections.Specialized;
 using System.Text;
-using System.Threading.Tasks;
-using Memphis.Client;
-using Memphis.Client.Producer;
+using System.Text.Json;
 
-namespace Producer
+try
 {
-    class ProducerApp
-    {
-        public static async Task Main(string[] args)
+    var options = MemphisClientFactory.GetDefaultOptions();
+    options.Host = "aws-us-east-1.cloud.memphis.dev";
+    options.AccountId = int.Parse(Environment.GetEnvironmentVariable("memphis_account_id"));
+    options.Username = "test_user";
+    options.Password = Environment.GetEnvironmentVariable("memphis_pass");
+
+    var memphisClient = await MemphisClientFactory.CreateClient(options);
+
+    var producer = await memphisClient.CreateProducer(
+        new Memphis.Client.Producer.MemphisProducerOptions
         {
-            try
-            {
-                var options = MemphisClientFactory.GetDefaultOptions();
-                options.Host = "<memphis-host>";
-                options.Username = "<username>";
-                options.Password = "<password>";
-                // options.AccountId = <account-id>;
-                // The AccountId field should be sent only on the cloud version of Memphis, otherwise it will be ignored.
-                var client = await MemphisClientFactory.CreateClient(options);
+            StationName = "test_station",
+            ProducerName = "producer"
+        });
 
-                var producer = await client.CreateProducer(new MemphisProducerOptions
-                {
-                    StationName = "<memphis-station-name>",
-                    ProducerName = "<memphis-producer-name>",
-                    GenerateUniqueSuffix = true
-                });
+    Message message = new()
+    {
+        Hello = "World!"
+    };
 
-                var commonHeaders = new NameValueCollection();
-                commonHeaders.Add("key-1", "value-1");
+    var headers = new NameValueCollection();
 
-                for (int i = 0; i < 10_000000; i++)
-                {
-                    await Task.Delay(1_000);
-                    var text = $"Message #{i}: Welcome to Memphis";
-                    await producer.ProduceAsync(Encoding.UTF8.GetBytes(text), commonHeaders);
-                    Console.WriteLine($"Message #{i} sent successfully");
-                }
+    for (int i = 0; i < 3; i++)
+    {
+        var msgBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
 
-                await producer.DestroyAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine("Exception: " + ex.Message);
-                Console.Error.WriteLine(ex);
-            }
-        }
+        await producer.ProduceAsync(
+          msgBytes,
+          headers);
     }
+
+    memphisClient.Dispose();
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine(ex.Message);
+}
+
+public class Message
+{
+    public string Hello { get; set; }
 }
