@@ -127,6 +127,8 @@ public static class MemphisClientFactory
             options.HeartbeatAlarmEventHandler += (_, _) => { };
             options.UnhandledStatusEventHandler += (_, _) => { };
             options.FlowControlProcessedEventHandler += (_, _) => { };
+            options.PullStatusErrorEventHandler += (_, _) => { };
+            options.PullStatusWarningEventHandler += (_, _) => { };
         }
     }
 
