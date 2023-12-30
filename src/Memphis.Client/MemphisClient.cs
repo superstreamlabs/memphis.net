@@ -1,8 +1,5 @@
 using Memphis.Client.Consumer;
-using Memphis.Client.Core;
-using Memphis.Client.Helper;
-using Memphis.Client.Models.Request;
-using Memphis.Client.Models.Response;
+
 using Memphis.Client.Producer;
 using Memphis.Client.Station;
 using Memphis.Client.Validators;
@@ -148,6 +145,14 @@ public sealed partial class MemphisClient : IMemphisClient
         }
     }
 
+    internal async Task<PublishAck> PublishWithJetStreamAsync(
+        Msg message,
+        PublishOptions options
+    )
+    {
+        return await _jetStreamContext.PublishAsync(message, options);
+    }
+
     /// <summary>
     /// Create Consumer for station 
     /// </summary>
@@ -189,7 +194,8 @@ public sealed partial class MemphisClient : IMemphisClient
                 StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
                 LastMessages = consumerOptions.LastMessages,
                 RequestVersion = MemphisRequestVersions.LastConsumerCreationRequestVersion,
-                ApplicationId = ApplicationId
+                ApplicationId = ApplicationId,
+                SdkLang = ".NET"
             };
 
             var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
@@ -644,6 +650,13 @@ public sealed partial class MemphisClient : IMemphisClient
             StartConsumeFromSequence = fetchMessageOptions.StartConsumeFromSequence,
             LastMessages = fetchMessageOptions.LastMessages,
         }, timeoutRetry, cancellationToken);
+    }
+
+    internal IConsumerContext GetConsumerContext(string streamName, string durableName)
+    {
+        var streamContext = _brokerConnection.GetStreamContext(streamName);
+        var consumerContext = streamContext.GetConsumerContext(durableName);
+        return consumerContext;
     }
 
 

@@ -16,5 +16,7 @@ global using NATS.Client.Internals;
 global using NATS.Client.JetStream;
 global using Newtonsoft.Json;
 global using Memphis.Client.Helper;
+global using Memphis.Client.Core;
 global using Memphis.Client.Models.Request;
 global using Memphis.Client.Models.Response;
+global using NATS.Client.JetStream;

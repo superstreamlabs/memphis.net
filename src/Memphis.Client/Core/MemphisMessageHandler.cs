@@ -9,6 +9,11 @@ public class MemphisMessageHandlerEventArgs : EventArgs
         Exception = ex;
     }
 
+    public MemphisMessageHandlerEventArgs(List<MemphisMessage> messageList, IConsumerContext? context, System.Exception? ex): this(messageList, default(IJetStream), ex)
+    {
+        ConsumerContext = context;
+    }
+
 
     /// <summary>
     /// Retrieves the message.
@@ -18,4 +23,6 @@ public class MemphisMessageHandlerEventArgs : EventArgs
     public System.Exception? Exception { get; }
 
     public IJetStream? Context { get; set; }
+
+    public IConsumerContext? ConsumerContext { get; set; }
 }
