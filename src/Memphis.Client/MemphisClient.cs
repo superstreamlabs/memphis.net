@@ -5,7 +5,6 @@ using Memphis.Client.Station;
 using Memphis.Client.Validators;
 using Murmur;
 
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -15,7 +14,7 @@ namespace Memphis.Client;
 
 public sealed partial class MemphisClient : IMemphisClient
 {
-    private bool _desposed;
+    private bool _disposed;
     private readonly Options _brokerConnOptions;
     private readonly IConnection _brokerConnection;
     private readonly IJetStream _jetStreamContext;
@@ -1102,7 +1101,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
     public void Dispose(bool disposing)
     {
-        if (_desposed)
+        if (_disposed)
             return;
 
         if (disposing)
@@ -1112,6 +1111,6 @@ public sealed partial class MemphisClient : IMemphisClient
             _brokerConnection.Dispose();
         }
 
-        _desposed = true;
+        _disposed = true;
     }
 }
