@@ -202,8 +202,6 @@ public sealed partial class MemphisClient : IMemphisClient
 
             byte[] createConsumerReqBytes = Encoding.UTF8.GetBytes(createConsumerModelJson);
 
-            await ListenForSchemaUpdate(consumerOptions.StationName);
-
             Msg createConsumerResp = await RequestAsync(MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes, timeoutRetry, cancellationToken);
             var responseStr = Encoding.UTF8.GetString(createConsumerResp.Data);
             var createConsumerResponse = JsonConvert.DeserializeObject<CreateConsumerResponse>(responseStr);
@@ -220,8 +218,6 @@ public sealed partial class MemphisClient : IMemphisClient
 
                 return oldconsumer;
             }
-
-
             if (!string.IsNullOrEmpty(createConsumerResponse.Error))
             {
                 throw new MemphisException(responseStr);
@@ -229,6 +225,8 @@ public sealed partial class MemphisClient : IMemphisClient
 
             var consumer = new MemphisConsumer(this, consumerOptions, createConsumerResponse.PartitionsUpdate.PartitionsList);
             _consumerCache.AddOrUpdate(consumer.Key, consumer, (_, _) => consumer);
+
+            await ListenForSchemaUpdate(consumerOptions.StationName);
 
             return consumer;
 

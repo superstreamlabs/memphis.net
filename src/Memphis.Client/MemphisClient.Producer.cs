@@ -186,9 +186,6 @@ public partial class MemphisClient
             _stationSchemaVerseToDlsMap.AddOrUpdate(internalStationName, createProducerResponse.SchemaVerseToDls, (_, _) => createProducerResponse.SchemaVerseToDls);
             _clusterConfigurations.AddOrUpdate(MemphisSdkClientUpdateTypes.SEND_NOTIFICATION, createProducerResponse.SendNotification, (_, _) => createProducerResponse.SendNotification);
 
-            await ListenForSchemaUpdate(internalStationName, createProducerResponse.SchemaUpdate);
-            await ListenForFunctionUpdate(internalStationName, createProducerResponse.StationVersion, cancellationToken);
-
             if (createProducerResponse.PartitionsUpdate is not null)
             {
                 _stationPartitions.AddOrUpdate(internalStationName, createProducerResponse.PartitionsUpdate, (_, _) => createProducerResponse.PartitionsUpdate);
@@ -208,6 +205,10 @@ public partial class MemphisClient
             }
             var producerCacheKey = $"{internalStationName}_{producerName.ToLower()}";
             _producerCache.AddOrUpdate(producerCacheKey, producer, (_, _) => producer);
+            
+            await ListenForSchemaUpdate(internalStationName, createProducerResponse.SchemaUpdate);
+            await ListenForFunctionUpdate(internalStationName, createProducerResponse.StationVersion, cancellationToken);
+
             return producer;
         }
         catch (MemphisException)
