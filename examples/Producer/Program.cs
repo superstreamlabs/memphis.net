@@ -6,18 +6,18 @@ using System.Text.Json;
 try
 {
     var options = MemphisClientFactory.GetDefaultOptions();
-    options.Host = "aws-us-east-1.cloud.memphis.dev";
-    options.AccountId = int.Parse(Environment.GetEnvironmentVariable("memphis_account_id"));
-    options.Username = "test_user";
-    options.Password = Environment.GetEnvironmentVariable("memphis_pass");
+    options.Host = "<memphis-host>";
+    options.AccountId = <memphis-accountId>;
+    options.Username = "<memphis-username>";
+    options.Password = "<memphis-password>";
 
     var memphisClient = await MemphisClientFactory.CreateClient(options);
 
     var producer = await memphisClient.CreateProducer(
         new Memphis.Client.Producer.MemphisProducerOptions
         {
-            StationName = "test_station",
-            ProducerName = "producer"
+            StationName = "<station-name>",
+            ProducerName = "<producer-name>"
         });
 
     Message message = new()
