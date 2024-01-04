@@ -23,7 +23,7 @@ node ("memphis-jenkins-small-fleet-agent") {
     
     stage('Build project'){
       sh """
-        /home/ec2-user/.dotnet/dotnet build -c Release src/Memphis.Client.sln
+        ~/.dotnet/dotnet build -c Release src/Memphis.Client.sln
       """
     }
   
