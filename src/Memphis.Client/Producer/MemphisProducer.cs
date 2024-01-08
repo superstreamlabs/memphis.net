@@ -151,7 +151,7 @@ public sealed class MemphisProducer : IMemphisProducer
             else if (partitions.PartitionsList.Length > 1)
             {
                 if (partitionNumber > 0 && !string.IsNullOrWhiteSpace(partitionKey))
-                    throw new MemphisException("Can not use both partition number and partition key");
+                    throw MemphisExceptions.BothPartitionNumAndKeyException;
 
                 int partition = PartitionResolver.Resolve();
 
@@ -180,7 +180,7 @@ public sealed class MemphisProducer : IMemphisProducer
         };
 
         if (messageId == string.Empty)
-            throw new MemphisMessageIdException("Message ID cannot be empty");
+            throw MemphisExceptions.EmptyMessageIDException;
 
         if (!string.IsNullOrWhiteSpace(messageId))
         {

@@ -106,7 +106,7 @@ public sealed partial class MemphisClient : IMemphisClient
     {
         if (!IsConnected())
         {
-            throw new MemphisConnectionException("Connection is dead. Can't produce a message without being connected!");
+            throw MemphisExceptions.DeadConnectionException;
         }
 
         MemphisConsumer? consumer = default;
@@ -163,7 +163,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
         if (_brokerConnection.IsClosed())
         {
-            throw new MemphisConnectionException("Connection is dead");
+            throw new MemphisExceptions.DeadConnectionException
         }
 
         consumerOptions.RealName = consumerOptions.ConsumerName.ToLower();
@@ -236,7 +236,7 @@ public sealed partial class MemphisClient : IMemphisClient
         }
         catch (System.Exception e)
         {
-            throw new MemphisException("Failed to create memphis consumer", e);
+            throw MemphisExceptions.FailedToCreateConsumerException(e);
         }
     }
 
@@ -251,7 +251,7 @@ public sealed partial class MemphisClient : IMemphisClient
     {
         if (_brokerConnection.IsClosed())
         {
-            throw new MemphisConnectionException("Connection is dead");
+            throw MemphisExceptions.DeadConnectionException;
         }
 
         try
@@ -301,7 +301,7 @@ public sealed partial class MemphisClient : IMemphisClient
         }
         catch (System.Exception e)
         {
-            throw new MemphisException("Failed to create memphis station", e);
+            throw MemphisExceptions.FailedToCreateStationException(e);
         }
     }
 
@@ -361,7 +361,7 @@ public sealed partial class MemphisClient : IMemphisClient
         }
         catch (System.Exception e)
         {
-            throw new MemphisException("Failed to attach schema to station", e);
+            throw MemphisExceptions.FailedToAttachSchemaException(e);
         }
 
     }
@@ -416,7 +416,7 @@ public sealed partial class MemphisClient : IMemphisClient
         }
         catch (System.Exception e)
         {
-            throw new MemphisException("Failed to attach schema to station", e);
+            throw MemphisExceptions.FailedToAttachSchemaException(e)
         }
     }
 
@@ -460,20 +460,20 @@ public sealed partial class MemphisClient : IMemphisClient
         static void EnsureSchemaNameIsValid(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
-                throw new MemphisException("Schema name can not be empty");
+                throw MemphisExceptions.EmptySchemaNameException;
             if (name.Length > 128)
-                throw new MemphisException("Schema name should be under 128 characters");
+                throw MemphisExceptions.SchemaNameTooLongException;
             string validNameRegex = "^[a-z0-9_.-]*$";
             if (Regex.Match(name, validNameRegex) is { Success: false })
-                throw new MemphisException("Only alphanumeric and the '_', '-', '.' characters are allowed in schema name");
+                throw MemphisExceptions.InvalidSchemaNameException;
             if (!char.IsLetterOrDigit(name[0]) || !char.IsLetterOrDigit(name[name.Length - 1]))
-                throw new MemphisException("Schema name can not start or end with non alphanumeric character");
+                throw MemphisExceptions.InvalidSchemaStartEndCharsException;
         }
 
         static void EnsureSchemaTypeIsValid(string type)
         {
             if (string.IsNullOrWhiteSpace(type))
-                throw new MemphisException("Schema type can not be empty");
+                throw MemphisExceptions.EmptySchemaTypeException;
             switch (type)
             {
                 case MemphisSchemaTypes.JSON:
@@ -482,14 +482,14 @@ public sealed partial class MemphisClient : IMemphisClient
                 case MemphisSchemaTypes.AVRO:
                     return;
                 default:
-                    throw new MemphisException("Unsupported schema type");
+                    throw MemphisExceptions.UnsupportedSchemaTypeException;
             }
         }
 
         static void EnsureSchemaFileExists(string path)
         {
             if (!File.Exists(path))
-                throw new MemphisException("Schema file does not exist", new FileNotFoundException(path));
+                throw MemphisExceptions.SchemaDoesNotExistException(path);
         }
 
         static void HandleSchemaCreationErrorResponse(byte[] responseBytes)
@@ -885,7 +885,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
         if (!_subscriptionPerSchema.TryAdd(internalStationName, subscription))
         {
-            throw new MemphisException("Unable to add subscription of schema updates for station");
+            throw MemphisExceptions.SchemaUpdateSubscriptionFailedException;
         }
 
         Task.Run(async () =>
@@ -929,7 +929,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
             if (!_subscriptionPerSchema.TryAdd(internalStationName, subscription))
             {
-                throw new MemphisException("Unable to add subscription of schema updates for station");
+                throw MemphisExceptions.SchemaUpdateSubscriptionFailedException;
             }
 
             await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateInit);
