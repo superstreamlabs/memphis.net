@@ -29,7 +29,7 @@ public sealed class MemphisMessage
     {
         try
         {
-            this._msg.AckSync(_macAckTimeMs);
+            this._msg.Ack();
         }
         catch (System.Exception e)
         {
