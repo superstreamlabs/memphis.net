@@ -29,7 +29,7 @@ public sealed class MemphisMessage
     {
         try
         {
-            this._msg.AckSync(_macAckTimeMs);
+            this._msg.Ack();
         }
         catch (System.Exception e)
         {
@@ -118,5 +118,15 @@ public sealed class MemphisMessage
             value = string.Empty;
             return false;
         }
+    }
+
+    public DateTime GetTimeSent()
+    {
+        return _msg.MetaData.Timestamp;
+    }
+
+    public ulong GetSequence()
+    {
+        return _msg.MetaData.StreamSequence;
     }
 }
