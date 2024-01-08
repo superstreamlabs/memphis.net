@@ -1155,6 +1155,22 @@ Get headers per message
 msg.GetHeaders()
 ```
 
+### Get message sequence number 
+
+Get message sequence number
+
+```C#
+var sequence = msg.GetSequence();
+```
+
+### Get message time sent 
+
+Get message time sent
+
+```C#
+var dateTime = msg.GetTimeSent();
+```
+
 ### Destroying a Consumer
 
 ```c#

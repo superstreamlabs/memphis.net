@@ -119,4 +119,14 @@ public sealed class MemphisMessage
             return false;
         }
     }
+
+    public DateTime GetTimeSent()
+    {
+        return _msg.MetaData.Timestamp;
+    }
+
+    public ulong GetSequence()
+    {
+        return _msg.MetaData.StreamSequence;
+    }
 }
