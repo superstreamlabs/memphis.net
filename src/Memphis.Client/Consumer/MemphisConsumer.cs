@@ -1,5 +1,7 @@
 using Memphis.Client.Station;
 
+using Memphis.Client;
+
 namespace Memphis.Client.Consumer;
 
 public sealed class MemphisConsumer : IMemphisConsumer
@@ -154,7 +156,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         }
         catch (System.Exception e)
         {
-            throw new MemphisException("Failed to destroy consumer", e);
+            throw MemphisExceptions.FailedToDestroyConsumerException(e);
         }
     }
 
@@ -284,7 +286,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                     MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(
                         new List<MemphisMessage>(),
                         consumerContext,
-                        new MemphisException("Station unreachable")));
+                        MemphisExceptions.StationUnreachableException));
 
                     _subscriptionActive = false;
                 }
@@ -325,7 +327,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
 
         if (!string.IsNullOrWhiteSpace(partitionKey) && consumerPartitionNumber > 0)
         {
-            throw new MemphisException("PartitionKey and PartitionNumber can not be set at the same time");
+            throw MemphisExceptions.BothPartitionNumAndKeyException;
         }
         if (!string.IsNullOrWhiteSpace(partitionKey))
         {
@@ -380,7 +382,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         {
             if (!string.IsNullOrWhiteSpace(partitionKey) && consumerPartitionNumber > 0)
             {
-                throw new MemphisException("PartitionKey and PartitionNumber can not be set at the same time");
+                throw MemphisExceptions.BothPartitionNumAndKeyException;
             }
             if (!string.IsNullOrWhiteSpace(partitionKey))
             {

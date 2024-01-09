@@ -21,7 +21,7 @@ internal class MessageSerializer
             MemphisSchemaTypes.GRAPH_QL => Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj)),
             MemphisSchemaTypes.PROTO_BUF => SerializeProtoBuf(obj),
             MemphisSchemaTypes.AVRO => AvroConvert.Serialize(obj),
-            _ => throw new MemphisException("Unsupported schema type, the supported schema types are: json, graphql, protobuf, avro"),
+            _ => throw MemphisExceptions.UnsupportedSchemaTypeException,
         };
 
         static byte[] SerializeProtoBuf<TData>(TData obj) where TData : class
@@ -47,7 +47,7 @@ internal class MessageSerializer
             MemphisSchemaTypes.GRAPH_QL => JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(data)),
             MemphisSchemaTypes.PROTO_BUF => DeserializeProtoBuf<T>(data),
             MemphisSchemaTypes.AVRO => AvroConvert.Deserialize<T>(data),
-            _ => throw new MemphisException("Unsupported schema type, the supported schema types are: json, graphql, protobuf, avro"),
+            _ => throw MemphisExceptions.UnsupportedSchemaTypeException,
         };
 
         static T DeserializeProtoBuf<TData>(byte[] data) where TData : class
