@@ -24,6 +24,11 @@ try
     while (true) {
         var messages = consumer.Fetch(3, false);
 
+        if (!messages.Any())
+        {
+            continue;
+        }
+
         foreach (MemphisMessage message in messages)
         {
             var messageData = message.GetData();
