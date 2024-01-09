@@ -1,5 +1,7 @@
 using Memphis.Client.Station;
 
+using Memphis.Client;
+
 namespace Memphis.Client.Consumer;
 
 public sealed class MemphisConsumer : IMemphisConsumer
@@ -154,7 +156,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         }
         catch (System.Exception e)
         {
-            throw 
+            throw MemphisExceptions.FailedToDestroyConsumerException(e);
         }
     }
 

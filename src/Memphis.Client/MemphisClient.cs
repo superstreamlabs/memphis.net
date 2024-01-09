@@ -163,7 +163,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
         if (_brokerConnection.IsClosed())
         {
-            throw new MemphisExceptions.DeadConnectionException
+            throw MemphisExceptions.DeadConnectionException;
         }
 
         consumerOptions.RealName = consumerOptions.ConsumerName.ToLower();
@@ -416,7 +416,7 @@ public sealed partial class MemphisClient : IMemphisClient
         }
         catch (System.Exception e)
         {
-            throw MemphisExceptions.FailedToAttachSchemaException(e)
+            throw MemphisExceptions.FailedToAttachSchemaException(e);
         }
     }
 

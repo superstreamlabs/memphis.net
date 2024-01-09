@@ -94,7 +94,7 @@ public static class MemphisClientFactory
         }
         catch (System.Exception e)
         {
-            throw MemphisExceptions.FailedToConnectException;
+            throw MemphisExceptions.FailedToConnectException(e);
         }
 
         static void ConfigureEventHandlers(Options options, ClientOptions clientOptions)

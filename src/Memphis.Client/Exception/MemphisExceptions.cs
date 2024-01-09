@@ -1,12 +1,8 @@
 namespace Memphis.Client;
 
-
-
 public static class MemphisExceptions{
 
     public static readonly MemphisConnectionException DeadConnectionException = new MemphisConnectionException("Connection to the broker is dead");
-
-    public static readonly MemphisConnectionException FailedToConnectException = new MemphisConnectionException("error occurred, when connecting memphis", e);
 
     public static readonly MemphisConnectionException UnableToDealyDLSException = new MemphisConnectionException("Unable to delay DLS message");
 
@@ -26,11 +22,18 @@ public static class MemphisExceptions{
 
     public static readonly MemphisException InvalidConnectionTypeException = new MemphisException("You have to connect with one of the following methods: connection token / password");
 
-    public static readonly MemphisException StationUnreachableException = new MemphisException("Station unreachable")
+    public static readonly MemphisException StationUnreachableException = new MemphisException("Station unreachable");
 
     public static readonly MemphisException BothPartitionNumAndKeyException = new MemphisException("PartitionKey and PartitionNumber can not be set at the same time");
 
     public static readonly MemphisMessageIdException EmptyMessageIDException = new MemphisMessageIdException("Message ID cannot be empty");
+
+    public static readonly MemphisException UnsupportedOSException = new MemphisException("Unsupported OS");
+
+    public static MemphisException FailedToConnectException(System.Exception e)
+    {
+        return new MemphisConnectionException("error occurred, when connecting memphis", e);
+    }
 
     public static MemphisException FailedToCreateConsumerException(System.Exception e)
     {
@@ -55,7 +58,7 @@ public static class MemphisExceptions{
 
     public static MemphisException SchemaDoesNotExistException(string path)
     {
-        new MemphisException("Schema file does not exist", new FileNotFoundException(path));
+        return new MemphisException("Schema file does not exist", new FileNotFoundException(path));
     }
 
     public static MemphisException FailedToDestroyConsumerException(System.Exception e)
@@ -67,4 +70,5 @@ public static class MemphisExceptions{
     {
         return new MemphisConnectionException("Unable to ack message", e);
     }
+
 }

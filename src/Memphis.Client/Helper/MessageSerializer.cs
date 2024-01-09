@@ -47,7 +47,7 @@ internal class MessageSerializer
             MemphisSchemaTypes.GRAPH_QL => JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(data)),
             MemphisSchemaTypes.PROTO_BUF => DeserializeProtoBuf<T>(data),
             MemphisSchemaTypes.AVRO => AvroConvert.Deserialize<T>(data),
-            _ => throw MemphisExceptions.UnsupportedSchemaTypeException;
+            _ => throw MemphisExceptions.UnsupportedSchemaTypeException,
         };
 
         static T DeserializeProtoBuf<TData>(byte[] data) where TData : class
