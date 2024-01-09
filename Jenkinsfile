@@ -2,7 +2,7 @@ def gitBranch = env.BRANCH_NAME
 def gitURL = "git@github.com:Memphisdev/memphis.net.git"
 def repoUrlPrefix = "memphisos"
 
-node ("small-ec2-fleet") {
+node ("memphis-jenkins-small-fleet-agent") {
   git credentialsId: 'main-github', url: gitURL, branch: gitBranch
   if (env.BRANCH_NAME ==~ /(master)/) { 
     versionTag = readFile "./version-beta.conf"
@@ -23,20 +23,20 @@ node ("small-ec2-fleet") {
     
     stage('Build project'){
       sh """
-        /home/ec2-user/.dotnet/dotnet build -c Release src/Memphis.Client.sln
+        ~/.dotnet/dotnet build -c Release src/Memphis.Client.sln
       """
     }
   
     stage('Package the project'){
       sh """
-        /home/ec2-user/.dotnet/dotnet pack -v normal -c Release --no-restore --include-source /p:ContinuousIntegrationBuild=true -p:PackageVersion=$versionTag src/Memphis.Client/Memphis.Client.csproj
+        ~/.dotnet/dotnet pack -v normal -c Release --no-restore --include-source /p:ContinuousIntegrationBuild=true -p:PackageVersion=$versionTag src/Memphis.Client/Memphis.Client.csproj
       """
     }
 
     stage('Publish to NuGet'){
       withCredentials([string(credentialsId: 'NUGET_KEY', variable: 'NUGET_KEY')]) {
         sh """
-          /home/ec2-user/.dotnet/dotnet nuget push ./src/Memphis.Client/bin/Release/Memphis.Client.${versionTag}.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_KEY
+          ~/.dotnet/dotnet nuget push ./src/Memphis.Client/bin/Release/Memphis.Client.${versionTag}.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_KEY
         """
       }
     }

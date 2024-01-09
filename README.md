@@ -39,21 +39,6 @@ Update-Package Memphis.Client
 ```c#
 using Memphis.Client;
 ```
-
-### Quickstart - Producing and Consuming
-
-The most basic functionaly of memphis is the ability to produce messages to a station and to consume those messages. 
-
-> The Memphis.py SDK uses asyncio for many functions. Make sure to call the following code in an async function:
-
-```python 
-async def main():
-    ...
-
-if __name__ == '__main__':
-  asyncio.run(main()) 
-```
-
 First, a connection to Memphis must be made:
 
 ```c#
@@ -1153,6 +1138,22 @@ Get headers per message
 
 ```c#
 msg.GetHeaders()
+```
+
+### Get message sequence number 
+
+Get message sequence number
+
+```C#
+var sequence = msg.GetSequence();
+```
+
+### Get message time sent 
+
+Get message time sent
+
+```C#
+var dateTime = msg.GetTimeSent();
 ```
 
 ### Destroying a Consumer
