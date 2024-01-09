@@ -29,7 +29,7 @@ public sealed class MemphisMessage
     {
         try
         {
-            this._msg.AckSync(_macAckTimeMs);
+            this._msg.Ack();
         }
         catch (System.Exception e)
         {
@@ -47,7 +47,7 @@ public sealed class MemphisMessage
                     MemphisSubjects.PM_RESEND_ACK_SUBJ, msgToAckBytes);
             }
 
-            throw new MemphisConnectionException("Unable to ack message", e);
+            throw MemphisExceptions.AckFailedException(e);
         }
     }
 
@@ -96,7 +96,7 @@ public sealed class MemphisMessage
             return;
         }
 
-        throw new MemphisConnectionException("Unable to delay DLS message");
+        throw MemphisExceptions.UnableToDealyDLSException;
     }
 
     /// <summary>
@@ -118,5 +118,15 @@ public sealed class MemphisMessage
             value = string.Empty;
             return false;
         }
+    }
+
+    public DateTime GetTimeSent()
+    {
+        return _msg.MetaData.Timestamp;
+    }
+
+    public ulong GetSequence()
+    {
+        return _msg.MetaData.StreamSequence;
     }
 }

@@ -40,16 +40,11 @@ try
             message.Ack();
         }
     }
-
-    
-
-    memphisClient.Dispose();
-
 }
 catch (Exception ex)
 {
     Console.Error.WriteLine(ex.Message);
-        memphisClient?.Dispose();
+    memphisClient?.Dispose();
 }
 
 public class Message

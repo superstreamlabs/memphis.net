@@ -27,7 +27,7 @@ public static class MemphisClientFactory
     {
         if (XNOR(string.IsNullOrWhiteSpace(opts.ConnectionToken),
            string.IsNullOrWhiteSpace(opts.Password)))
-            throw new MemphisException("You have to connect with one of the following methods: connection token / password");
+            throw MemphisExceptions.InvalidConnectionTypeException;
 
         var connectionId = Guid.NewGuid().ToString();
 
@@ -94,7 +94,7 @@ public static class MemphisClientFactory
         }
         catch (System.Exception e)
         {
-            throw new MemphisConnectionException("error occurred, when connecting memphis", e);
+            throw MemphisExceptions.FailedToConnectException(e);
         }
 
         static void ConfigureEventHandlers(Options options, ClientOptions clientOptions)

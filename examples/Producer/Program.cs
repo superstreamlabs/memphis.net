@@ -6,6 +6,7 @@ using System.Text.Json;
 try
 {
     var options = MemphisClientFactory.GetDefaultOptions();
+  
     options.Host = "<memphis-host>";
     options.AccountId = <memphis-accountId>;
     options.Username = "<memphis-username>";
