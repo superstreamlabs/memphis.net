@@ -2,6 +2,8 @@
 using Memphis.Client.Core;
 using System.Text.Json;
 
+MemphisClient? memphisClient = null;
+
 try
 {
     var options = MemphisClientFactory.GetDefaultOptions();
@@ -19,18 +21,22 @@ try
            ConsumerName = "<consumer-name>"
        });
 
-    var messages = consumer.Fetch(3, false);
+    while (true) {
+        var messages = consumer.Fetch(3, false);
 
-    foreach (MemphisMessage message in messages)
-    {
-        var messageData = message.GetData();
-        var messageOBJ = JsonSerializer.Deserialize<Message>(messageData);
+        foreach (MemphisMessage message in messages)
+        {
+            var messageData = message.GetData();
+            var messageOBJ = JsonSerializer.Deserialize<Message>(messageData);
 
-        // Do something with the message here
-        Console.WriteLine(JsonSerializer.Serialize(messageOBJ));
+            // Do something with the message here
+            Console.WriteLine(JsonSerializer.Serialize(messageOBJ));
 
-        message.Ack();
+            message.Ack();
+        }
     }
+
+    
 
     memphisClient.Dispose();
 
@@ -38,6 +44,7 @@ try
 catch (Exception ex)
 {
     Console.Error.WriteLine(ex.Message);
+        memphisClient?.Dispose();
 }
 
 public class Message
