@@ -313,7 +313,7 @@ client.FetchMessages(new FetchMessageOptions
     ConsumerName= "<consumer-name>",
     ConsumerGroup= "<group-name>", // defaults to the consumer name.
     BatchSize= 10, // defaults to 10
-    BatchMaxTimeToWaitMs= 5000, // defaults to 5000
+    BatchMaxTimeToWaitMs= 100, // defaults to 100
     MaxAckTimeMs= 30000, // defaults to 30000
     MaxMsgDeliveries= 2, // defaults to 2
     GenerateUniqueSuffix= false, // defaults to false

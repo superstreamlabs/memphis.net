@@ -1,4 +1,4 @@
-<a href="![Github (4)](https://github.com/memphisdev/memphis-terraform/assets/107035359/a5fe5d0f-22e1-4445-957d-5ce4464e61b1)">![Github (4)](https://github.com/memphisdev/memphis-terraform/assets/107035359/a5fe5d0f-22e1-4445-957d-5ce4464e61b1)</a>
+<a href="![Github (4)](https://github.com/memphisdev/memphis-terraform/assets/107035359/a5fe5d0f-22e1-4445-957d-5ce4464e61b1)">[![Github (4)](https://github.com/memphisdev/memphis-terraform/assets/107035359/a5fe5d0f-22e1-4445-957d-5ce4464e61b1)](https://memphis.dev)</a>
 <p align="center">
 <a href="https://memphis.dev/discord"><img src="https://img.shields.io/discord/963333392844328961?color=6557ff&label=discord" alt="Discord"></a>
 <a href="https://github.com/memphisdev/memphis/issues?q=is%3Aissue+is%3Aclosed"><img src="https://img.shields.io/github/issues-closed/memphisdev/memphis?color=6557ff"></a> 
@@ -39,21 +39,6 @@ Update-Package Memphis.Client
 ```c#
 using Memphis.Client;
 ```
-
-### Quickstart - Producing and Consuming
-
-The most basic functionaly of memphis is the ability to produce messages to a station and to consume those messages. 
-
-> The Memphis.py SDK uses asyncio for many functions. Make sure to call the following code in an async function:
-
-```python 
-async def main():
-    ...
-
-if __name__ == '__main__':
-  asyncio.run(main()) 
-```
-
 First, a connection to Memphis must be made:
 
 ```c#
@@ -999,7 +984,7 @@ var memphisClient = await MemphisClientFactory.CreateClient(options);
         ConsumerName = "MyConsumer",
         PullIntervalMs = 10_000,
         BatchSize = 100,
-        BatchMaxTimeToWaitMs = 15_000
+        BatchMaxTimeToWaitMs = 100
     });
 }
 catch (Exception ex)
@@ -1025,7 +1010,7 @@ try
         ConsumerName = "MyConsumer",
         PullIntervalMs = 10_000,
         BatchSize = 100,
-        BatchMaxTimeToWaitMs = 15_000,
+        BatchMaxTimeToWaitMs = 100,
         MaxMsgDeliveries = 2
     });
 }
@@ -1110,7 +1095,7 @@ client.FetchMessages(new FetchMessageOptions
     ConsumerName= "<consumer-name>",
     ConsumerGroup= "<group-name>", // defaults to the consumer name.
     BatchSize= 10, // defaults to 10
-    BatchMaxTimeToWaitMs= 5000, // defaults to 5000
+    BatchMaxTimeToWaitMs= 100, // defaults to 100
     MaxAckTimeMs= 30000, // defaults to 30000
     MaxMsgDeliveries= 2, // defaults to 2
     StartConsumeFromSequence= 1, // start consuming from a specific sequence. defaults to 1

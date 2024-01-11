@@ -18,7 +18,7 @@ public partial class MemphisClient
 
         if (_brokerConnection.IsClosed())
         {
-            throw new MemphisConnectionException("Connection is dead");
+            throw MemphisExceptions.DeadConnectionException;
         }
 
         if (generateRandomSuffix)
@@ -56,7 +56,7 @@ public partial class MemphisClient
         options.EnsureOptionIsValid();
         if (!IsConnected())
         {
-            throw new MemphisConnectionException("Connection is dead. Can't produce a message without being connected!");
+            throw MemphisExceptions.DeadConnectionException;
         }
 
         MemphisProducer producer = default;
@@ -101,7 +101,7 @@ public partial class MemphisClient
         options.EnsureOptionIsValid();
         if (!IsConnected())
         {
-            throw new MemphisConnectionException("Connection is dead. Can't produce a message without being connected!");
+            throw MemphisExceptions.DeadConnectionException;
         }
 
         MemphisProducer producer = default;
@@ -217,7 +217,7 @@ public partial class MemphisClient
         }
         catch (System.Exception e)
         {
-            throw new MemphisException("Failed to create memphis producer", e);
+            throw MemphisExceptions.FailedToCreateProducerException(e);
         }
 
     }

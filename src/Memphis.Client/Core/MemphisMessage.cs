@@ -47,7 +47,7 @@ public sealed class MemphisMessage
                     MemphisSubjects.PM_RESEND_ACK_SUBJ, msgToAckBytes);
             }
 
-            throw new MemphisConnectionException("Unable to ack message", e);
+            throw MemphisExceptions.AckFailedException(e);
         }
     }
 
@@ -96,7 +96,7 @@ public sealed class MemphisMessage
             return;
         }
 
-        throw new MemphisConnectionException("Unable to delay DLS message");
+        throw MemphisExceptions.UnableToDealyDLSException;
     }
 
     /// <summary>
