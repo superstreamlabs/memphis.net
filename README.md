@@ -984,7 +984,7 @@ var memphisClient = await MemphisClientFactory.CreateClient(options);
         ConsumerName = "MyConsumer",
         PullIntervalMs = 10_000,
         BatchSize = 100,
-        BatchMaxTimeToWaitMs = 100
+        BatchMaxTimeToWaitMs = 1000
     });
 }
 catch (Exception ex)
@@ -1010,7 +1010,7 @@ try
         ConsumerName = "MyConsumer",
         PullIntervalMs = 10_000,
         BatchSize = 100,
-        BatchMaxTimeToWaitMs = 100,
+        BatchMaxTimeToWaitMs = 1000,
         MaxMsgDeliveries = 2
     });
 }
@@ -1095,7 +1095,7 @@ client.FetchMessages(new FetchMessageOptions
     ConsumerName= "<consumer-name>",
     ConsumerGroup= "<group-name>", // defaults to the consumer name.
     BatchSize= 10, // defaults to 10
-    BatchMaxTimeToWaitMs= 100, // defaults to 100
+    BatchMaxTimeToWaitMs= 1000, // defaults to 1000
     MaxAckTimeMs= 30000, // defaults to 30000
     MaxMsgDeliveries= 2, // defaults to 2
     StartConsumeFromSequence= 1, // start consuming from a specific sequence. defaults to 1
