@@ -78,7 +78,7 @@ internal class RuntimeEnvironment
                 OperatingSystem.Windows => "win",
                 OperatingSystem.Linux => "linux",
                 OperatingSystem.OSX => "osx",
-                _ => throw MemphisExceptions.UnsupportedOSException;
+                _ => throw MemphisExceptions.UnsupportedOSException,
             };
         }
     }
@@ -91,7 +91,7 @@ internal class RuntimeEnvironment
             {
                 Architecture.X64 or Architecture.X86 => "x86",
                 Architecture.Arm or Architecture.Arm64 => "arm",
-                _ => throw MemphisExceptions.UnsupportedOSException;
+                _ => throw MemphisExceptions.UnsupportedOSException,
             };
         }
     }
