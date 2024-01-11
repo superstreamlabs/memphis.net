@@ -4,7 +4,7 @@ namespace Memphis.Client.Consumer;
 
 public sealed class FetchMessageOptions
 {
-    private int _batchMaxTimeToWaitMs = 5_000;
+    private int _batchMaxTimeToWaitMs = 100;
 
     public string ConsumerName { get; set; }
     public string StationName { get; set; }
@@ -19,7 +19,7 @@ public sealed class FetchMessageOptions
     public int BatchMaxTimeToWaitMs
     {
         get => _batchMaxTimeToWaitMs;
-        set =>_batchMaxTimeToWaitMs = (value < 1_000) ? 1_000 : value;
+        set =>_batchMaxTimeToWaitMs = (value < 100) ? 100 : value;
     }
 
     public int MaxAckTimeMs { get; set; } = 30_000;
