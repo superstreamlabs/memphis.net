@@ -1123,6 +1123,23 @@ Acknowledging a message indicates to the Memphis server to not re-send the same 
 msg.Ack();
 ```
 
+### Nacking a Message
+
+Mark the message as not acknowledged - the broker will resend the message immediately to the same consumers group, instead of waiting to the max ack time configured.
+
+```C#
+msg.Nack();
+```
+
+### Sending a message to the dead-letter
+
+Sending the message to the dead-letter station (DLS) - the broker won't resend the message again to the same consumers group and will place the message inside the dead-letter station (DLS) with the given reason.
+The message will still be available to other consumer groups
+
+```shell
+msg.DeadLetter("reason");
+```
+
 ### Delay the message after a given duration
 
 Delay the message and tell Memphis server to re-send the same message again to the same consumer group.\

@@ -8,28 +8,13 @@ internal record FetchOptions
     public string InternalStationName { get; set; }
     public int BatchMaxTimeToWaitMs { get; set; }
     public MemphisClient MemphisClient { get; set; }
-
-    public FetchOptions(
-        int batchSize,
-        int maxAckTimeMs,
-        string consumerGroup,
-        string internalStationName,
-        int batchMaxTimeToWaitMs,
-        MemphisClient memphisClient
-    )
-    {
-        BatchSize = batchSize;
-        MaxAckTimeMs = maxAckTimeMs;
-        ConsumerGroup = consumerGroup;
-        InternalStationName = internalStationName;
-        BatchMaxTimeToWaitMs = batchMaxTimeToWaitMs;
-        MemphisClient = memphisClient;
-    }
+    public int PartitionNumber { get; set; }
 
     public FetchOptions(
         MemphisClient memphisClient,
         string internalStationName,
-        MemphisConsumerOptions consumerOptions
+        MemphisConsumerOptions consumerOptions,
+        int partitionNumber
     )
     {
         BatchSize = consumerOptions.BatchSize;
@@ -38,7 +23,7 @@ internal record FetchOptions
         InternalStationName = internalStationName;
         BatchMaxTimeToWaitMs = consumerOptions.BatchMaxTimeToWaitMs;
         MemphisClient = memphisClient;
-    
+        PartitionNumber = partitionNumber;
     }
 }
 
@@ -66,7 +51,8 @@ internal static class IConsumerContextExtensions
                 fetchOptions.MemphisClient,
                 fetchOptions.ConsumerGroup,
                 fetchOptions.MaxAckTimeMs,
-                fetchOptions.InternalStationName
+                fetchOptions.InternalStationName,
+                fetchOptions.PartitionNumber
             ));
             receivedMessages += 1;
             if (receivedMessages >= fetchOptions.BatchSize)

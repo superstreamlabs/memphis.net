@@ -1,6 +1,6 @@
 namespace Memphis.Client;
 
-public static class MemphisExceptions{
+internal static class MemphisExceptions{
 
     public static MemphisConnectionException DeadConnectionException => new("Connection to the broker is dead");
 
@@ -69,4 +69,13 @@ public static class MemphisExceptions{
         return new MemphisConnectionException("Unable to ack message", e);
     }
 
+    public static MemphisException NackFailedException(System.Exception e)
+    {
+        return new MemphisException("Unable to nack message", e);
+    }
+
+    public static MemphisException DeadLetterFailed(System.Exception e)
+    {
+        return new MemphisException("Unable to dead letter message", e);
+    }
 }

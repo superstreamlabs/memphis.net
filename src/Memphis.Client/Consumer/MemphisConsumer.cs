@@ -1,7 +1,5 @@
 using Memphis.Client.Station;
 
-using Memphis.Client;
-
 namespace Memphis.Client.Consumer;
 
 public sealed class MemphisConsumer : IMemphisConsumer
@@ -21,6 +19,11 @@ public sealed class MemphisConsumer : IMemphisConsumer
     private bool _subscriptionActive;
     private readonly int _pingConsumerIntervalMs;
 
+    /// <summary>
+    /// Messages in DLS station will have a partition number of -1. This does not indicate the actual partition number of the message.
+    /// Instead, it indicates that the message is in the DLS station.
+    /// </summary>
+    private const int DlsMessagePartitionNumber = -1;
 
     private int[] _partitions;
     internal StationPartitionResolver PartitionResolver { get; set; }
@@ -344,7 +347,8 @@ public sealed class MemphisConsumer : IMemphisConsumer
         return consumer.FetchMessages(new FetchOptions(
             _memphisClient,
             InternalStationName,
-            _consumerOptions
+            _consumerOptions,
+            consumerPartitionNumber
         ));
     }
 
@@ -405,7 +409,8 @@ public sealed class MemphisConsumer : IMemphisConsumer
             var memphisMessages = consumerContext.FetchMessages(new FetchOptions(
                 _memphisClient,
                 InternalStationName,
-                _consumerOptions
+                _consumerOptions,
+                partitionNumber
             ));
 
             MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessages, consumerContext, null));
@@ -451,7 +456,8 @@ public sealed class MemphisConsumer : IMemphisConsumer
                     _memphisClient,
                     _consumerOptions.ConsumerGroup,
                     _consumerOptions.MaxAckTimeMs,
-                    InternalStationName
+                    InternalStationName,
+                    DlsMessagePartitionNumber
                 );
                 if (DlsMessageReceived is null)
                 {
