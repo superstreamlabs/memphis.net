@@ -81,7 +81,7 @@ public sealed class MemphisMessage
         try
         {
             if (_isMessageInDls)
-                throw MemphisExceptions.DeadLetterFailed(new System.Exception("Message is already in DLS"));
+                return;
             _msg.Term();
             var metadata = _msg.MetaData;
             var nackDlsMessage = new NackDlsMessage
