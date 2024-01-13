@@ -12,7 +12,7 @@ try
     options.Username = "<memphis-username>";
     options.Password = "<memphis-password>";
 
-    var memphisClient = await MemphisClientFactory.CreateClient(options);
+    memphisClient = await MemphisClientFactory.CreateClient(options);
 
     var consumer = await memphisClient.CreateConsumer(
        new Memphis.Client.Consumer.MemphisConsumerOptions
@@ -49,5 +49,5 @@ catch (Exception ex)
 
 public class Message
 {
-    public string Hello { get; set; }
+    public string? Hello { get; set; }
 }

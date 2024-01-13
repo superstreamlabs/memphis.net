@@ -3,6 +3,8 @@ using System.Collections.Specialized;
 using System.Text;
 using System.Text.Json;
 
+MemphisClient? memphisClient = null;
+
 try
 {
     var options = MemphisClientFactory.GetDefaultOptions();
@@ -12,7 +14,7 @@ try
     options.Username = "<memphis-username>";
     options.Password = "<memphis-password>";
 
-    var memphisClient = await MemphisClientFactory.CreateClient(options);
+    memphisClient = await MemphisClientFactory.CreateClient(options);
 
     var producer = await memphisClient.CreateProducer(
         new Memphis.Client.Producer.MemphisProducerOptions
@@ -42,9 +44,10 @@ try
 catch (Exception ex)
 {
     Console.Error.WriteLine(ex.Message);
+    memphisClient?.Dispose();
 }
 
 public class Message
 {
-    public string Hello { get; set; }
+    public string? Hello { get; set; }
 }
