@@ -8,9 +8,9 @@ try
 {
     var options = MemphisClientFactory.GetDefaultOptions();
     options.Host = "<memphis-host>";
-    options.AccountId = <memphis-accountId>;
+    // options.AccountId = "<memphis-accountId>";
     options.Username = "<memphis-username>";
-    options.Password = <memphis-password>;
+    options.Password = "<memphis-password>";
 
     var memphisClient = await MemphisClientFactory.CreateClient(options);
 
