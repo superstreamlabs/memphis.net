@@ -12,7 +12,7 @@ public static class MemphisExceptions{
 
     public static readonly MemphisException InvalidSchemaNameException = new("Only alphanumeric and the '_', '-', '.' characters are allowed in schema name");
 
-    public static readonly MemphisException InvalidSchemaStartEndCharsException = new("Schema name can not start or end with non alphanumeric character");
+    public static readonly MemphisException InvalidSchemaStartEndCharsException = new("Schema name can not start or end with non-alphanumeric character");
 
     public static readonly MemphisException EmptySchemaTypeException = new("Schema type can not be empty");
 
