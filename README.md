@@ -48,7 +48,7 @@ using Memphis.Client;
 var options = MemphisClientFactory.GetDefaultOptions();
 options.Host = "<memphis-host>";
 options.AccountId = <memphis-accountid>;
-options.Username = "<memphis-username";
+options.Username = "<memphis-username>";
 options.Password = "<memphis-password>";
 
 var memphisClient = await MemphisClientFactory.CreateClient(options);
