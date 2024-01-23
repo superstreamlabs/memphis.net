@@ -36,6 +36,8 @@ internal class MemphisSubjects
     public const string SCHEMA_DESTRUCTION = "";
 
     public const string FUNCTIONS_UPDATE = "$memphis_functions_updates_";
+
+    public const string NACKED_DLS = "$memphis_nacked_dls";
 }
 
 public static class MemphisSchemaTypes
