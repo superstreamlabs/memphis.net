@@ -153,274 +153,6 @@ public sealed partial class MemphisClient : IMemphisClient
     }
 
     /// <summary>
-    /// Create Consumer for station 
-    /// </summary>
-    /// <param name="consumerOptions">options used to customize the behaviour of consumer</param>
-    /// <returns>An <see cref="MemphisConsumer"/> object connected to the station from consuming data</returns>
-    public async Task<MemphisConsumer> CreateConsumer(MemphisConsumerOptions consumerOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
-    {
-        EnsureBatchSizeIsValid(consumerOptions.BatchSize);
-
-        if (_brokerConnection.IsClosed())
-        {
-            throw MemphisExceptions.DeadConnectionException;
-        }
-
-        consumerOptions.RealName = consumerOptions.ConsumerName.ToLower();
-
-        if (consumerOptions.GenerateUniqueSuffix)
-        {
-            consumerOptions.ConsumerName = $"{consumerOptions.ConsumerName}_{MemphisUtil.GetUniqueKey(8)}";
-        }
-
-        if (string.IsNullOrEmpty(consumerOptions.ConsumerGroup))
-        {
-            consumerOptions.ConsumerGroup = consumerOptions.ConsumerName;
-        }
-
-        try
-        {
-            var createConsumerModel = new CreateConsumerRequest
-            {
-                ConsumerName = consumerOptions.ConsumerName,
-                StationName = consumerOptions.StationName,
-                ConnectionId = _connectionId,
-                ConsumerType = "application",
-                ConsumerGroup = consumerOptions.ConsumerGroup,
-                MaxAckTimeMs = consumerOptions.MaxAckTimeMs,
-                MaxMsgCountForDelivery = consumerOptions.MaxMsgDeliveries,
-                UserName = _userName,
-                StartConsumeFromSequence = consumerOptions.StartConsumeFromSequence,
-                LastMessages = consumerOptions.LastMessages,
-                RequestVersion = MemphisRequestVersions.LastConsumerCreationRequestVersion,
-                ApplicationId = ApplicationId,
-                SdkLang = ".NET"
-            };
-
-            var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
-
-            byte[] createConsumerReqBytes = Encoding.UTF8.GetBytes(createConsumerModelJson);
-
-            Msg createConsumerResp = await RequestAsync(MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes, timeoutRetry, cancellationToken);
-            var responseStr = Encoding.UTF8.GetString(createConsumerResp.Data);
-            var createConsumerResponse = JsonConvert.DeserializeObject<CreateConsumerResponse>(responseStr);
-
-            if (createConsumerResponse is null)
-            {
-                if (!string.IsNullOrEmpty(responseStr))
-                {
-                    throw new MemphisException(responseStr);
-                }
-
-                var oldconsumer = new MemphisConsumer(this, consumerOptions);
-                _consumerCache.AddOrUpdate(oldconsumer.Key, oldconsumer, (_, _) => oldconsumer);
-
-                return oldconsumer;
-            }
-            if (!string.IsNullOrEmpty(createConsumerResponse.Error))
-            {
-                throw new MemphisException(responseStr);
-            }
-
-            var consumer = new MemphisConsumer(this, consumerOptions, createConsumerResponse.PartitionsUpdate.PartitionsList);
-            _consumerCache.AddOrUpdate(consumer.Key, consumer, (_, _) => consumer);
-
-            await ListenForSchemaUpdate(consumerOptions.StationName);
-
-            return consumer;
-
-        }
-        catch (MemphisException)
-        {
-            throw;
-        }
-        catch (System.Exception e)
-        {
-            throw MemphisExceptions.FailedToCreateConsumerException(e);
-        }
-    }
-
-
-    /// <summary>
-    /// Create Station 
-    /// </summary>
-    /// <param name="stationOptions">options used to customize the parameters of station</param>
-    /// <param name="cancellationToken">cancellation token</param>
-    /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
-    public async Task<MemphisStation> CreateStation(StationOptions stationOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
-    {
-        if (_brokerConnection.IsClosed())
-        {
-            throw MemphisExceptions.DeadConnectionException;
-        }
-
-        try
-        {
-            var createStationModel = new CreateStationRequest()
-            {
-                StationName = stationOptions.Name,
-                RetentionType = stationOptions.RetentionType,
-                RetentionValue = stationOptions.RetentionValue,
-                StorageType = stationOptions.StorageType,
-                Replicas = stationOptions.Replicas,
-                IdempotencyWindowsInMs = stationOptions.IdempotenceWindowMs,
-                SchemaName = stationOptions.SchemaName,
-                DlsConfiguration = new DlsConfiguration()
-                {
-                    Poison = stationOptions.SendPoisonMessageToDls,
-                    SchemaVerse = stationOptions.SendSchemaFailedMessageToDls,
-                },
-                UserName = _userName,
-                TieredStorageEnabled = stationOptions.TieredStorageEnabled,
-                PartitionsNumber = stationOptions.PartitionsNumber,
-                DlsStation = stationOptions.DlsStation
-            };
-
-            var createStationModelJson = JsonSerDes.PrepareJsonString<CreateStationRequest>(createStationModel);
-
-            byte[] createStationReqBytes = Encoding.UTF8.GetBytes(createStationModelJson);
-
-            Msg createStationResp = await RequestAsync(MemphisStations.MEMPHIS_STATION_CREATIONS, createStationReqBytes, timeoutRetry, cancellationToken);
-            string errResp = Encoding.UTF8.GetString(createStationResp.Data);
-
-            if (!string.IsNullOrEmpty(errResp))
-            {
-                if (errResp.Contains("already exist"))
-                {
-                    return new MemphisStation(this, stationOptions.Name);
-                }
-
-                throw new MemphisException(errResp);
-            }
-
-            return new MemphisStation(this, stationOptions.Name);
-        }
-        catch (MemphisException)
-        {
-            throw;
-        }
-        catch (System.Exception e)
-        {
-            throw MemphisExceptions.FailedToCreateStationException(e);
-        }
-    }
-
-    /// <summary>
-    /// Create Station
-    /// </summary>
-    /// <param name="stationName">station name</param>
-    /// <param name="cancellationToken">cancellation token</param>
-    /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
-    public async Task<MemphisStation> CreateStation(string stationName, int timeoutRetry = 5, CancellationToken cancellationToken = default)
-    {
-        return await CreateStation(new StationOptions { Name = stationName }, timeoutRetry, cancellationToken);
-    }
-
-    /// <summary>
-    /// Applies schema to an existing station
-    /// </summary>
-    /// <param name="stationName">station name</param>
-    /// <param name="schemaName">schema name</param>
-    /// <returns></returns>
-    public async Task EnforceSchema(string stationName, string schemaName, int timeoutRetry = 5, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrEmpty(stationName))
-        {
-            throw new ArgumentException($"{nameof(stationName)} cannot be null or empty");
-        }
-
-        if (string.IsNullOrEmpty(schemaName))
-        {
-            throw new ArgumentException($"{nameof(schemaName)} cannot be null or empty");
-        }
-
-        try
-        {
-            var attachSchemaRequestModel = new AttachSchemaRequest()
-            {
-                SchemaName = schemaName,
-                StationName = stationName,
-                UserName = _userName
-            };
-
-            var attachSchemaModelJson = JsonSerDes.PrepareJsonString<AttachSchemaRequest>(attachSchemaRequestModel);
-
-            byte[] attachSchemaReqBytes = Encoding.UTF8.GetBytes(attachSchemaModelJson);
-
-            Msg attachSchemaResp = await RequestAsync(MemphisStations.MEMPHIS_SCHEMA_ATTACHMENTS, attachSchemaReqBytes, timeoutRetry, cancellationToken);
-            string errResp = Encoding.UTF8.GetString(attachSchemaResp.Data);
-
-            if (!string.IsNullOrEmpty(errResp))
-            {
-                throw new MemphisException(errResp);
-            }
-        }
-        catch (MemphisException)
-        {
-            throw;
-        }
-        catch (System.Exception e)
-        {
-            throw MemphisExceptions.FailedToAttachSchemaException(e);
-        }
-
-    }
-
-    /// <summary>
-    /// Attach schema to an existing station
-    /// </summary>
-    /// <param name="stationName">station name</param>
-    /// <param name="schemaName">schema name</param>
-    /// <returns></returns>
-    [Obsolete("This method is depricated. call EnforceSchema instead.")]
-    public async Task AttachSchema(string stationName, string schemaName)
-    {
-        await EnforceSchema(stationName, schemaName);
-    }
-
-    /// <summary>
-    /// DetachSchema Schema from station
-    /// </summary>
-    /// <param name="stationName">station name</param>
-    /// <returns>No object or value is returned by this method when it completes.</returns>
-    public async Task DetachSchema(string stationName, int timeoutRetry = 5, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrEmpty(stationName))
-        {
-            throw new ArgumentException($"{nameof(stationName)} cannot be null or empty");
-        }
-
-        try
-        {
-            var detachSchemaRequestModel = new DetachSchemaRequest()
-            {
-                StationName = stationName,
-                UserName = _userName
-            };
-
-            var detachSchemaModelJson = JsonSerDes.PrepareJsonString<DetachSchemaRequest>(detachSchemaRequestModel);
-
-            byte[] detachSchemaReqBytes = Encoding.UTF8.GetBytes(detachSchemaModelJson);
-
-            Msg detachSchemaResp = await RequestAsync(MemphisStations.MEMPHIS_SCHEMA_DETACHMENTS, detachSchemaReqBytes, timeoutRetry, cancellationToken);
-            string errResp = Encoding.UTF8.GetString(detachSchemaResp.Data);
-
-            if (!string.IsNullOrEmpty(errResp))
-            {
-                throw new MemphisException(errResp);
-            }
-        }
-        catch (MemphisException)
-        {
-            throw;
-        }
-        catch (System.Exception e)
-        {
-            throw MemphisExceptions.FailedToAttachSchemaException(e);
-        }
-    }
-
-    /// <summary>
     /// Creates schema from the specified file path. In case schema is already exist a new version will be created
     /// </summary>
     /// <param name="schemaName">Name of the schema</param>
@@ -529,46 +261,15 @@ public sealed partial class MemphisClient : IMemphisClient
 
     internal async Task ValidateMessageAsync(byte[] message, string internalStationName, string producerName)
     {
-        if (!_schemaUpdateDictionary.TryGetValue(internalStationName,
-            out SchemaUpdateInit schemaUpdateInit))
-        {
+        if (!_schemaUpdateDictionary.TryGetValue(internalStationName, out SchemaUpdateInit schemaUpdateInit) ||
+            schemaUpdateInit is null)
             return;
-        }
 
         try
         {
-            switch (schemaUpdateInit.SchemaType)
-            {
-                case MemphisSchemaTypes.JSON:
-                    {
-                        if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
-                        {
-                            await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
-                        }
-
-                        break;
-                    }
-                case MemphisSchemaTypes.GRAPH_QL:
-                    {
-                        if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
-                        {
-                            await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
-                        }
-
-                        break;
-                    }
-                case MemphisSchemaTypes.PROTO_BUF:
-                    {
-                        if (_schemaValidators.TryGetValue(ValidatorType.PROTOBUF, out ISchemaValidator schemaValidator))
-                        {
-                            await schemaValidator.ValidateAsync(message, schemaUpdateInit.SchemaName);
-                        }
-
-                        break;
-                    }
-                default:
-                    throw new NotImplementedException($"Schema of type: {schemaUpdateInit.SchemaType} not implemented");
-            }
+            var validatorType = MemphisSchemaTypes.ToValidator(schemaUpdateInit.SchemaType);
+            if (_schemaValidators.TryGetValue(validatorType, out ISchemaValidator validator))
+                await validator.ValidateAsync(message, schemaUpdateInit.SchemaName);
         }
         catch (MemphisSchemaValidationException e)
         {
@@ -625,35 +326,6 @@ public sealed partial class MemphisClient : IMemphisClient
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Create a new consumer
-    /// </summary>
-    /// <param name="fetchMessageOptions">Fetch message options</param>
-    /// <returns>MemphisConsumer</returns>
-    public async Task<MemphisConsumer> CreateConsumer(FetchMessageOptions fetchMessageOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
-    {
-        return await CreateConsumer(new MemphisConsumerOptions
-        {
-            StationName = fetchMessageOptions.StationName,
-            ConsumerName = fetchMessageOptions.ConsumerName,
-            ConsumerGroup = fetchMessageOptions.ConsumerGroup,
-            BatchSize = fetchMessageOptions.BatchSize,
-            BatchMaxTimeToWaitMs = fetchMessageOptions.BatchMaxTimeToWaitMs,
-            MaxAckTimeMs = fetchMessageOptions.MaxAckTimeMs,
-            MaxMsgDeliveries = fetchMessageOptions.MaxMsgDeliveries,
-            GenerateUniqueSuffix = fetchMessageOptions.GenerateUniqueSuffix,
-            StartConsumeFromSequence = fetchMessageOptions.StartConsumeFromSequence,
-            LastMessages = fetchMessageOptions.LastMessages,
-        }, timeoutRetry, cancellationToken);
-    }
-
-    internal IConsumerContext GetConsumerContext(string streamName, string durableName)
-    {
-        var streamContext = _brokerConnection.GetStreamContext(streamName);
-        var consumerContext = streamContext.GetConsumerContext(durableName);
-        return consumerContext;
     }
 
 
@@ -785,65 +457,20 @@ public sealed partial class MemphisClient : IMemphisClient
             schemaUpdate,
             (key, _) => schemaUpdate);
 
-        switch (schemaUpdate.SchemaType)
+        var validatorType = MemphisSchemaTypes.ToValidator(schemaUpdate.SchemaType);
+        if (_schemaValidators.TryGetValue(validatorType, out ISchemaValidator schemaValidatorCache))
         {
-            case MemphisSchemaTypes.JSON:
-                {
-                    if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
-                    {
-                        bool isDone = schemaValidator.ParseAndStore(
-                            schemaUpdate.SchemaName,
-                            schemaUpdate.ActiveVersion?.Content);
+            var parsedAndStored = validatorType == ValidatorType.PROTOBUF
+                ? schemaValidatorCache.ParseAndStore(schemaUpdate.SchemaName, JsonConvert.SerializeObject(schemaUpdate.ActiveVersion))
+                : schemaValidatorCache.ParseAndStore(schemaUpdate.SchemaName, schemaUpdate.ActiveVersion?.Content);
 
-                        if (!isDone)
-                        {
-                            //TODO raise notification regarding unable to parse schema pushed by Memphis
-                            throw new InvalidOperationException($"Unable to parse and store " +
-                                                                $"schema: {schemaUpdate?.SchemaName}, type: {schemaUpdate?.SchemaType}" +
-                                                                $"in local cache");
-                        }
-                    }
-
-                    break;
-                }
-            case MemphisSchemaTypes.GRAPH_QL:
-                {
-                    if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
-                    {
-                        bool isDone = schemaValidator.ParseAndStore(
-                            schemaUpdate.SchemaName,
-                            schemaUpdate.ActiveVersion?.Content);
-
-                        if (!isDone)
-                        {
-                            //TODO raise notification regarding unable to parse schema pushed by Memphis
-                            throw new InvalidOperationException($"Unable to parse and store " +
-                                                                $"schema: {schemaUpdate?.SchemaName}, type: {schemaUpdate?.SchemaType}" +
-                                                                $"in local cache");
-                        }
-                    }
-
-                    break;
-                }
-            case MemphisSchemaTypes.PROTO_BUF:
-                {
-                    if (_schemaValidators.TryGetValue(ValidatorType.PROTOBUF, out ISchemaValidator schemaValidator))
-                    {
-                        bool isDone = schemaValidator.ParseAndStore(
-                            schemaUpdate.SchemaName,
-                            JsonConvert.SerializeObject(schemaUpdate.ActiveVersion));
-
-                        if (!isDone)
-                        {
-                            //TODO raise notification regarding unable to parse schema pushed by Memphis
-                            throw new InvalidOperationException($"Unable to parse and store " +
-                                                                $"schema: {schemaUpdate?.SchemaName}, type: {schemaUpdate?.SchemaType}" +
-                                                                $"in local cache");
-                        }
-                    }
-
-                    break;
-                }
+            if (!parsedAndStored)
+            {
+                //TODO raise notification regarding unable to parse schema pushed by Memphis
+                throw new InvalidOperationException($"Unable to parse and store " +
+                                                    $"schema: {schemaUpdate?.SchemaName}, type: {schemaUpdate?.SchemaType}" +
+                                                    $"in local cache");
+            }
         }
     }
 

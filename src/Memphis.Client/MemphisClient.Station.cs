@@ -10,6 +10,187 @@ public partial class MemphisClient
 
     internal ConcurrentDictionary<string, FunctionsDetails> FunctionDetails { get => _functionDetails; }
 
+    /// <summary>
+    /// Create Station 
+    /// </summary>
+    /// <param name="stationOptions">options used to customize the parameters of station</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
+    public async Task<MemphisStation> CreateStation(StationOptions stationOptions, int timeoutRetry = 5, CancellationToken cancellationToken = default)
+    {
+        if (_brokerConnection.IsClosed())
+        {
+            throw MemphisExceptions.DeadConnectionException;
+        }
+
+        try
+        {
+            var createStationModel = new CreateStationRequest()
+            {
+                StationName = stationOptions.Name,
+                RetentionType = stationOptions.RetentionType,
+                RetentionValue = stationOptions.RetentionValue,
+                StorageType = stationOptions.StorageType,
+                Replicas = stationOptions.Replicas,
+                IdempotencyWindowsInMs = stationOptions.IdempotenceWindowMs,
+                SchemaName = stationOptions.SchemaName,
+                DlsConfiguration = new DlsConfiguration()
+                {
+                    Poison = stationOptions.SendPoisonMessageToDls,
+                    SchemaVerse = stationOptions.SendSchemaFailedMessageToDls,
+                },
+                UserName = _userName,
+                TieredStorageEnabled = stationOptions.TieredStorageEnabled,
+                PartitionsNumber = stationOptions.PartitionsNumber,
+                DlsStation = stationOptions.DlsStation
+            };
+
+            var createStationModelJson = JsonSerDes.PrepareJsonString<CreateStationRequest>(createStationModel);
+
+            byte[] createStationReqBytes = Encoding.UTF8.GetBytes(createStationModelJson);
+
+            Msg createStationResp = await RequestAsync(MemphisStations.MEMPHIS_STATION_CREATIONS, createStationReqBytes, timeoutRetry, cancellationToken);
+            string errResp = Encoding.UTF8.GetString(createStationResp.Data);
+
+            if (!string.IsNullOrEmpty(errResp))
+            {
+                if (errResp.Contains("already exist"))
+                {
+                    return new MemphisStation(this, stationOptions.Name);
+                }
+
+                throw new MemphisException(errResp);
+            }
+
+            return new MemphisStation(this, stationOptions.Name);
+        }
+        catch (MemphisException)
+        {
+            throw;
+        }
+        catch (System.Exception e)
+        {
+            throw MemphisExceptions.FailedToCreateStationException(e);
+        }
+    }
+
+    /// <summary>
+    /// Attach schema to an existing station
+    /// </summary>
+    /// <param name="stationName">station name</param>
+    /// <param name="schemaName">schema name</param>
+    /// <returns></returns>
+    [Obsolete("This method is depricated. call EnforceSchema instead.")]
+    public async Task AttachSchema(string stationName, string schemaName)
+    {
+        await EnforceSchema(stationName, schemaName);
+    }
+
+    /// <summary>
+    /// Applies schema to an existing station
+    /// </summary>
+    /// <param name="stationName">station name</param>
+    /// <param name="schemaName">schema name</param>
+    /// <returns></returns>
+    public async Task EnforceSchema(string stationName, string schemaName, int timeoutRetry = 5, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(stationName))
+        {
+            throw new ArgumentException($"{nameof(stationName)} cannot be null or empty");
+        }
+
+        if (string.IsNullOrEmpty(schemaName))
+        {
+            throw new ArgumentException($"{nameof(schemaName)} cannot be null or empty");
+        }
+
+        try
+        {
+            var attachSchemaRequestModel = new AttachSchemaRequest()
+            {
+                SchemaName = schemaName,
+                StationName = stationName,
+                UserName = _userName
+            };
+
+            var attachSchemaModelJson = JsonSerDes.PrepareJsonString<AttachSchemaRequest>(attachSchemaRequestModel);
+
+            byte[] attachSchemaReqBytes = Encoding.UTF8.GetBytes(attachSchemaModelJson);
+
+            Msg attachSchemaResp = await RequestAsync(MemphisStations.MEMPHIS_SCHEMA_ATTACHMENTS, attachSchemaReqBytes, timeoutRetry, cancellationToken);
+            string errResp = Encoding.UTF8.GetString(attachSchemaResp.Data);
+
+            if (!string.IsNullOrEmpty(errResp))
+            {
+                throw new MemphisException(errResp);
+            }
+        }
+        catch (MemphisException)
+        {
+            throw;
+        }
+        catch (System.Exception e)
+        {
+            throw MemphisExceptions.FailedToAttachSchemaException(e);
+        }
+    }
+
+
+    /// <summary>
+    /// DetachSchema Schema from station
+    /// </summary>
+    /// <param name="stationName">station name</param>
+    /// <returns>No object or value is returned by this method when it completes.</returns>
+    public async Task DetachSchema(string stationName, int timeoutRetry = 5, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(stationName))
+        {
+            throw new ArgumentException($"{nameof(stationName)} cannot be null or empty");
+        }
+
+        try
+        {
+            var detachSchemaRequestModel = new DetachSchemaRequest()
+            {
+                StationName = stationName,
+                UserName = _userName
+            };
+
+            var detachSchemaModelJson = JsonSerDes.PrepareJsonString<DetachSchemaRequest>(detachSchemaRequestModel);
+
+            byte[] detachSchemaReqBytes = Encoding.UTF8.GetBytes(detachSchemaModelJson);
+
+            Msg detachSchemaResp = await RequestAsync(MemphisStations.MEMPHIS_SCHEMA_DETACHMENTS, detachSchemaReqBytes, timeoutRetry, cancellationToken);
+            string errResp = Encoding.UTF8.GetString(detachSchemaResp.Data);
+
+            if (!string.IsNullOrEmpty(errResp))
+            {
+                throw new MemphisException(errResp);
+            }
+        }
+        catch (MemphisException)
+        {
+            throw;
+        }
+        catch (System.Exception e)
+        {
+            throw MemphisExceptions.FailedToAttachSchemaException(e);
+        }
+    }
+
+
+    /// <summary>
+    /// Create Station
+    /// </summary>
+    /// <param name="stationName">station name</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>An <see cref="MemphisStation"/> object representing the created station</returns>
+    public async Task<MemphisStation> CreateStation(string stationName, int timeoutRetry = 5, CancellationToken cancellationToken = default)
+    {
+        return await CreateStation(new StationOptions { Name = stationName }, timeoutRetry, cancellationToken);
+    }
+
+
     private Task ListenForFunctionUpdate(string stationName, int stationVersion, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(stationName) ||

@@ -1,3 +1,5 @@
+using Memphis.Client.Validators;
+
 namespace Memphis.Client.Constants;
 internal class MemphisStations
 {
@@ -42,6 +44,18 @@ internal static class MemphisSchemaTypes
     public const string GRAPH_QL = "graphql";
     public const string PROTO_BUF = "protobuf";
     internal const string AVRO = "avro";
+
+    internal static ValidatorType ToValidator(this string schemaType)
+    {
+        return schemaType switch
+        {
+            JSON => ValidatorType.JSON,
+            GRAPH_QL => ValidatorType.GRAPHQL,
+            PROTO_BUF => ValidatorType.PROTOBUF,
+            AVRO => ValidatorType.AVRO,
+            _ => throw new MemphisException($"Schema type: {schemaType} is not supported")
+        };
+    }
 }
 
 internal static class MemphisSdkClientUpdateTypes
