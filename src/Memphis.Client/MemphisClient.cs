@@ -1025,6 +1025,10 @@ public sealed partial class MemphisClient : IMemphisClient
                     }
                 }
             }
+            catch when (!IsConnected())
+            {
+                // Connection is closed   
+            }
             catch (System.Exception exception)
             {
                 throw new MemphisException(exception.Message, exception);
