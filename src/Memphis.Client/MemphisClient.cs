@@ -539,7 +539,7 @@ public sealed partial class MemphisClient : IMemphisClient
         {
             switch (schemaUpdateInit.SchemaType)
             {
-                case SchemaUpdateInit.SchemaTypes.JSON:
+                case MemphisSchemaTypes.JSON:
                     {
                         if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
                         {
@@ -548,7 +548,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
                         break;
                     }
-                case SchemaUpdateInit.SchemaTypes.GRAPHQL:
+                case MemphisSchemaTypes.GRAPH_QL:
                     {
                         if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
                         {
@@ -557,7 +557,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
                         break;
                     }
-                case SchemaUpdateInit.SchemaTypes.PROTOBUF:
+                case MemphisSchemaTypes.PROTO_BUF:
                     {
                         if (_schemaValidators.TryGetValue(ValidatorType.PROTOBUF, out ISchemaValidator schemaValidator))
                         {
@@ -787,7 +787,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
         switch (schemaUpdate.SchemaType)
         {
-            case SchemaUpdateInit.SchemaTypes.JSON:
+            case MemphisSchemaTypes.JSON:
                 {
                     if (_schemaValidators.TryGetValue(ValidatorType.JSON, out ISchemaValidator schemaValidator))
                     {
@@ -806,7 +806,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
                     break;
                 }
-            case SchemaUpdateInit.SchemaTypes.GRAPHQL:
+            case MemphisSchemaTypes.GRAPH_QL:
                 {
                     if (_schemaValidators.TryGetValue(ValidatorType.GRAPHQL, out ISchemaValidator schemaValidator))
                     {
@@ -825,7 +825,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
                     break;
                 }
-            case SchemaUpdateInit.SchemaTypes.PROTOBUF:
+            case MemphisSchemaTypes.PROTO_BUF:
                 {
                     if (_schemaValidators.TryGetValue(ValidatorType.PROTOBUF, out ISchemaValidator schemaValidator))
                     {

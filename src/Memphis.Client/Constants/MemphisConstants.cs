@@ -31,16 +31,11 @@ internal class MemphisSubjects
     public const string SDK_CLIENTS_UPDATE = "$memphis_sdk_clients_updates";
     public const string MEMPHIS_SCHEMA_VERSE_DLS = "$memphis_schemaverse_dls";
     public const string SCHEMA_CREATION = "$memphis_schema_creations";
-
-    // not available yes
-    public const string SCHEMA_DESTRUCTION = "";
-
     public const string FUNCTIONS_UPDATE = "$memphis_functions_updates_";
-
     public const string NACKED_DLS = "$memphis_nacked_dls";
 }
 
-public static class MemphisSchemaTypes
+internal static class MemphisSchemaTypes
 {
     public const string NONE = "";
     public const string JSON = "json";
@@ -68,7 +63,6 @@ internal static class MemphisRequestVersions
 {
     public const int LastProducerCreationRequestVersion = 4;
     public const int LastProducerDestroyRequestVersion = 1;
-
     public const int LastConsumerCreationRequestVersion = 4;
     public const int LastConsumerDestroyRequestVersion = 1;
 }
