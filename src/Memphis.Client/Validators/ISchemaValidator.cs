@@ -4,7 +4,7 @@ internal interface ISchemaValidator
 {
     Task ValidateAsync(byte[] messageToValidate, string schemaAsStr);
 
-    bool ParseAndStore(string schemeName, string schemaData);
+    bool AddOrUpdateSchema(SchemaUpdateInit schemaUpdate);
 
     void RemoveSchema(string schemaName);
 }

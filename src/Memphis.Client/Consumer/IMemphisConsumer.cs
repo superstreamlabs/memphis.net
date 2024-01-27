@@ -1,6 +1,4 @@
-﻿using Memphis.Client.Core;
-
-namespace Memphis.Client.Consumer;
+﻿namespace Memphis.Client.Consumer;
 
 public interface IMemphisConsumer : IDisposable
 {
@@ -43,6 +41,3 @@ public interface IMemphisConsumer : IDisposable
     /// <returns></returns>
     Task DestroyAsync(int timeoutRetry = 5);
 }
-
-
-

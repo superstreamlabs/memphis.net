@@ -297,15 +297,15 @@ public sealed partial class MemphisClient : IMemphisClient
     private async Task RemoveFromSchemaUpdateListener(string stationName)
     {
         var internalStationName = MemphisUtil.GetInternalName(stationName);
-        if (_stationSchemaUpdateListeners.TryGetValue(internalStationName, out int updateListenrsCount))
+        if (_stationSchemaUpdateListeners.TryGetValue(internalStationName, out int updateListenersCount))
         {
-            if (updateListenrsCount == 0)
+            if (updateListenersCount == 0)
             {
                 return;
             }
 
-            var updateListenerCountAfterRemove = updateListenrsCount - 1;
-            _stationSchemaUpdateListeners.TryUpdate(internalStationName, updateListenerCountAfterRemove, updateListenrsCount);
+            var updateListenerCountAfterRemove = updateListenersCount - 1;
+            _stationSchemaUpdateListeners.TryUpdate(internalStationName, updateListenerCountAfterRemove, updateListenersCount);
 
             if (updateListenerCountAfterRemove <= 0)
             {
@@ -460,11 +460,8 @@ public sealed partial class MemphisClient : IMemphisClient
         var validatorType = MemphisSchemaTypes.ToValidator(schemaUpdate.SchemaType);
         if (_schemaValidators.TryGetValue(validatorType, out ISchemaValidator schemaValidatorCache))
         {
-            var parsedAndStored = validatorType == ValidatorType.PROTOBUF
-                ? schemaValidatorCache.ParseAndStore(schemaUpdate.SchemaName, JsonConvert.SerializeObject(schemaUpdate.ActiveVersion))
-                : schemaValidatorCache.ParseAndStore(schemaUpdate.SchemaName, schemaUpdate.ActiveVersion?.Content);
-
-            if (!parsedAndStored)
+            var schemaStored = schemaValidatorCache.AddOrUpdateSchema(schemaUpdate);
+            if (!schemaStored)
             {
                 //TODO raise notification regarding unable to parse schema pushed by Memphis
                 throw new InvalidOperationException($"Unable to parse and store " +
