@@ -408,6 +408,9 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 _consumerOptions,
                 partitionNumber
             ));
+            
+            if (memphisMessages is null || !memphisMessages.Any())
+                return;
 
             MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessages, consumerContext, null));
         }
