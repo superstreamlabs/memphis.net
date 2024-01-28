@@ -1,42 +1,34 @@
-﻿using System.Text;
+﻿using Memphis.Client.Constants;
 using Memphis.Client.Exception;
+using Memphis.Client.Models.Response;
 using Memphis.Client.Validators;
 using ProtoBuf;
 
 namespace Memphis.Client.UnitTests;
 
-
-
-
 [ProtoContract]
-public class Test
+file class ValidModel
 {
 
     [ProtoMember(1, Name = @"field1")]
-    [global::System.ComponentModel.DefaultValue("")]
     public string Field1 { get; set; } = "";
 
     [ProtoMember(2, Name = @"field2")]
-    [System.ComponentModel.DefaultValue("")]
     public string Field2 { get; set; } = "";
 
     [ProtoMember(3, Name = @"field3")]
     public int Field3 { get; set; }
-
 }
 
 
 [ProtoContract]
-public class InvalidTestModel
+public class InvalidModel
 {
-
     [ProtoMember(1, Name = @"field1")]
-    [global::System.ComponentModel.DefaultValue("")]
     public string Field1 { get; set; } = "";
 
-    [ProtoMember(3, Name = @"field3")]
-    public int Field3 { get; set; }
-
+    [ProtoMember(2, Name = @"field2")]
+    public string Field2 { get; set; } = "";
 }
 
 public class ProtoBufValidatorTests
@@ -46,23 +38,13 @@ public class ProtoBufValidatorTests
     public ProtoBufValidatorTests()
     {
         _validator = new ProtoBufValidator();
-        _validator.ParseAndStore(
-            "samplepbf",
-            """
-            {
-                "version_number": 1, 
-                "descriptor": "CmsKEXNhbXBsZXBiZl8xLnByb3RvIk4KBFRlc3QSFgoGZmllbGQxGAEgASgJUgZmaWVsZDESFgoGZmllbGQyGAIgASgJUgZmaWVsZDISFgoGZmllbGQzGAMgASgFUgZmaWVsZDNiBnByb3RvMw==", 
-                "schema_content": "syntax = \"proto3\";\nmessage Test {\n    string field1 = 1;\n    string  field2 = 2;\n    int32  field3 = 3;\n}", 
-                "message_struct_name": "Test"
-            }
-            """
-            );
+        _validator.AddOrUpdateSchema(TestSchema());
     }
 
     [Fact]
     public async Task GivenValidPayload_WhenValidate_ThenNoError()
     {
-        var validData = new Test
+        var validData = new ValidModel
         {
             Field1 = "AwesomeFirst",
             Field2 = "SecondField",
@@ -70,28 +52,56 @@ public class ProtoBufValidatorTests
         };
         var message = ConvertToProtoBuf(validData);
 
-        
-        var exception = await Record.ExceptionAsync(async () => await _validator.ValidateAsync(message, "samplepbf"));
+
+        var exception = await Record.ExceptionAsync(async () => await _validator.ValidateAsync(message, "testschema"));
 
         Assert.Null(exception);
-
     }
 
     [Fact]
     public async Task GivenInvalidPayload_WhenValidate_ThenHasError()
     {
-        var message = Convert.FromBase64String("CgJmb3JtYWwxCgRmZWlsZDIKCAk=");
+        var invalidData = new InvalidModel
+        {
+            Field1 = "AwesomeFirst",
+            Field2 = "SecondField"
+        };
+        var message = ConvertToProtoBuf(invalidData);
 
-        await Assert.ThrowsAsync<MemphisSchemaValidationException>(
-                        () => _validator.ValidateAsync(message, "samplepbf"));
+        var exception = await Record.ExceptionAsync(async () => await _validator.ValidateAsync(message, "testschema"));
+
+        Assert.NotNull(exception);
+        Assert.IsType<MemphisSchemaValidationException>(exception);
     }
-
-
 
     private static byte[] ConvertToProtoBuf<TData>(TData obj) where TData : class
     {
         using var stream = new MemoryStream();
-        ProtoBuf.Serializer.Serialize(stream, obj);
+        Serializer.Serialize(stream, obj);
         return stream.ToArray();
+    }
+
+    private static SchemaUpdateInit TestSchema()
+    {
+        var schemaUpdate = new SchemaUpdateInit
+        {
+            SchemaName = "testschema",
+            ActiveVersion = new ProducerSchemaUpdateVersion
+            {
+                VersionNumber = "1",
+                Descriptor = "CmQKEnRlc3RzY2hlbWFfMS5wcm90byJOCgRUZXN0EhYKBmZpZWxkMRgBIAIoCVIGZmllbGQxEhYKBmZpZWxkMhgCIAIoCVIGZmllbGQyEhYKBmZpZWxkMxgDIAIoBVIGZmllbGQz",
+                Content = """
+                syntax = "proto2";
+                message Test {
+                            required string field1 = 1;
+                            required string field2 = 2;
+                            required int32 field3 = 3;
+                }
+                """,
+                MessageStructName = "Test"
+            },
+            SchemaType = MemphisSchemaTypes.PROTO_BUF
+        };
+        return schemaUpdate;
     }
 }

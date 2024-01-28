@@ -6,32 +6,7 @@ internal abstract class SchemaValidator<TSchema>
 
     public SchemaValidator()
     {
-        this._schemaCache = new ConcurrentDictionary<string, TSchema>();
-    }
-
-    public bool ParseAndStore(string schemeName, string schemaData)
-    {
-        if (string.IsNullOrEmpty(schemeName))
-        {
-            throw new ArgumentException($"Invalid value provided for {schemeName}");
-        }
-
-        if (string.IsNullOrEmpty(schemaData))
-        {
-            throw new ArgumentException($"Invalid value provided for {schemaData}");
-        }
-
-        try
-        {
-            var newSchema = Parse(schemaData, schemeName);
-            _schemaCache.AddOrUpdate(schemeName, newSchema, (key, oldVal) => newSchema);
-
-            return true;
-        }
-        catch (System.Exception)
-        {
-            return false;
-        }
+        _schemaCache = new ConcurrentDictionary<string, TSchema>();
     }
 
     public void RemoveSchema(string schemaName)
@@ -39,5 +14,16 @@ internal abstract class SchemaValidator<TSchema>
         _schemaCache.TryRemove(schemaName, out TSchema _);
     }
 
-    protected abstract TSchema Parse(string schemaData, string schemaName);
+    protected bool IsSchemaUpdateValid(SchemaUpdateInit schemaUpdate)
+    {
+        if (schemaUpdate is null ||
+            schemaUpdate is { ActiveVersion: null })
+            return false;
+
+        if (string.IsNullOrEmpty(schemaUpdate.ActiveVersion.Content) ||
+            string.IsNullOrEmpty(schemaUpdate.SchemaName))
+            return false;
+
+        return true;
+    }
 }

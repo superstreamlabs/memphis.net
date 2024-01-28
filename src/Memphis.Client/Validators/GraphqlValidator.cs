@@ -1,21 +1,16 @@
-﻿using System.Linq;
-using GraphQL;
+﻿using GraphQL;
 using GraphQL.Types;
 
 namespace Memphis.Client.Validators;
 
-internal class GraphqlValidator : ISchemaValidator
+internal class GraphqlValidator : SchemaValidator<ISchema>, ISchemaValidator
 {
     private readonly IDocumentExecuter _documentExecutor;
-    private readonly ConcurrentDictionary<string, ISchema> _schemaCache;
-
 
     public GraphqlValidator()
     {
-        this._documentExecutor = new DocumentExecuter();
-        this._schemaCache = new ConcurrentDictionary<string, ISchema>();
+        _documentExecutor = new DocumentExecuter();
     }
-
 
     public async Task ValidateAsync(byte[] messageToValidate, string schemaName)
     {
@@ -42,33 +37,22 @@ internal class GraphqlValidator : ISchemaValidator
         throw new MemphisSchemaValidationException($"Schema: {schemaName} not found in local cache");
     }
 
-    public bool ParseAndStore(string schemeName, string schemaData)
+    public bool AddOrUpdateSchema(SchemaUpdateInit schemaUpdate)
     {
-        if (string.IsNullOrEmpty(schemeName))
-        {
-            throw new ArgumentException($"Invalid value provided for {schemeName}");
-        }
-
-        if (string.IsNullOrEmpty(schemaData))
-        {
-            throw new ArgumentException($"Invalid value provided for {schemaData}");
-        }
+        if (!IsSchemaUpdateValid(schemaUpdate))
+            return false;
 
         try
         {
+            var schemeName = schemaUpdate.SchemaName;
+            var schemaData = schemaUpdate.ActiveVersion.Content;
             var newSchema = Schema.For(schemaData);
             _schemaCache.AddOrUpdate(schemeName, newSchema, (key, oldVal) => newSchema);
-
             return true;
         }
-        catch (System.Exception)
+        catch
         {
             return false;
         }
-    }
-
-    public void RemoveSchema(string schemaName)
-    {
-        _schemaCache.TryRemove(schemaName, out ISchema schemaObj);
     }
 }

@@ -6,10 +6,8 @@ public sealed class MemphisConsumer : IMemphisConsumer
 {
     public event EventHandler<MemphisMessageHandlerEventArgs> MessageReceived;
     public event EventHandler<MemphisMessageHandlerEventArgs> DlsMessageReceived;
-
     internal string InternalStationName { get; private set; }
     internal string Key => $"{InternalStationName}_{_consumerOptions.RealName}";
-
     private ISyncSubscription _dlsSubscription;
     private readonly MemphisClient _memphisClient;
     private readonly MemphisConsumerOptions _consumerOptions;
@@ -18,13 +16,11 @@ public sealed class MemphisConsumer : IMemphisConsumer
     private readonly CancellationTokenSource _cancellationTokenSource;
     private bool _subscriptionActive;
     private readonly int _pingConsumerIntervalMs;
-
     /// <summary>
     /// Messages in DLS station will have a partition number of -1. This does not indicate the actual partition number of the message.
     /// Instead, it indicates that the message is in the DLS station.
     /// </summary>
     private const int DlsMessagePartitionNumber = -1;
-
     private int[] _partitions;
     internal StationPartitionResolver PartitionResolver { get; set; }
     internal int[] Partitions
@@ -412,6 +408,9 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 _consumerOptions,
                 partitionNumber
             ));
+            
+            if (memphisMessages is null || !memphisMessages.Any())
+                return;
 
             MessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessages, consumerContext, null));
         }

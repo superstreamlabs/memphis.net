@@ -28,7 +28,26 @@ internal class AvroValidator : SchemaValidator<string>, ISchemaValidator
         }
     }
 
-    protected override string Parse(string schemaData, string schemaName)
+    public bool AddOrUpdateSchema(SchemaUpdateInit schemaUpdate)
+    {
+        if (!IsSchemaUpdateValid(schemaUpdate))
+            return false;
+
+        try
+        {
+            var schemeName = schemaUpdate.SchemaName;
+            var schemaData = schemaUpdate.ActiveVersion.Content;
+            var newSchema = Parse(schemaData, schemeName);
+            _schemaCache.AddOrUpdate(schemeName, newSchema, (key, oldVal) => newSchema);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private string Parse(string schemaData, string schemaName)
     {
         try
         {

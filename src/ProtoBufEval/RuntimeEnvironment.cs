@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace ProtoBufEval;
@@ -42,6 +41,7 @@ internal class RuntimeEnvironment
             var compressedBinary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                 ? Path.Combine(NativeBinariesDir, $"{OS}.zip")
                 : Path.Combine(NativeBinariesDir, $"{OS}-{Arch}.zip");
+            EnsureDependencyExists(compressedBinary);
             var binaryFilePath = Path.Combine(binaryDir, BinaryName);
             if (File.Exists(binaryFilePath))
                 File.Delete(binaryFilePath);
@@ -94,5 +94,11 @@ internal class RuntimeEnvironment
                 _ => throw new Exception("Unsupported OS architecture")
             };
         }
+    }
+
+    private static void EnsureDependencyExists(string path)
+    {
+        if (!File.Exists(path))
+            throw new ProtoBufEvalMissingDependencyException($"Missing dependency for ProtoBufEval: {path}");
     }
 }

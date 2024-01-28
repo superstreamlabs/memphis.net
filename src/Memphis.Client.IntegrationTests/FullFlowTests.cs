@@ -1,4 +1,5 @@
 ﻿using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Text;
 using Memphis.Client.Consumer;
 using Memphis.Client.Producer;
@@ -201,9 +202,11 @@ file static class Extensions
             args.MessageList.ForEach(msg => msg.Ack());
         };
 
-        _ = consumer1.ConsumeAsync(new ConsumeOptions { PartitionKey = partitionKey });
-        _ = consumer2.ConsumeAsync(new ConsumeOptions { PartitionKey = partitionKey });
-        await Task.Delay(TimeSpan.FromSeconds(10));
+        await Task.WhenAny(
+            consumer1.ConsumeAsync(new ConsumeOptions { PartitionKey = partitionKey }),
+            consumer2.ConsumeAsync(new ConsumeOptions { PartitionKey = partitionKey }),
+            Task.Delay(TimeSpan.FromSeconds(30)));
+            
         return count;
     }
 }

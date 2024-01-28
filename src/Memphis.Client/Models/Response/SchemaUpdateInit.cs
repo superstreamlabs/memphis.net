@@ -13,11 +13,4 @@ internal sealed class SchemaUpdateInit
 
     [DataMember(Name = "type")]
     public string SchemaType { get; set; }
-    
-    internal static class SchemaTypes
-    {
-        public const string PROTOBUF = "protobuf";
-        public const string JSON = "json";
-        public const string GRAPHQL = "graphql";
-    }
 }

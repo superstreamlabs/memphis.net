@@ -1,11 +1,9 @@
 ﻿using System.Collections.Concurrent;
-using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 using GraphQL.Types;
+using Memphis.Client.Constants;
 using Memphis.Client.Exception;
 using Memphis.Client.Validators;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Memphis.Client.UnitTests.Validators
@@ -34,9 +32,14 @@ namespace Memphis.Client.UnitTests.Validators
                    sayHello : String
                   }
              ";
+            var schemaUpdate = ValidatorTestHelper.GetSchemaUpdateInit(
+                "test-schema-001",
+                schemaStr,
+                MemphisSchemaTypes.GRAPH_QL
+            );
             // when:
 
-            var actual = _sut.ParseAndStore("test-schema-001", schemaStr);
+            var actual = _sut.AddOrUpdateSchema(schemaUpdate);
 
             // then:
 
@@ -52,9 +55,15 @@ namespace Memphis.Client.UnitTests.Validators
                    sayHelwlo : String
                   }
              ";
+
+            var schemaUpdate = ValidatorTestHelper.GetSchemaUpdateInit(
+                "test-schema-001",
+                schemaStr,
+                MemphisSchemaTypes.GRAPH_QL
+            );
             // when:
 
-            var actual = _sut.ParseAndStore("test-schema-001", schemaStr);
+            var actual = _sut.AddOrUpdateSchema(schemaUpdate);
 
             // then:
 

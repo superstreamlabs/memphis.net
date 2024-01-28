@@ -1,21 +1,23 @@
-﻿namespace Memphis.Client.Validators;
+﻿
+namespace Memphis.Client.Validators;
 
 #nullable disable
 internal class ProtoBufSchema
 {
-    public ProtoBufSchema(string name, string activeVersion)
+    public ProtoBufSchema(string name, string activeVersionBase64)
     {
         SchemaName = name;
-        ActiveSchemaVersion = activeVersion;
+        ActiveSchemaVersionBase64 = activeVersionBase64;
     }
 
-    public string ActiveSchemaVersion { get; set; }
+    public string ActiveSchemaVersionBase64 { get; set; }
     public string SchemaName { get; set; }
 }
 
 #nullable enable
 internal class ProtoBufValidator : SchemaValidator<ProtoBufSchema>, ISchemaValidator
 {
+
     public async Task ValidateAsync(byte[] messageToValidate, string schemaAsStr)
     {
         if (!_schemaCache.TryGetValue(schemaAsStr, out var protoBufSchema))
@@ -24,10 +26,10 @@ internal class ProtoBufValidator : SchemaValidator<ProtoBufSchema>, ISchemaValid
         try
         {
             var result = await ProtoBufEval.ProtoBufValidator.Validate(
-                base64Data: Convert.ToBase64String(messageToValidate), 
-                activeSchemaVersionBase64: Convert.ToBase64String(Encoding.UTF8.GetBytes(protoBufSchema.ActiveSchemaVersion)), 
+                base64Data: Convert.ToBase64String(messageToValidate),
+                activeSchemaVersionBase64: protoBufSchema.ActiveSchemaVersionBase64,
                 schemaName: protoBufSchema.SchemaName);
-            if(result.HasError)
+            if (result.HasError)
                 throw new MemphisSchemaValidationException($"Schema validation has failed: \n {result.Error}");
 
         }
@@ -37,8 +39,37 @@ internal class ProtoBufValidator : SchemaValidator<ProtoBufSchema>, ISchemaValid
         }
     }
 
-    protected override ProtoBufSchema Parse(string schemaData, string schemaName)
+    public bool AddOrUpdateSchema(SchemaUpdateInit schemaUpdate)
     {
-        return new(name: schemaName, activeVersion: schemaData);
+        if (!IsSchemaUpdateValid(schemaUpdate))
+            return false;
+
+        try
+        {
+            var schemeName = schemaUpdate.SchemaName;
+            var newSchema = Parse(schemaUpdate.ActiveVersion, schemeName);
+            _schemaCache.AddOrUpdate(schemeName, newSchema, (key, oldVal) => newSchema);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+
+    }
+
+    private ProtoBufSchema Parse(ProducerSchemaUpdateVersion activeVersion, string schemaName)
+    {
+        var avj = JsonConvert.SerializeObject(new
+        {
+            version_number = Convert.ToInt32(activeVersion.VersionNumber),
+            descriptor = activeVersion.Descriptor,
+            schema_content = activeVersion.Content,
+            message_struct_name = activeVersion.MessageStructName
+        });   
+
+        var av64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(avj));
+
+        return new(name: schemaName, activeVersionBase64: av64);
     }
 }

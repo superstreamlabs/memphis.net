@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Text;
 using System.Threading.Tasks;
+using Memphis.Client.Constants;
 using Memphis.Client.Exception;
 using Memphis.Client.Models.Response;
 using Memphis.Client.Validators;
@@ -135,7 +136,7 @@ namespace Memphis.Client.UnitTests
             schemaUpdateDictionaryMock.TryAdd(internalStationNameForGraphql, new SchemaUpdateInit()
             {
                 SchemaName = "test-schema-01",
-                SchemaType = SchemaUpdateInit.SchemaTypes.GRAPHQL,
+                SchemaType = MemphisSchemaTypes.GRAPH_QL,
                 ActiveVersion = new ProducerSchemaUpdateVersion()
                 {
                     Content = graphqlSchemaStr,

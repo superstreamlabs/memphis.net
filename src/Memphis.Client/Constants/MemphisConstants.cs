@@ -1,3 +1,5 @@
+using Memphis.Client.Validators;
+
 namespace Memphis.Client.Constants;
 internal class MemphisStations
 {
@@ -31,22 +33,29 @@ internal class MemphisSubjects
     public const string SDK_CLIENTS_UPDATE = "$memphis_sdk_clients_updates";
     public const string MEMPHIS_SCHEMA_VERSE_DLS = "$memphis_schemaverse_dls";
     public const string SCHEMA_CREATION = "$memphis_schema_creations";
-
-    // not available yes
-    public const string SCHEMA_DESTRUCTION = "";
-
     public const string FUNCTIONS_UPDATE = "$memphis_functions_updates_";
-
     public const string NACKED_DLS = "$memphis_nacked_dls";
 }
 
-public static class MemphisSchemaTypes
+internal static class MemphisSchemaTypes
 {
     public const string NONE = "";
     public const string JSON = "json";
     public const string GRAPH_QL = "graphql";
     public const string PROTO_BUF = "protobuf";
     internal const string AVRO = "avro";
+
+    internal static ValidatorType ToValidator(this string schemaType)
+    {
+        return schemaType switch
+        {
+            JSON => ValidatorType.JSON,
+            GRAPH_QL => ValidatorType.GRAPHQL,
+            PROTO_BUF => ValidatorType.PROTOBUF,
+            AVRO => ValidatorType.AVRO,
+            _ => throw new MemphisException($"Schema type: {schemaType} is not supported")
+        };
+    }
 }
 
 internal static class MemphisSdkClientUpdateTypes
@@ -68,7 +77,6 @@ internal static class MemphisRequestVersions
 {
     public const int LastProducerCreationRequestVersion = 4;
     public const int LastProducerDestroyRequestVersion = 1;
-
     public const int LastConsumerCreationRequestVersion = 4;
     public const int LastConsumerDestroyRequestVersion = 1;
 }
