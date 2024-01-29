@@ -1,7 +1,9 @@
-﻿using Memphis.Client.Constants;
+﻿using System.Text;
+using Memphis.Client.Constants;
 using Memphis.Client.Exception;
 using Memphis.Client.Models.Response;
 using Memphis.Client.Validators;
+using Newtonsoft.Json;
 using ProtoBuf;
 
 namespace Memphis.Client.UnitTests;
@@ -74,11 +76,60 @@ public class ProtoBufValidatorTests
         Assert.IsType<MemphisSchemaValidationException>(exception);
     }
 
+    [Fact]
+    public async Task GivenInvalidJson_WhenValidate_ThenHasError()
+    {
+        var invalidJson64 = Json64(new Dictionary<string, object>
+        {
+            ["field1"] = "AwesomeFirst",
+            ["field2"] = "SecondField",
+            ["field3"] = "WrongData",
+        });
+
+        var activeSchemaVersionBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(ActiveVersionProto3()));
+
+        var result = await ProtoBufEval.ProtoBufValidator.ValidateJson(invalidJson64, activeSchemaVersionBase64, "testschema");
+        
+        Assert.True(result.HasError);
+    }
+
+    [Fact]
+    public async Task GivenValidJson_WhenValidate3_ThenHasNoError()
+    {
+        var validJson64 = Json64(new Dictionary<string, object>
+        {
+            ["field1"] = "AwesomeFirst",
+            ["field2"] = "SecondField",
+            ["field3"] = 333,
+        });
+        var activeSchemaVersionBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(ActiveVersionProto3()));
+
+        var result = await ProtoBufEval.ProtoBufValidator.ValidateJson(validJson64, activeSchemaVersionBase64, "testschema");
+        
+        Assert.False(result.HasError);
+    }
+
     private static byte[] ConvertToProtoBuf<TData>(TData obj) where TData : class
     {
         using var stream = new MemoryStream();
         Serializer.Serialize(stream, obj);
         return stream.ToArray();
+    }
+
+    private static string Json64<TData>(TData obj) where TData : class
+    {
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj)));
+    }
+
+     private static string ActiveVersionProto3()
+    {
+        return JsonConvert.SerializeObject(new
+        {
+            version_number = 1,
+            descriptor = "CmwKEnRlc3RzY2hlbWFfMS5wcm90byJOCgRUZXN0EhYKBmZpZWxkMRgBIAEoCVIGZmllbGQxEhYKBmZpZWxkMhgCIAEoCVIGZmllbGQyEhYKBmZpZWxkMxgDIAEoBVIGZmllbGQzYgZwcm90bzM=",
+            schema_content = "syntax = \"proto3\";\nmessage Test {\n    string field1 = 1;\n    string  field2 = 2;\n    int32  field3 = 3;\n}",
+            message_struct_name = "Test"
+        });
     }
 
     private static SchemaUpdateInit TestSchema()
