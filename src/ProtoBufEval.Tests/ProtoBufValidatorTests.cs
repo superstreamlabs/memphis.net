@@ -174,6 +174,28 @@ public class ProtoBufValidatorTests
         Assert.False(result.HasError);
     }
 
+    [Fact]
+    public async Task GivenValidData_WhenValidateAndParse_ThenHasNoError()
+    {
+        var validJson64 = Json64(new Dictionary<string, object>
+        {
+            ["field1"] = "AwesomeFirst",
+            ["field2"] = "SecondField",
+            ["field3"] = 333,
+        });
+        var activeSchemaVersionBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(ActiveVersion3()));
+
+        var result = await ProtoBufValidator.ValidateAndParseJson(validJson64, activeSchemaVersionBase64, "testschema");
+
+        Assert.False(result.HasError);
+        Assert.NotNull(result.ProtoBuf);
+
+        var obj = Serializer.Deserialize<ValidModel>(new MemoryStream(result.ProtoBuf));
+
+        Assert.Equal("AwesomeFirst", obj.Field1);
+        Assert.False(result.HasError);
+    }
+
     private static string Proto64<TData>(TData obj) where TData : class
     {
         using var stream = new MemoryStream();

@@ -20,6 +20,14 @@ public class ProtoBufValidationResult
     public bool HasError { get; }
 };
 
+public class JsonValidateAndParseResult : ProtoBufValidationResult
+{
+    public JsonValidateAndParseResult(string? error, bool hasError, byte[]? proto) : base(error, hasError)
+    {
+        ProtoBuf = proto;
+    }
+    public byte[]? ProtoBuf { get; }
+}
 
 public static class ProtoBufValidator
 {
@@ -83,6 +91,40 @@ public static class ProtoBufValidator
             return new(result.StandardError, true);
         return new(default, false);
     }
+
+
+    /// <summary>
+    /// Validate a base64 encoded protobuf payload against a schema
+    /// </summary>
+    /// <param name="json64"></param>
+    /// <param name="activeSchemaVersionBase64"></param>
+    /// <param name="schemaName"></param>
+    /// <returns></returns>
+    public static async Task<JsonValidateAndParseResult> ValidateAndParseJson(
+        string json64,
+        string activeSchemaVersionBase64,
+        string schemaName
+    )
+    {
+        var result = await Cli.Wrap(_nativeBinary)
+            .WithArguments(new[] {
+                "j2p",
+                "--payload",json64,
+                "--schema", activeSchemaVersionBase64,
+                "--schema-name", schemaName,
+            })
+            .WithValidation(CommandResultValidation.None)
+            .ExecuteBufferedAsync();
+        if (result is { ExitCode: ProtoBufValidationError.InvalidPayload })
+            return new(result.StandardError, true, null);
+        if (string.IsNullOrWhiteSpace(result.StandardOutput))
+            return new(default, false, null);
+        var proto64 = result.StandardOutput.Trim();
+        var protoBytes = Convert.FromBase64String(proto64);
+        return new(default, false, protoBytes);
+    }
+
+
 }
 
 internal static class ProtoBufValidationError
