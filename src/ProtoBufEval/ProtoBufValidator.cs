@@ -36,14 +36,46 @@ public static class ProtoBufValidator
     /// <param name="activeSchemaVersionBase64"></param>
     /// <param name="schemaName"></param>
     /// <returns></returns>
-    public static async Task<ProtoBufValidationResult> Validate(string base64Data, string activeSchemaVersionBase64, string schemaName)
+    public static async Task<ProtoBufValidationResult> Validate(
+        string proto64,
+        string activeSchemaVersionBase64,
+        string schemaName
+    )
     {
         var result = await Cli.Wrap(_nativeBinary)
             .WithArguments(new[] {
                 "eval",
-                "--payload",base64Data,
+                "--payload",proto64,
                 "--schema", activeSchemaVersionBase64,
                 "--schema-name", schemaName
+            })
+            .WithValidation(CommandResultValidation.None)
+            .ExecuteBufferedAsync();
+        if (result is { ExitCode: ProtoBufValidationError.InvalidPayload })
+            return new(result.StandardError, true);
+        return new(default, false);
+    }
+
+    /// <summary>
+    /// Validate a base64 encoded protobuf payload against a schema
+    /// </summary>
+    /// <param name="json64"></param>
+    /// <param name="activeSchemaVersionBase64"></param>
+    /// <param name="schemaName"></param>
+    /// <returns></returns>
+    public static async Task<ProtoBufValidationResult> ValidateJson(
+        string json64,
+        string activeSchemaVersionBase64,
+        string schemaName
+    )
+    {
+        var result = await Cli.Wrap(_nativeBinary)
+            .WithArguments(new[] {
+                "eval",
+                "--payload",json64,
+                "--schema", activeSchemaVersionBase64,
+                "--schema-name", schemaName,
+                "--json"
             })
             .WithValidation(CommandResultValidation.None)
             .ExecuteBufferedAsync();
