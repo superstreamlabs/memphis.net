@@ -22,11 +22,12 @@ var (
 	payloadBase64      string
 	activeSchemaBase64 string
 	schemaName         string
+	payloadIsJson      bool
 )
 
 func init() {
 	cmd := cobra.Command{
-		Use:     "eval --payload=payload --schema=schema --schema-name=schema-name",
+		Use:     "eval --payload=payload --schema=schema --schema-name=schema-name --json",
 		Aliases: []string{"e"},
 		Short:   "Evaluates proto-buf payload against proto-buf schema",
 		Args:    cobra.MaximumNArgs(0),
@@ -37,6 +38,7 @@ func init() {
 	cmd.Flags().StringVar(&payloadBase64, "payload", "", "base64 proto-buf payload")
 	cmd.Flags().StringVar(&activeSchemaBase64, "schema", "", "base64 proto-buf active schema")
 	cmd.Flags().StringVar(&schemaName, "schema-name", "", "active schema name")
+	cmd.Flags().BoolVar(&payloadIsJson, "json", false, "input is base64 json")
 	cmd.MarkFlagRequired("payload")
 	cmd.MarkFlagRequired("schema")
 	cmd.MarkFlagRequired("schema-name")
@@ -58,6 +60,7 @@ func handleProtoBufEval(context context.Context) {
 	if err != nil {
 		return
 	}
+
 	schemaVersion, err := unmarshalSchemaVersion(activeSchemaBase64)
 	if err != nil {
 		return
@@ -66,7 +69,23 @@ func handleProtoBufEval(context context.Context) {
 	if err != nil {
 		return
 	}
-	_, err = validateProtoBufMessage(payloadBytes, descriptor)
+
+	if !payloadIsJson {
+		_, err = validateProtoBufMessage(payloadBytes, descriptor)
+		if err != nil {
+			log.SetFlags(0)
+			log.Fatal(err)
+		}
+		return
+	}
+
+	payloadStr := string(payloadBytes)
+	payload := make(map[string]interface{})
+	err = json.Unmarshal([]byte(payloadStr), &payload)
+	if err != nil {
+		return
+	}
+	_, err = validateProtoBufMessage(payload, descriptor)
 	if err != nil {
 		log.SetFlags(0)
 		log.Fatal(err)
