@@ -26,7 +26,7 @@ internal class ProtoBufValidator : SchemaValidator<ProtoBufSchema>, ISchemaValid
         try
         {
             var result = await ProtoBufEval.ProtoBufValidator.Validate(
-                base64Data: Convert.ToBase64String(messageToValidate),
+                proto64: Convert.ToBase64String(messageToValidate),
                 activeSchemaVersionBase64: protoBufSchema.ActiveSchemaVersionBase64,
                 schemaName: protoBufSchema.SchemaName);
             if (result.HasError)
