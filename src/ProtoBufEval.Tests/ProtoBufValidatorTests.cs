@@ -144,16 +144,16 @@ public class ProtoBufValidatorTests
     [Fact]
     public async Task GivenInvalidData_WhenValidate3_ThenHasError()
     {
-        var base64InvalidData = Json64(new InvalidModel
+        var invalidJson64 = Json64(new Dictionary<string, object>
         {
-            Field1 = "AwesomeFirst",
-            Field2 = "SecondField",
-            Field3 = "WrongData",
+            ["field1"] = "AwesomeFirst",
+            ["field2"] = "SecondField",
+            ["field3"] = "WrongData",
         });
 
         var activeSchemaVersionBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(ActiveVersion3()));
 
-        var result = await ProtoBufValidator.ValidateJson(base64InvalidData, activeSchemaVersionBase64, "testschema");
+        var result = await ProtoBufValidator.ValidateJson(invalidJson64, activeSchemaVersionBase64, "testschema");
 
         Assert.True(result.HasError);
     }
@@ -161,15 +161,15 @@ public class ProtoBufValidatorTests
     [Fact]
     public async Task GivenValidData_WhenValidate3_ThenHasNoError()
     {
-        var base64InvalidData = Json64(new ValidModel
+        var validJson64 = Json64(new Dictionary<string, object>
         {
-            Field1 = "AwesomeFirst",
-            Field2 = "SecondField",
-            Field3 = 333,
+            ["field1"] = "AwesomeFirst",
+            ["field2"] = "SecondField",
+            ["field3"] = 333,
         });
         var activeSchemaVersionBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(ActiveVersion3()));
 
-        var result = await ProtoBufValidator.ValidateJson(base64InvalidData, activeSchemaVersionBase64, "testschema");
+        var result = await ProtoBufValidator.ValidateJson(validJson64, activeSchemaVersionBase64, "testschema");
 
         Assert.False(result.HasError);
     }
