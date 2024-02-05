@@ -221,7 +221,7 @@ public class MemphisConsumerTests
             new FetchMessageOptions 
             { 
                 BatchSize = 10,
-                PartitionNumber = partitionNumber - 1
+                PartitionNumber = partitionNumber
             });
         
         Assert.NotNull(messages);

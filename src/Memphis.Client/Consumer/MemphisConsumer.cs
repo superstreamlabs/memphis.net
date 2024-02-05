@@ -350,7 +350,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
             partitionNumber = consumerPartitionNumber;
         }
 
-
+        partitionNumber = NormalizePartitionNumber(partitionNumber);
         var consumer = _consumerContexts[partitionNumber];
         return consumer.FetchMessages(new FetchOptions(
             _memphisClient,
@@ -358,6 +358,22 @@ public sealed class MemphisConsumer : IMemphisConsumer
             _consumerOptions,
             consumerPartitionNumber
         ));
+
+        /// <summary>
+        /// Normalize partition number to 0-based index
+        /// </summary>
+        /// <param name="partitionNumber">partition number</param>
+        /// <returns>0-based index</returns>
+        /// <remarks>
+        /// If partition number is less than or equal to 0, it will be returned as is.
+        /// If partition number is greater than 0, it will be decremented by 1.Memphis partition number starts from 1. But in the consumer, it should be 0-based index because it is used as an index of the consumer context array.
+        /// </remarks>
+        static int NormalizePartitionNumber(int partitionNumber)
+        {
+            if(partitionNumber <= 0)
+                return partitionNumber;
+            return partitionNumber - 1;
+        }
     }
 
     /// <summary>

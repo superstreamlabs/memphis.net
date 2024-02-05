@@ -670,7 +670,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
         (bool IsValue, string Error) ValidatePartitionNumber(int partitionNumber, string stationName)
         {
-            if (partitionNumber < 0 || partitionNumber >= _stationPartitions[stationName].PartitionsList.Length)
+            if (partitionNumber < 0 || partitionNumber > _stationPartitions[stationName].PartitionsList.Length)
             {
                 return (false, "Partition number is out of range");
             }
