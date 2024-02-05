@@ -139,7 +139,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 RequestVersion = MemphisRequestVersions.LastConsumerDestroyRequestVersion,
             };
 
-            var removeConsumerModelJson = JsonSerDes.PrepareJsonString<RemoveConsumerRequest>(removeConsumerModel);
+            var removeConsumerModelJson = JsonSerializer.Serialize(removeConsumerModel);
 
             byte[] removeConsumerReqBytes = Encoding.UTF8.GetBytes(removeConsumerModelJson);
 

@@ -282,7 +282,7 @@ public sealed class MemphisProducer : IMemphisProducer
                 MemphisSchemaTypes.GRAPH_QL or
                 MemphisSchemaTypes.PROTO_BUF or
                 MemphisSchemaTypes.AVRO => MessageSerializer.Serialize<object>(message!, schemaType),
-                _ => Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(message)),
+                _ => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)),
             };
         }
     }
@@ -316,7 +316,7 @@ public sealed class MemphisProducer : IMemphisProducer
                 RequestVersion = MemphisRequestVersions.LastProducerDestroyRequestVersion,
             };
 
-            var removeProducerModelJson = JsonSerDes.PrepareJsonString<RemoveProducerRequest>(removeProducerModel);
+            var removeProducerModelJson = JsonSerializer.Serialize(removeProducerModel);
 
             byte[] removeProducerReqBytes = Encoding.UTF8.GetBytes(removeProducerModelJson);
 
@@ -402,7 +402,7 @@ public sealed class MemphisProducer : IMemphisProducer
             ValidationError = validationError.Message,
         };
 
-        var dlsMessageJson = JsonConvert.SerializeObject(dlsMessage);
+        var dlsMessageJson = JsonSerializer.Serialize(dlsMessage);
         var dlsMessageBytes = Encoding.UTF8.GetBytes(dlsMessageJson);
         _memphisClient.BrokerConnection.Publish(MemphisSubjects.MEMPHIS_SCHEMA_VERSE_DLS, dlsMessageBytes);
 

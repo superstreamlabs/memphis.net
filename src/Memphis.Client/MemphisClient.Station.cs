@@ -45,7 +45,7 @@ public partial class MemphisClient
                 DlsStation = stationOptions.DlsStation
             };
 
-            var createStationModelJson = JsonSerDes.PrepareJsonString<CreateStationRequest>(createStationModel);
+            var createStationModelJson = JsonSerializer.Serialize(createStationModel);
 
             byte[] createStationReqBytes = Encoding.UTF8.GetBytes(createStationModelJson);
 
@@ -113,7 +113,7 @@ public partial class MemphisClient
                 UserName = _userName
             };
 
-            var attachSchemaModelJson = JsonSerDes.PrepareJsonString<AttachSchemaRequest>(attachSchemaRequestModel);
+            var attachSchemaModelJson = JsonSerializer.Serialize(attachSchemaRequestModel);
 
             byte[] attachSchemaReqBytes = Encoding.UTF8.GetBytes(attachSchemaModelJson);
 
@@ -156,7 +156,7 @@ public partial class MemphisClient
                 UserName = _userName
             };
 
-            var detachSchemaModelJson = JsonSerDes.PrepareJsonString<DetachSchemaRequest>(detachSchemaRequestModel);
+            var detachSchemaModelJson = JsonSerializer.Serialize(detachSchemaRequestModel);
 
             byte[] detachSchemaReqBytes = Encoding.UTF8.GetBytes(detachSchemaModelJson);
 
@@ -223,7 +223,7 @@ public partial class MemphisClient
                 return;
 
             var jsonData = Encoding.UTF8.GetString(e.Message.Data);
-            var functionsUpdate = JsonConvert.DeserializeObject<FunctionsUpdate>(jsonData);
+            var functionsUpdate = JsonSerializer.Deserialize<FunctionsUpdate>(jsonData);
             if (functionsUpdate is null)
                 return;
 

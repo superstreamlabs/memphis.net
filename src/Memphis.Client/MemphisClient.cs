@@ -180,7 +180,7 @@ public sealed partial class MemphisClient : IMemphisClient
             MessageStructName = string.Empty
         };
 
-        var requestJson = JsonSerDes.PrepareJsonString<CreateSchemaRequest>(createSchemaRequest);
+        var requestJson = JsonSerializer.Serialize(createSchemaRequest);
         var result = await RequestAsync(
            MemphisSubjects.SCHEMA_CREATION,
            Encoding.UTF8.GetBytes(requestJson),
@@ -229,7 +229,7 @@ public sealed partial class MemphisClient : IMemphisClient
             string responseStr = Encoding.UTF8.GetString(responseBytes);
             try
             {
-                var response = (CreateSchemaResponse)JsonSerDes.PrepareObjectFromString<CreateSchemaResponse>(responseStr);
+                var response = JsonSerializer.Deserialize<CreateSchemaResponse>(responseStr);
                 if (!string.IsNullOrWhiteSpace(response.Error) && !response.Error.Contains("already exists"))
                     throw new MemphisException(response.Error);
             }
@@ -347,7 +347,7 @@ public sealed partial class MemphisClient : IMemphisClient
         _subscriptionPerSchema.TryRemove(station.InternalName, out ISyncSubscription _);
         _stationSchemaUpdateListeners.TryRemove(station.InternalName, out int _);
 
-        var requestJson = JsonSerDes.PrepareJsonString<RemoveStationRequest>(request);
+        var requestJson = JsonSerializer.Serialize(request);
         var result = await RequestAsync(
             MemphisStations.MEMPHIS_STATION_DESTRUCTION,
             Encoding.UTF8.GetBytes(requestJson),
@@ -386,7 +386,7 @@ public sealed partial class MemphisClient : IMemphisClient
             Type = msgType
         };
 
-        var notificationModelJson = JsonSerDes.PrepareJsonString<NotificationRequest>(notificationModel);
+        var notificationModelJson = JsonSerializer.Serialize(notificationModel);
 
         byte[] notificationReqBytes = Encoding.UTF8.GetBytes(notificationModelJson);
 
@@ -436,8 +436,7 @@ public sealed partial class MemphisClient : IMemphisClient
             return;
 
         string respAsJson = Encoding.UTF8.GetString(message.Data);
-        var respAsObject =
-            (ProducerSchemaUpdate)JsonSerDes.PrepareObjectFromString<ProducerSchemaUpdate>(respAsJson);
+        var respAsObject = JsonSerializer.Deserialize<ProducerSchemaUpdate>(respAsJson);
 
         await ProcessAndStoreSchemaUpdate(internalStationName, respAsObject.Init);
     }
@@ -615,7 +614,7 @@ public sealed partial class MemphisClient : IMemphisClient
                     SdkClientsUpdate sdkClientUpdate = default;
                     try
                     {
-                        sdkClientUpdate = JsonConvert.DeserializeObject<SdkClientsUpdate>(respAsJson);
+                        sdkClientUpdate = JsonSerializer.Deserialize<SdkClientsUpdate>(respAsJson);
                     }
                     catch (System.Exception exc)
                     {

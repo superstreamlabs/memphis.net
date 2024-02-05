@@ -49,13 +49,13 @@ public partial class MemphisClient
                 SdkLang = ".NET"
             };
 
-            var createConsumerModelJson = JsonSerDes.PrepareJsonString<CreateConsumerRequest>(createConsumerModel);
+            var createConsumerModelJson = JsonSerializer.Serialize(createConsumerModel);
 
             byte[] createConsumerReqBytes = Encoding.UTF8.GetBytes(createConsumerModelJson);
 
             Msg createConsumerResp = await RequestAsync(MemphisStations.MEMPHIS_CONSUMER_CREATIONS, createConsumerReqBytes, timeoutRetry, cancellationToken);
             var responseStr = Encoding.UTF8.GetString(createConsumerResp.Data);
-            var createConsumerResponse = JsonConvert.DeserializeObject<CreateConsumerResponse>(responseStr);
+            var createConsumerResponse = JsonSerializer.Deserialize<CreateConsumerResponse>(responseStr);
 
             if (createConsumerResponse is null)
             {

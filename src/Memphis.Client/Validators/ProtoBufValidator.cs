@@ -60,7 +60,7 @@ internal class ProtoBufValidator : SchemaValidator<ProtoBufSchema>, ISchemaValid
 
     private ProtoBufSchema Parse(ProducerSchemaUpdateVersion activeVersion, string schemaName)
     {
-        var avj = JsonConvert.SerializeObject(new
+        var avj = JsonSerializer.Serialize(new
         {
             version_number = Convert.ToInt32(activeVersion.VersionNumber),
             descriptor = activeVersion.Descriptor,

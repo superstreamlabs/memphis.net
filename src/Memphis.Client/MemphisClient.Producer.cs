@@ -169,13 +169,13 @@ public partial class MemphisClient
                 SdkLang = ".NET"
             };
 
-            var createProducerModelJson = JsonSerDes.PrepareJsonString<CreateProducerRequest>(createProducerModel);
+            var createProducerModelJson = JsonSerializer.Serialize(createProducerModel);
 
             byte[] createProducerReqBytes = Encoding.UTF8.GetBytes(createProducerModelJson);
 
             Msg createProducerResp = await RequestAsync(MemphisStations.MEMPHIS_PRODUCER_CREATIONS, createProducerReqBytes, timeoutRetry, cancellationToken);
             string respAsJson = Encoding.UTF8.GetString(createProducerResp.Data);
-            var createProducerResponse = JsonConvert.DeserializeObject<CreateProducerResponse>(respAsJson)!;
+            var createProducerResponse = JsonSerializer.Deserialize<CreateProducerResponse>(respAsJson)!;
 
             if (!string.IsNullOrEmpty(createProducerResponse.Error))
             {
