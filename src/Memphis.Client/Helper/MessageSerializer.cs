@@ -18,7 +18,7 @@ internal class MessageSerializer
         return schemaType switch
         {
             MemphisSchemaTypes.JSON or 
-            MemphisSchemaTypes.GRAPH_QL => Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj)),
+            MemphisSchemaTypes.GRAPH_QL => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(obj)),
             MemphisSchemaTypes.PROTO_BUF => SerializeProtoBuf(obj),
             MemphisSchemaTypes.AVRO => AvroConvert.Serialize(obj),
             _ => throw MemphisExceptions.UnsupportedSchemaTypeException,
@@ -44,7 +44,7 @@ internal class MessageSerializer
         return schemaType switch
         {
             MemphisSchemaTypes.JSON or 
-            MemphisSchemaTypes.GRAPH_QL => JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(data)),
+            MemphisSchemaTypes.GRAPH_QL => JsonSerializer.Deserialize<T>(Encoding.UTF8.GetString(data)),
             MemphisSchemaTypes.PROTO_BUF => DeserializeProtoBuf<T>(data),
             MemphisSchemaTypes.AVRO => AvroConvert.Deserialize<T>(data),
             _ => throw MemphisExceptions.UnsupportedSchemaTypeException,

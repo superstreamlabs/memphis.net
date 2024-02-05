@@ -16,7 +16,7 @@ internal class ValidatorTestHelper
             SchemaName = schemaName,
             ActiveVersion = new ProducerSchemaUpdateVersion
             {
-                VersionNumber = "1",
+                VersionNumber = 1,
                 Descriptor = string.Empty,
                 Content = schema,
                 MessageStructName = string.Empty

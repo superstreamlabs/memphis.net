@@ -1,9 +1,9 @@
 ﻿namespace Memphis.Client;
 
-[DataContract]
+
 internal class FunctionsUpdate
 {
-    [DataMember(Name = "functions")]
+    [JsonPropertyName( "functions")]
     public Dictionary<int, int> Functions { get; set; }
     public FunctionsUpdate()
     {
@@ -12,10 +12,9 @@ internal class FunctionsUpdate
 }
 
 
-[DataContract]
 internal class FunctionsDetails
 {
-    [DataMember(Name = "partitions_functions")]
+    [JsonPropertyName( "partitions_functions")]
     public Dictionary<int, int> PartitionsFunctions { get; set; }
 
     public FunctionsDetails()

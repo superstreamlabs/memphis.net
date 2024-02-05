@@ -141,7 +141,7 @@ namespace Memphis.Client.UnitTests
                 {
                     Content = graphqlSchemaStr,
                     Descriptor = "test-description",
-                    VersionNumber = "1",
+                    VersionNumber = 1,
                     MessageStructName = "test-struct-name"
                 }
             });

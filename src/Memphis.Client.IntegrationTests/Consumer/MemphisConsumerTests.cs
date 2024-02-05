@@ -144,4 +144,95 @@ public class MemphisConsumerTests
         Assert.NotNull(consumer);
     }
 
+
+    [Theory]
+    [InlineData("consumer_tst_station_e", "consumer_tst_consumer_e", default, "consumer_tst_producer_e", "Hello, World!")]
+    public async Task GivenConsumerOptions_WhenFetchMessages_ThenMessageIsRetrieved(
+        string stationName, 
+        string consumerName, 
+        string consumerGroup, 
+        string producerName, 
+        string message)
+    {
+        using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
+        var station = await _fixture.SetupStationAsync(client, stationName);
+
+        var producerOptions = new MemphisProducerOptions
+        {
+            StationName = stationName,
+            ProducerName = producerName,
+        };
+
+        await client.ProduceAsync(producerOptions, message, _fixture.CommonHeaders);
+
+        var consumerOptions = new MemphisConsumerOptions
+        {
+            StationName = stationName,
+            ConsumerName = consumerName,
+            ConsumerGroup = consumerGroup,
+        };
+        var consumer = await client.CreateConsumer(consumerOptions);
+        var messages = await consumer.FetchMessages(new FetchMessageOptions { BatchSize = 10 });
+        
+        Assert.NotNull(messages);
+        Assert.NotEmpty(messages);
+        Assert.Single(messages);
+
+        await consumer.DestroyAsync();
+        await station.DestroyAsync();
+        Assert.NotNull(consumer);
+    }
+
+
+        [Theory]
+    [InlineData("consumer_tst_station_f", "consumer_tst_consumer_f", default, "consumer_tst_producer_f", "Hello, World!", 2)]
+    public async Task GivenPartitionNumber_WhenFetchMessages_ThenMessageIsRetrieved(
+        string stationName, 
+        string consumerName, 
+        string consumerGroup, 
+        string producerName, 
+        string message,
+        int partitionNumber)
+    {
+        using var client = await MemphisClientFactory.CreateClient(_fixture.MemphisClientOptions);
+        var station = await _fixture.SetupStationAsync(client, stationName);
+
+        var producerOptions = new MemphisProducerOptions
+        {
+            StationName = stationName,
+            ProducerName = producerName
+        };
+
+        await client.ProduceAsync(
+            producerOptions, 
+            message, 
+            _fixture.CommonHeaders,
+            partitionNumber: partitionNumber
+            );
+
+        var consumerOptions = new MemphisConsumerOptions
+        {
+            StationName = stationName,
+            ConsumerName = consumerName,
+            ConsumerGroup = consumerGroup,
+        };
+        var consumer = await client.CreateConsumer(consumerOptions);
+        var messages = await consumer.FetchMessages(
+            new FetchMessageOptions 
+            { 
+                BatchSize = 10,
+                PartitionNumber = partitionNumber
+            });
+        
+        Assert.NotNull(messages);
+        Assert.True(messages.Count() > 0);
+
+        await consumer.DestroyAsync();
+        await station.DestroyAsync();
+        Assert.NotNull(consumer);
+    }
+
+
+    
+
 }

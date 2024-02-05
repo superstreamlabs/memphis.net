@@ -36,6 +36,17 @@ public interface IMemphisConsumer : IDisposable
     IEnumerable<MemphisMessage> Fetch(int batchSize, bool prefetch);
 
     /// <summary>
+    /// Fetch messages from station
+    /// </summary>
+    /// <param name="options">Fetch options</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>An <see cref="IEnumerable{T}"/> of <see cref="MemphisMessage"/></returns>
+    Task<IEnumerable<MemphisMessage>> FetchMessages(
+        FetchMessageOptions options,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
     /// Destroy the consumer
     /// </summary>
     /// <returns></returns>

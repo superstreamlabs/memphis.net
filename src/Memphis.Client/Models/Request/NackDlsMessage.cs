@@ -1,21 +1,20 @@
 ﻿namespace Memphis.Client;
 
-[DataContract]
 internal class NackDlsMessage
 {
-    [DataMember(Name = "station_name")]
+    [JsonPropertyName( "station_name")]
     public string StationName { get; set; } = null!;
 
-    [DataMember(Name = "error")]
+    [JsonPropertyName( "error")]
     public string Error { get; set; } = null!;
     
-    [DataMember(Name = "partition")]
+    [JsonPropertyName( "partition")]
     public int Partition { get; set; }
     
-    [DataMember(Name = "cg_name")]
+    [JsonPropertyName( "cg_name")]
     public string ConsumerGroupName { get; set; } = null!;
 
-    [DataMember(Name = "seq")]
+    [JsonPropertyName( "seq")]
     public ulong StreamSequence { get; set; }
     
 }

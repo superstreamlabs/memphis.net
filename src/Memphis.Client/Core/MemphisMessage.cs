@@ -43,7 +43,7 @@ public sealed class MemphisMessage
                     Id = _msg.Header["$memphis_pm_id"],
                     ConsumerGroupName = _consumerGroup,
                 };
-                var msgToAckJson = JsonSerDes.PrepareJsonString<PmAckMsg>(msgToAckModel);
+                var msgToAckJson = JsonSerializer.Serialize(msgToAckModel);
 
                 byte[] msgToAckBytes = Encoding.UTF8.GetBytes(msgToAckJson);
                 _memphisClient.BrokerConnection.Publish(
@@ -94,7 +94,7 @@ public sealed class MemphisMessage
             };
             _memphisClient.BrokerConnection.Publish(
                 MemphisSubjects.NACKED_DLS,
-                Encoding.UTF8.GetBytes(JsonSerDes.PrepareJsonString<NackDlsMessage>(nackDlsMessage))
+                Encoding.UTF8.GetBytes(JsonSerializer.Serialize(nackDlsMessage))
             );
         }
         catch (System.Exception e)

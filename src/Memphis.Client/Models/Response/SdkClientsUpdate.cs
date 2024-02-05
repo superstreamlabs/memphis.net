@@ -2,15 +2,14 @@
 
 namespace Memphis.Client.Models.Response;
 
-[DataContract]
 internal class SdkClientsUpdate
 {
-    [DataMember(Name = "station_name")]
+    [JsonPropertyName("station_name")]
     public string StationName { get; set; }
 
-    [DataMember(Name = "type")]
+    [JsonPropertyName("type")]
     public string Type { get; set; }
 
-    [DataMember(Name = "update")]
+    [JsonPropertyName("update")]
     public bool? Update { get; set; }
 }

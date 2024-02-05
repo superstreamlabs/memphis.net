@@ -1,53 +1,54 @@
 #nullable disable
 
+using System.Text.Json.Serialization;
+
 namespace Memphis.Client.Models.Request;
 
-[DataContract]
 internal sealed class CreateStationRequest
 {
-    [DataMember(Name = "name")]
+    [JsonPropertyName("name")]
     public string StationName { get; set; }
-    
-    [DataMember(Name = "retention_type")]
+
+    [JsonPropertyName("retention_type")]
     public string RetentionType { get; set; }
-    
-    [DataMember(Name = "retention_value")]
+
+    [JsonPropertyName("retention_value")]
     public int RetentionValue { get; set; }
-    
-    [DataMember(Name = "storage_type")]
+
+    [JsonPropertyName("storage_type")]
     public string StorageType { get; set; }
-    
-    [DataMember(Name = "replicas")]
+
+    [JsonPropertyName("replicas")]
     public int Replicas { get; set; }
 
-    [DataMember(Name = "idempotency_windows_in_ms")]
+    [JsonPropertyName("idempotency_windows_in_ms")]
     public int IdempotencyWindowsInMs { get; set; }
-    
-    [DataMember(Name = "schema_name")]
+
+    [JsonPropertyName("schema_name")]
     public string SchemaName { get; set; }
 
-    [DataMember(Name = "dls_configuration")]
+    [JsonPropertyName("dls_configuration")]
     public DlsConfiguration DlsConfiguration { get; set; }
 
-    [DataMember(Name = "username")]
+    [JsonPropertyName("username")]
     public string UserName { get; set; }
 
-    [DataMember(Name = "tiered_storage_enabled")]
+    [JsonPropertyName("tiered_storage_enabled")]
     public bool TieredStorageEnabled { get; set; }
-    
-    [DataMember(Name = "partitions_number")]
+
+    [JsonPropertyName("partitions_number")]
     public int PartitionsNumber { get; set; }
 
-    [DataMember(Name = "dls_station")]
+    [JsonPropertyName("dls_station")]
     public string DlsStation { get; set; }
 }
 
-[DataContract]
+
 internal sealed class DlsConfiguration
 {
-    [DataMember(Name = "poison")]
+    [JsonPropertyName("poison")]
     public bool Poison { get; set; }
-    
-    [DataMember(Name = "SchemaVerse")]
+
+    [JsonPropertyName("SchemaVerse")]
     public bool SchemaVerse { get; set; }
 }

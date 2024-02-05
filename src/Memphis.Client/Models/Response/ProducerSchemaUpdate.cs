@@ -2,13 +2,12 @@
 
 namespace Memphis.Client.Models.Response;
 
-[DataContract]
 internal sealed class ProducerSchemaUpdate
 {
-    [DataMember(Name = "UpdateType")] 
+    [JsonPropertyName( "UpdateType")] 
     public string UpdateType { get; set; }
 
-    [DataMember(Name = "init")] 
+    [JsonPropertyName( "init")] 
     public SchemaUpdateInit Init { get; set; }
 }
 

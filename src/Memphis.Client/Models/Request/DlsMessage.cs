@@ -2,36 +2,33 @@
 
 namespace Memphis.Client.Models.Request;
 
-[DataContract]
 internal class ProducerDetails
 {
-    [DataMember(Name = "name")]
+    [JsonPropertyName( "name")]
     public string Name { get; set; }
-    [DataMember(Name = "connection_id")]
+    [JsonPropertyName( "connection_id")]
     public string ConnectionId { get; set; }
 }
 
-[DataContract]
 internal class MessagePayloadDls
 {
-    [DataMember(Name = "size")]
+    [JsonPropertyName( "size")]
     public int Size { get; set; }
-    [DataMember(Name = "data")]
+    [JsonPropertyName( "data")]
     public string Data { get; set; }
-    [DataMember(Name = "headers")]
+    [JsonPropertyName( "headers")]
     public Dictionary<string, string> Headers { get; set; }
 }
 
-[DataContract]
 internal class DlsMessage
 {
-    [DataMember(Name = "station_name")]
+    [JsonPropertyName( "station_name")]
     public string StationName { get; set; }
-    [DataMember(Name = "producer")]
+    [JsonPropertyName( "producer")]
     public ProducerDetails Producer { get; set; }
-    [DataMember(Name = "message")]
+    [JsonPropertyName( "message")]
     public MessagePayloadDls Message { get; set; }
 
-    [DataMember(Name = "validation_error")]
+    [JsonPropertyName( "validation_error")]
     public string ValidationError { get; set; }
 }

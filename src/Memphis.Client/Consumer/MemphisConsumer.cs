@@ -95,9 +95,9 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// ConsumeAsync messages
     /// </summary>
     /// <returns></returns>
-    public async Task ConsumeAsync(CancellationToken cancellationToken = default)
+    public Task ConsumeAsync(CancellationToken cancellationToken = default)
     {
-        await ConsumeAsync(new(), cancellationToken);
+        return ConsumeAsync(new(), cancellationToken);
     }
 
     /// <summary>
@@ -106,11 +106,21 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// <param name="options">Consume options</param>
     /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
     /// <returns></returns>
-    public async Task ConsumeAsync(ConsumeOptions options, CancellationToken cancellationToken = default)
+    public Task ConsumeAsync(ConsumeOptions options, CancellationToken cancellationToken = default)
     {
-        var taskForStationConsumption = Task.Run(async () => await Consume(options.PartitionKey, options.PartitionNumber, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
-        var taskForDlsConsumption = Task.Run(async () => await ConsumeFromDls(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
-        await Task.WhenAll(taskForStationConsumption, taskForDlsConsumption);
+        var consumeTask = Task.Factory.StartNew(() =>
+            Consume(options.PartitionKey, options.PartitionNumber, cancellationToken),
+            cancellationToken,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+
+        var consumeFromDlsTask = Task.Factory.StartNew(() =>
+            ConsumeFromDls(cancellationToken),
+            cancellationToken,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+
+        return Task.WhenAll(consumeTask, consumeFromDlsTask);
     }
 
     /// <summary>
@@ -139,7 +149,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 RequestVersion = MemphisRequestVersions.LastConsumerDestroyRequestVersion,
             };
 
-            var removeConsumerModelJson = JsonSerDes.PrepareJsonString<RemoveConsumerRequest>(removeConsumerModel);
+            var removeConsumerModelJson = JsonSerializer.Serialize(removeConsumerModel);
 
             byte[] removeConsumerReqBytes = Encoding.UTF8.GetBytes(removeConsumerModelJson);
 
@@ -172,6 +182,14 @@ public sealed class MemphisConsumer : IMemphisConsumer
             BatchSize = batchSize,
             Prefetch = prefetch,
         });
+    }
+
+    public async Task<IEnumerable<MemphisMessage>> FetchMessages(
+        FetchMessageOptions options,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return await Task.Run(() => Fetch(options), cancellationToken);
     }
 
     internal IEnumerable<MemphisMessage> Fetch(FetchMessageOptions fetchMessageOptions)
@@ -214,7 +232,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 return messages;
             }
 
-            return FetchSubscriptionWithTimeOut(batchSize, fetchMessageOptions.PartitionKey, fetchMessageOptions.PartitionNumber);
+            return FetchSubscriptionWithTimeOut(fetchMessageOptions.PartitionKey, fetchMessageOptions.PartitionNumber);
         }
         catch (System.Exception ex)
         {
@@ -259,7 +277,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         {
             _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup] = new();
         }
-        var messages = FetchSubscriptionWithTimeOut(_consumerOptions.BatchSize, partitionKey, consumerPartitionNumber);
+        var messages = FetchSubscriptionWithTimeOut(partitionKey, consumerPartitionNumber);
         _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup].AddRange(messages);
     }
 
@@ -314,14 +332,8 @@ public sealed class MemphisConsumer : IMemphisConsumer
         _subscriptionActive = false;
     }
 
-    private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(int batchSize, string partitionKey, int consumerPartitionNumber)
+    private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(string partitionKey, int consumerPartitionNumber)
     {
-
-        var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
-        if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
-        {
-            durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
-        }
         int partitionNumber = Partitions.Length == 0 ? 0 : PartitionResolver.Resolve();
 
         if (!string.IsNullOrWhiteSpace(partitionKey) && consumerPartitionNumber > 0)
@@ -338,7 +350,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
             partitionNumber = consumerPartitionNumber;
         }
 
-
+        partitionNumber = NormalizePartitionNumber(partitionNumber);
         var consumer = _consumerContexts[partitionNumber];
         return consumer.FetchMessages(new FetchOptions(
             _memphisClient,
@@ -346,6 +358,22 @@ public sealed class MemphisConsumer : IMemphisConsumer
             _consumerOptions,
             consumerPartitionNumber
         ));
+
+        /// <summary>
+        /// Normalize partition number to 0-based index
+        /// </summary>
+        /// <param name="partitionNumber">partition number</param>
+        /// <returns>0-based index</returns>
+        /// <remarks>
+        /// If partition number is less than or equal to 0, it will be returned as is.
+        /// If partition number is greater than 0, it will be decremented by 1.Memphis partition number starts from 1. But in the consumer, it should be 0-based index because it is used as an index of the consumer context array.
+        /// </remarks>
+        static int NormalizePartitionNumber(int partitionNumber)
+        {
+            if(partitionNumber <= 0)
+                return partitionNumber;
+            return partitionNumber - 1;
+        }
     }
 
     /// <summary>
@@ -408,7 +436,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 _consumerOptions,
                 partitionNumber
             ));
-            
+
             if (memphisMessages is null || !memphisMessages.Any())
                 return;
 

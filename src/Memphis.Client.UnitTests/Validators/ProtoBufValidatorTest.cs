@@ -139,7 +139,7 @@ public class ProtoBufValidatorTests
             SchemaName = "testschema",
             ActiveVersion = new ProducerSchemaUpdateVersion
             {
-                VersionNumber = "1",
+                VersionNumber = 1,
                 Descriptor = "CmQKEnRlc3RzY2hlbWFfMS5wcm90byJOCgRUZXN0EhYKBmZpZWxkMRgBIAIoCVIGZmllbGQxEhYKBmZpZWxkMhgCIAIoCVIGZmllbGQyEhYKBmZpZWxkMxgDIAIoBVIGZmllbGQz",
                 Content = """
                 syntax = "proto2";
