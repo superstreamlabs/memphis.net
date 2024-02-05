@@ -184,6 +184,14 @@ public sealed class MemphisConsumer : IMemphisConsumer
         });
     }
 
+    public async Task<IEnumerable<MemphisMessage>> FetchMessages(
+        FetchMessageOptions options,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return await Task.Run(() => Fetch(options), cancellationToken);
+    }
+
     internal IEnumerable<MemphisMessage> Fetch(FetchMessageOptions fetchMessageOptions)
     {
         MemphisClient.EnsureBatchSizeIsValid(fetchMessageOptions.BatchSize);
@@ -224,7 +232,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 return messages;
             }
 
-            return FetchSubscriptionWithTimeOut(batchSize, fetchMessageOptions.PartitionKey, fetchMessageOptions.PartitionNumber);
+            return FetchSubscriptionWithTimeOut(fetchMessageOptions.PartitionKey, fetchMessageOptions.PartitionNumber);
         }
         catch (System.Exception ex)
         {
@@ -269,7 +277,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         {
             _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup] = new();
         }
-        var messages = FetchSubscriptionWithTimeOut(_consumerOptions.BatchSize, partitionKey, consumerPartitionNumber);
+        var messages = FetchSubscriptionWithTimeOut(partitionKey, consumerPartitionNumber);
         _memphisClient.PrefetchedMessages[lowerCaseStationName][consumerGroup].AddRange(messages);
     }
 
@@ -324,14 +332,8 @@ public sealed class MemphisConsumer : IMemphisConsumer
         _subscriptionActive = false;
     }
 
-    private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(int batchSize, string partitionKey, int consumerPartitionNumber)
+    private IEnumerable<MemphisMessage> FetchSubscriptionWithTimeOut(string partitionKey, int consumerPartitionNumber)
     {
-
-        var durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerName);
-        if (!string.IsNullOrWhiteSpace(_consumerOptions.ConsumerGroup))
-        {
-            durableName = MemphisUtil.GetInternalName(_consumerOptions.ConsumerGroup);
-        }
         int partitionNumber = Partitions.Length == 0 ? 0 : PartitionResolver.Resolve();
 
         if (!string.IsNullOrWhiteSpace(partitionKey) && consumerPartitionNumber > 0)
