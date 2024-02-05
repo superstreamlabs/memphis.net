@@ -77,6 +77,11 @@ public partial class MemphisClient
             var consumer = new MemphisConsumer(this, consumerOptions, createConsumerResponse.PartitionsUpdate.PartitionsList);
             _consumerCache.AddOrUpdate(consumer.Key, consumer, (_, _) => consumer);
 
+            if(createConsumerResponse is { PartitionsUpdate: { } partitionsUpdate })
+            {
+                _stationPartitions.AddOrUpdate(consumerOptions.StationName, partitionsUpdate, (_, _) => partitionsUpdate);
+            }
+
             await ListenForSchemaUpdate(consumerOptions.StationName);
 
             return consumer;
