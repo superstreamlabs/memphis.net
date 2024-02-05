@@ -1,9 +1,8 @@
 ﻿namespace Memphis.Client.Models.Response;
 
 #nullable disable
-[DataContract]
 internal class CreateSchemaResponse
 {
-    [DataMember(Name = "error")]
+    [JsonPropertyName("error")]
     public string Error { get; set; }
 }

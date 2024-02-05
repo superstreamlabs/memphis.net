@@ -2,11 +2,10 @@
 
 namespace Memphis.Client.Models.Request;
 
-[DataContract]
 internal class RemoveStationRequest
 {
-    [DataMember(Name = "station_name")]
+    [JsonPropertyName( "station_name")]
     public string StationName { get; set; }
-    [DataMember(Name = "username")]
+    [JsonPropertyName( "username")]
     public string Username { get; set; }
 }

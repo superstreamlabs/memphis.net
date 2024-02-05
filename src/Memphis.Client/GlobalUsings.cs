@@ -20,3 +20,4 @@ global using Memphis.Client.Models.Request;
 global using Memphis.Client.Models.Response;
 global using NATS.Client.JetStream;
 global using System.Text.Json;
+global using System.Text.Json.Serialization;

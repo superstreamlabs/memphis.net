@@ -95,9 +95,9 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// ConsumeAsync messages
     /// </summary>
     /// <returns></returns>
-    public async Task ConsumeAsync(CancellationToken cancellationToken = default)
+    public Task ConsumeAsync(CancellationToken cancellationToken = default)
     {
-        await ConsumeAsync(new(), cancellationToken);
+        return ConsumeAsync(new(), cancellationToken);
     }
 
     /// <summary>
@@ -106,12 +106,21 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// <param name="options">Consume options</param>
     /// <param name="cancellationToken">token used to cancel operation by Consumer</param>
     /// <returns></returns>
-    public async Task ConsumeAsync(ConsumeOptions options, CancellationToken cancellationToken = default)
+    public Task ConsumeAsync(ConsumeOptions options, CancellationToken cancellationToken = default)
     {
-        await Task.WhenAll(
-            Consume(options.PartitionKey, options.PartitionNumber, _cancellationTokenSource.Token),
-            ConsumeFromDls(_cancellationTokenSource.Token)
-        );
+        var consumeTask = Task.Factory.StartNew(() =>
+            Consume(options.PartitionKey, options.PartitionNumber, cancellationToken),
+            cancellationToken,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+
+        var consumeFromDlsTask = Task.Factory.StartNew(() =>
+            ConsumeFromDls(cancellationToken),
+            cancellationToken,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+
+        return Task.WhenAll(consumeTask, consumeFromDlsTask);
     }
 
     /// <summary>
@@ -409,7 +418,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 _consumerOptions,
                 partitionNumber
             ));
-            
+
             if (memphisMessages is null || !memphisMessages.Any())
                 return;
 

@@ -2,30 +2,29 @@
 
 namespace Memphis.Client.Models.Request;
 
-[DataContract]
 internal sealed class CreateProducerRequest
 {
-    [DataMember(Name = "name")]
+    [JsonPropertyName( "name")]
     public string ProducerName { get; set; }
 
-    [DataMember(Name = "station_name")]
+    [JsonPropertyName( "station_name")]
     public string StationName { get; set; }
 
-    [DataMember(Name = "connection_id")]
+    [JsonPropertyName( "connection_id")]
     public string ConnectionId { get; set; }
 
-    [DataMember(Name = "producer_type")]
+    [JsonPropertyName( "producer_type")]
     public string ProducerType { get; set; }
 
-    [DataMember(Name = "req_version")]
+    [JsonPropertyName( "req_version")]
     public int RequestVersion { get; set; }
 
-    [DataMember(Name = "username")]
+    [JsonPropertyName( "username")]
     public string UserName { get; set; }
 
-    [DataMember(Name = "app_id")]
+    [JsonPropertyName( "app_id")]
     public string ApplicationId { get; set; }
 
-    [DataMember(Name = "sdk_lang")]
+    [JsonPropertyName( "sdk_lang")]
     public string SdkLang { get; set; }
 }

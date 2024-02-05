@@ -2,18 +2,17 @@
 
 namespace Memphis.Client.Models.Response;
 
-[DataContract]
 internal sealed class ProducerSchemaUpdateVersion
 {
-    [DataMember(Name = "version_number")]
-    public string VersionNumber { get; set; }
-    
-    [DataMember(Name = "descriptor")]
+    [JsonPropertyName("version_number")]
+    public int VersionNumber { get; set; }
+
+    [JsonPropertyName("descriptor")]
     public string Descriptor { get; set; }
-    
-    [DataMember(Name = "schema_content")]
+
+    [JsonPropertyName("schema_content")]
     public string Content { get; set; }
-    
-    [DataMember(Name = "message_struct_name")]
+
+    [JsonPropertyName("message_struct_name")]
     public string MessageStructName { get; set; }
 }

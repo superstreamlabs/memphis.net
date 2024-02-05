@@ -2,19 +2,18 @@
 
 namespace Memphis.Client.Models.Request;
 
-[DataContract]
 internal sealed class NotificationRequest
 {
-    [DataMember(Name = "title", IsRequired = true)]
+    [JsonPropertyName( "title")]
     public string Title { get; set; }
     
-    [DataMember(Name = "msg", IsRequired = true)]
+    [JsonPropertyName( "msg")]
     public string Message { get; set; }
     
-    [DataMember(Name = "type", IsRequired = true)]
+    [JsonPropertyName( "type")]
     public string Type { get; set; }
 
-    [DataMember(Name = "code")]
+    [JsonPropertyName( "code")]
     public string Code { get; set; }
 
 }

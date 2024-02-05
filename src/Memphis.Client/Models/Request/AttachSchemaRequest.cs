@@ -1,14 +1,13 @@
 #nullable disable
 namespace Memphis.Client.Models.Request;
 
-[DataContract]
 internal sealed class AttachSchemaRequest
 {
-    [DataMember(Name = "name")]
+    [JsonPropertyName( "name")]
     public string SchemaName { get; set; }
 
-    [DataMember(Name = "station_name")]
+    [JsonPropertyName( "station_name")]
     public string StationName { get; set; }
-    [DataMember(Name = "username")]
+    [JsonPropertyName( "username")]
     public string UserName { get; set; }
 }
