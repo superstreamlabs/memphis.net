@@ -511,7 +511,7 @@ public sealed partial class MemphisClient : IMemphisClient
             throw MemphisExceptions.SchemaUpdateSubscriptionFailedException;
         }
 
-        Task.Run(async () =>
+        Task.Factory.StartNew(async () =>
         {
             while (!_cancellationTokenSource.IsCancellationRequested)
             {
@@ -520,9 +520,8 @@ public sealed partial class MemphisClient : IMemphisClient
 
                 var schemaUpdateMsg = subscription.NextMessage();
                 await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
-
             }
-        }, _cancellationTokenSource.Token);
+        }, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         _stationSchemaUpdateListeners.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
     }
@@ -557,7 +556,7 @@ public sealed partial class MemphisClient : IMemphisClient
 
             await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateInit);
 
-            Task.Run(async () =>
+            Task.Factory.StartNew(async () =>
             {
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
@@ -567,7 +566,7 @@ public sealed partial class MemphisClient : IMemphisClient
                     var schemaUpdateMsg = subscription.NextMessage();
                     await ProcessAndStoreSchemaUpdate(internalStationName, schemaUpdateMsg);
                 }
-            }, _cancellationTokenSource.Token);
+            }, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
             _stationSchemaUpdateListeners.AddOrUpdate(internalStationName, 1, (key, val) => val + 1);
         }
@@ -598,7 +597,7 @@ public sealed partial class MemphisClient : IMemphisClient
     {
         var subscription = _brokerConnection.SubscribeSync(MemphisSubjects.SDK_CLIENTS_UPDATE);
 
-        Task.Run(SyncSdkClientUpdate, _cancellationTokenSource.Token);
+        Task.Factory.StartNew(SyncSdkClientUpdate, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         void SyncSdkClientUpdate()
         {

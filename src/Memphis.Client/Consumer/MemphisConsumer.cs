@@ -108,9 +108,10 @@ public sealed class MemphisConsumer : IMemphisConsumer
     /// <returns></returns>
     public async Task ConsumeAsync(ConsumeOptions options, CancellationToken cancellationToken = default)
     {
-        var taskForStationConsumption = Task.Run(async () => await Consume(options.PartitionKey, options.PartitionNumber, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
-        var taskForDlsConsumption = Task.Run(async () => await ConsumeFromDls(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
-        await Task.WhenAll(taskForStationConsumption, taskForDlsConsumption);
+        await Task.WhenAll(
+            Consume(options.PartitionKey, options.PartitionNumber, _cancellationTokenSource.Token),
+            ConsumeFromDls(_cancellationTokenSource.Token)
+        );
     }
 
     /// <summary>
