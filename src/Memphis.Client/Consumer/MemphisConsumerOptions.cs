@@ -19,7 +19,7 @@ public sealed class MemphisConsumerOptions
     public int BatchMaxTimeToWaitMs
     {
         get => _batchMaxTimeToWaitMs;
-        set => _batchMaxTimeToWaitMs =  (value < 1_000) ? 1_000 : value;
+        set => _batchMaxTimeToWaitMs =  (value < 100) ? 100 : value;
     }
     public int MaxAckTimeMs { get; set; } = 30_000;
     public int MaxMsgDeliveries { get; set; } = 2;

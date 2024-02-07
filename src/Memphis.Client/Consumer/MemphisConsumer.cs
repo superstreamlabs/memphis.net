@@ -195,7 +195,6 @@ public sealed class MemphisConsumer : IMemphisConsumer
     internal IEnumerable<MemphisMessage> Fetch(FetchMessageOptions fetchMessageOptions)
     {
         MemphisClient.EnsureBatchSizeIsValid(fetchMessageOptions.BatchSize);
-
         try
         {
             var batchSize = fetchMessageOptions.BatchSize;
