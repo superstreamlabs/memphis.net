@@ -22,7 +22,7 @@
       <PackageReference Include="GraphQL" Version="7.2.1" />
       <PackageReference Include="GraphQL.SystemTextJson" Version="7.2.1" />
       <PackageReference Include="murmurhash" Version="1.0.3" />
-      <ProjectReference Include="..\NATS.Client\NATS.Client.csproj" /> <!-- NATS 1.1.0 -->
+      <!-- <ProjectReference Include="..\NATS.Client\NATS.Client.csproj" /> NATS 1.1.0 -->
       <PackageReference Include="NJsonSchema" Version="10.8.0" />
       <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.1.1">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -30,6 +30,21 @@
       </PackageReference>
       <PackageReference Include="ProtoBufEval" Version="0.1.5" />
     </ItemGroup>
+
+  <!-- Deps-->
+    <!-- <ItemGroup Condition="$(TargetFramework) == 'netstandard1.6'">
+      <PackageReference Include="System.Net.Security" Version="4.3.2" />
+      <PackageReference Include="System.Reflection.Extensions" Version="4.3.0" />
+      <PackageReference Include="System.Runtime" Version="4.3.1" />
+      <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
+    </ItemGroup>
+  
+    <ItemGroup Condition="$(TargetFramework) == 'netstandard1.6' Or $(TargetFramework) == 'net46'">
+      <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
+      <PackageReference Include="System.Net.Http" Version="4.3.4" />
+      <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+    </ItemGroup> -->
+    <!--Deps-->
 
     <ItemGroup>
         <!-- Make assembly visible to test assembly -->
