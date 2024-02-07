@@ -19,7 +19,7 @@ public sealed class FetchMessageOptions
     public int BatchMaxTimeToWaitMs
     {
         get => _batchMaxTimeToWaitMs;
-        set =>_batchMaxTimeToWaitMs = (value < 1000) ? 1000 : value;
+        set =>_batchMaxTimeToWaitMs = (value < 100) ? 100 : value;
     }
 
     public int MaxAckTimeMs { get; set; } = 30_000;
