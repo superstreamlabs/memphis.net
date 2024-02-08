@@ -37,16 +37,10 @@ internal sealed class StationPartitionResolver
         try
         {
             _semaphore.Wait();
-            if (_type == StationPartitionResolverType.Producer)
-            {
-                var partition = _partitions[_current];
-                _current = (_current + 1) % _partitionCount;
-                return partition;
-            }
-        
-            var consumerPartition = _current;
+
+            var partition = _partitions[_current];
             _current = (_current + 1) % _partitionCount;
-            return consumerPartition;
+            return partition;
         }
         finally
         {

@@ -11,7 +11,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
     private ISyncSubscription _dlsSubscription;
     private readonly MemphisClient _memphisClient;
     private readonly MemphisConsumerOptions _consumerOptions;
-    private IConsumerContext[] _consumerContexts;
+    private ConcurrentDictionary<int, IConsumerContext> _consumerContexts;
     private ConcurrentQueue<MemphisMessage> _dlsMessages;
     private readonly CancellationTokenSource _cancellationTokenSource;
     private bool _subscriptionActive;
@@ -78,16 +78,19 @@ public sealed class MemphisConsumer : IMemphisConsumer
         if (Partitions.Length == 0)
         {
             var consumer = _memphisClient.GetConsumerContext(internalSubjectName, durableName);
-            _consumerContexts = new IConsumerContext[] { consumer };
+            _consumerContexts = new ConcurrentDictionary<int, IConsumerContext>
+            {
+                [1] = consumer
+            };
             return;
         }
 
-        _consumerContexts = new IConsumerContext[Partitions.Length];
+        _consumerContexts = new ConcurrentDictionary<int, IConsumerContext>();
         for (int i = 0; i < Partitions.Length; i++)
         {
             var consumerStreamName = $"{internalSubjectName}${Partitions[i]}";
             var consumer = _memphisClient.GetConsumerContext(consumerStreamName, durableName);
-            _consumerContexts[i] = consumer;
+            _consumerContexts.AddOrUpdate(Partitions[i], consumer, (_, _) => consumer);
         }
     }
 
@@ -291,7 +294,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
         while (!cancellationToken.IsCancellationRequested)
         {
 
-            foreach (var consumerContext in _consumerContexts)
+            foreach (var consumerContext in _consumerContexts.Values)
             {
                 try
                 {
@@ -349,30 +352,14 @@ public sealed class MemphisConsumer : IMemphisConsumer
             partitionNumber = consumerPartitionNumber;
         }
 
-        partitionNumber = NormalizePartitionNumber(partitionNumber);
-        var consumer = _consumerContexts[partitionNumber];
+        _consumerContexts.TryGetValue(partitionNumber, out IConsumerContext consumer);
+            
         return consumer.FetchMessages(new FetchOptions(
             _memphisClient,
             InternalStationName,
             _consumerOptions,
             consumerPartitionNumber
         ));
-
-        /// <summary>
-        /// Normalize partition number to 0-based index
-        /// </summary>
-        /// <param name="partitionNumber">partition number</param>
-        /// <returns>0-based index</returns>
-        /// <remarks>
-        /// If partition number is less than or equal to 0, it will be returned as is.
-        /// If partition number is greater than 0, it will be decremented by 1.Memphis partition number starts from 1. But in the consumer, it should be 0-based index because it is used as an index of the consumer context array.
-        /// </remarks>
-        static int NormalizePartitionNumber(int partitionNumber)
-        {
-            if(partitionNumber <= 0)
-                return partitionNumber;
-            return partitionNumber - 1;
-        }
     }
 
     /// <summary>
@@ -404,8 +391,8 @@ public sealed class MemphisConsumer : IMemphisConsumer
         CancellationToken cancellationToken
     )
     {
-        var partitionNumber = 0;
-        if (_consumerContexts is { Length: > 1 })
+        var partitionNumber = 1;
+        if (_consumerContexts is { Count: > 1 })
         {
             if (!string.IsNullOrWhiteSpace(partitionKey) && consumerPartitionNumber > 0)
             {
@@ -425,8 +412,7 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 partitionNumber = PartitionResolver.Resolve();
             }
         }
-        var consumerContext = _consumerContexts[partitionNumber];
-
+        _consumerContexts.TryGetValue(partitionNumber, out IConsumerContext consumerContext);
         try
         {
             var memphisMessages = consumerContext.FetchMessages(new FetchOptions(
@@ -492,15 +478,31 @@ public sealed class MemphisConsumer : IMemphisConsumer
                 }
 
                 var memphisMessageList = new List<MemphisMessage> { memphisMsg };
-
-                var consumerContext = Partitions.Length == 0 ? _consumerContexts[0] : _consumerContexts[PartitionResolver.Resolve()];
+                IConsumerContext consumerContext;
+                if(Partitions.Length == 0)
+                {
+                    _consumerContexts.TryGetValue(0, out consumerContext);
+                }
+                else
+                {
+                    _consumerContexts.TryGetValue(PartitionResolver.Resolve(), out consumerContext);
+                }
                 DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(memphisMessageList, consumerContext, null));
 
                 await Task.Delay(_consumerOptions.PullIntervalMs, cancellationToken);
             }
             catch (System.Exception e)
             {
-                var consumerContext = Partitions.Length == 0 ? _consumerContexts[0] : _consumerContexts[PartitionResolver.Resolve()];
+                IConsumerContext consumerContext;
+                if(Partitions.Length == 0)
+                {
+                    _consumerContexts.TryGetValue(0, out consumerContext);
+                }
+                else
+                {
+                    _consumerContexts.TryGetValue(PartitionResolver.Resolve(), out consumerContext);
+                }
+
                 DlsMessageReceived?.Invoke(this, new MemphisMessageHandlerEventArgs(new List<MemphisMessage>(), consumerContext, e));
             }
 
