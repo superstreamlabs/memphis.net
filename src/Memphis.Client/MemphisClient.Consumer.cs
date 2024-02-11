@@ -74,14 +74,24 @@ public partial class MemphisClient
                 throw new MemphisException(responseStr);
             }
 
-            var consumer = new MemphisConsumer(this, consumerOptions, createConsumerResponse.PartitionsUpdate.PartitionsList);
-            _consumerCache.AddOrUpdate(consumer.Key, consumer, (_, _) => consumer);
-
             if(createConsumerResponse is { PartitionsUpdate: { } partitionsUpdate })
             {
                 _stationPartitions.AddOrUpdate(consumerOptions.StationName, partitionsUpdate, (_, _) => partitionsUpdate);
             }
+            var consumer = new MemphisConsumer(this, consumerOptions, createConsumerResponse.PartitionsUpdate.PartitionsList);
+            if(_stationPartitions.TryGetValue(consumerOptions.StationName, out PartitionsUpdate pu))
+            {
+                if(pu.PartitionsList == null)
+                {
+                    consumer.PartitionResolver = new(1);
+                }
+                else
+                {
+                    consumer.PartitionResolver = new(pu.PartitionsList);
+                }
+            }
 
+            _consumerCache.AddOrUpdate(consumer.Key, consumer, (_, _) => consumer);
             await ListenForSchemaUpdate(consumerOptions.StationName);
 
             return consumer;
