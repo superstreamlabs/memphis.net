@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <PackageId>Memphis.Client</PackageId>
-        <Version>0.7.5</Version>
+        <Version>0.7.6</Version>
         <Authors>Memphis.dev team</Authors>
         <Company>Memphis.dev</Company>
         <PackageTags>Memphis, client</PackageTags>
@@ -14,7 +14,7 @@
         <PackageIcon>Icon.png</PackageIcon>
         <Description>Memphis.Client SDK intended to make easy integration of Memphis into .NET projects</Description>
         <EnablePackageValidation>false</EnablePackageValidation>
-        <PackageValidationBaselineVersion>0.7.5</PackageValidationBaselineVersion>
+        <PackageValidationBaselineVersion>0.7.6</PackageValidationBaselineVersion>
     </PropertyGroup>
 
     <ItemGroup>
