@@ -65,7 +65,7 @@ func handleProtoBufEval(context context.Context) {
 	if err != nil {
 		return
 	}
-	descriptor, err := compileDescriptor(schemaVersion, schemaName)
+	descriptor, err := compileActiveSchemaDescriptor(schemaVersion, schemaName)
 	if err != nil {
 		return
 	}
@@ -105,7 +105,7 @@ func unmarshalSchemaVersion(base64SchemaVersion string) (SchemaVersion, error) {
 	return schemaVersion, nil
 }
 
-func compileDescriptor(activeVersion SchemaVersion, schemaName string) (protoreflect.MessageDescriptor, error) {
+func compileActiveSchemaDescriptor(activeVersion SchemaVersion, schemaName string) (protoreflect.MessageDescriptor, error) {
 	descriptorSet := descriptorpb.FileDescriptorSet{}
 	descriptorBytes, err := base64.StdEncoding.DecodeString(activeVersion.Descriptor)
 	if err != nil {
