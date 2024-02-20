@@ -6,7 +6,6 @@ package cmd
 import (
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 
@@ -66,7 +65,37 @@ func terminate(err error) {
 	}
 }
 
+func compileMsgDescriptor(desc []byte, MasterMsgName, fileName string) (protoreflect.MessageDescriptor, error) {
+	descriptorSet := descriptorpb.FileDescriptorSet{}
+	err := proto.Unmarshal(desc, &descriptorSet)
+	if err != nil {
+		return nil, err
+	}
+
+	localRegistry, err := protodesc.NewFiles(&descriptorSet)
+	if err != nil {
+		return nil, err
+	}
+
+	fileDesc, err := localRegistry.FindFileByPath(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	msgsDesc := fileDesc.Messages()
+	return msgsDesc.ByName(protoreflect.Name(MasterMsgName)), nil
+}
+
 func compileDescriptor(desc64 string, masterMsgName string, fileName string) (protoreflect.MessageDescriptor, error) {
+	dbytes, err := base64.StdEncoding.DecodeString(desc64)
+	if err != nil {
+		return nil, err
+	}
+	return compileMsgDescriptor(dbytes, masterMsgName, fileName)
+}
+
+// deprecated
+func compileDescriptorOld(desc64 string, masterMsgName string, fileName string) (protoreflect.MessageDescriptor, error) {
 	descriptorSet := descriptorpb.FileDescriptorSet{}
 	dbytes, err := base64.StdEncoding.DecodeString(desc64)
 	if err != nil {
@@ -82,7 +111,8 @@ func compileDescriptor(desc64 string, masterMsgName string, fileName string) (pr
 		return nil, err
 	}
 
-	filePath := fmt.Sprintf("%v.proto", fileName)
+	// filePath := fmt.Sprintf("%v.proto", fileName)
+	filePath := fileName
 	fileDesc, err := localRegistry.FindFileByPath(filePath)
 	if err != nil {
 		return nil, err
