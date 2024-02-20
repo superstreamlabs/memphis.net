@@ -49,7 +49,7 @@ file class CmdArgs
         return new[]{
             "compile",
             "--desc", Descriptor,
-            "--name", MessageName,
+            "--mname", MessageName,
             "--fname", FileName
         };
     }
