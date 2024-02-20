@@ -13,7 +13,7 @@ import (
 
 func init() {
 	cmd := cobra.Command{
-		Use:     "j2p --payload=payload --schema=schema --schema-name=schema-name",
+		Use:     "conv --payload=payload --schema=schema --schema-name=schema-name",
 		Aliases: []string{"c"},
 		Short:   "Json to proto-buf",
 		Args:    cobra.MaximumNArgs(0),
@@ -40,7 +40,7 @@ func handleConvertToProtoBuf(context context.Context) {
 	if err != nil {
 		return
 	}
-	descriptor, err := compileDescriptor(schemaVersion, schemaName)
+	descriptor, err := compileActiveSchemaDescriptor(schemaVersion, schemaName)
 	if err != nil {
 		return
 	}

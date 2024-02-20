@@ -108,7 +108,7 @@ public static class ProtoBufValidator
     {
         var result = await Cli.Wrap(_nativeBinary)
             .WithArguments(new[] {
-                "j2p",
+                "conv",
                 "--payload",json64,
                 "--schema", activeSchemaVersionBase64,
                 "--schema-name", schemaName,
