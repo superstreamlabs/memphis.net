@@ -131,7 +131,8 @@ func protoToJson(m []byte, desc protoreflect.MessageDescriptor) ([]byte, error) 
 		return nil, err
 	}
 
-	jsonBytes, err := protojson.Marshal(newMsg)
+	jsonBytes, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(newMsg)
+	// jsonBytes, err := protojson.Marshal(newMsg)
 	if err != nil {
 		return nil, err
 	}
